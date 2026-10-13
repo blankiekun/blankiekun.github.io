@@ -185,3 +185,66 @@
 .dt-digital { text-align: center; height: auto; font-variant-numeric: tabular-nums; }
 .dt-tz p { margin: 0 0 6px; }
 @media (max-width: 420px) { .dt-grid { grid-template-columns: 1fr; } }
+
+/* ---------- Minesweeper ---------- */
+.ms-wrap { display: flex; flex-direction: column; }
+.ms { background: #c0c0c0; padding: 6px; box-shadow: inset 3px 3px #fff; display: flex; flex-direction: column; gap: 6px; align-items: stretch; touch-action: none; user-select: none; }
+.ms-top { display: flex; align-items: center; justify-content: space-between; padding: 4px 5px; box-shadow: inset 2px 2px #808080, inset -2px -2px #fff; }
+.ms-led { background: #000; box-shadow: inset 1px 1px #808080, inset -1px -1px #fff; padding: 1px; line-height: 0; }
+.ms-face { width: 26px; height: 26px; border: 0; padding: 0; background: #c0c0c0 center / 17px 17px no-repeat; box-shadow: 0 0 0 1px #808080, inset -2px -2px #808080, inset 2px 2px #fff; cursor: default; }
+.ms-face:active { box-shadow: 0 0 0 1px #808080, inset 1px 1px #808080; background-position: calc(50% + 1px) calc(50% + 1px); }
+.ms-face.smile { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' shape-rendering='crispEdges'%3E%3Ccircle cx='8.5' cy='8.5' r='7.5' fill='%23ff0' stroke='%23000'/%3E%3Cpath d='M5 6h2v2H5zM10 6h2v2h-2z'/%3E%3Cpath d='M5 11h1v1h5v-1h1v1h-1v1H6v-1H5z'/%3E%3C/svg%3E"); }
+.ms-face.ooh { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' shape-rendering='crispEdges'%3E%3Ccircle cx='8.5' cy='8.5' r='7.5' fill='%23ff0' stroke='%23000'/%3E%3Cpath d='M5 6h2v2H5zM10 6h2v2h-2z'/%3E%3Cpath d='M7 10h3v3H7z'/%3E%3Cpath fill='%23ff0' d='M8 11h1v1H8z'/%3E%3C/svg%3E"); }
+.ms-face.dead { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' shape-rendering='crispEdges'%3E%3Ccircle cx='8.5' cy='8.5' r='7.5' fill='%23ff0' stroke='%23000'/%3E%3Cpath d='M4.5 5.5l3 3M7.5 5.5l-3 3M9.5 5.5l3 3M12.5 5.5l-3 3' stroke='%23000' fill='none'/%3E%3Cpath d='M6 11h5v1h1v1h-1v-1H6v1H5v-1h1z'/%3E%3C/svg%3E"); }
+.ms-face.cool { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17' shape-rendering='crispEdges'%3E%3Ccircle cx='8.5' cy='8.5' r='7.5' fill='%23ff0' stroke='%23000'/%3E%3Cpath d='M3 6h11v1H3zM4 6h4v3H4zM9 6h4v3H9z'/%3E%3Cpath d='M5 11h1v1h5v-1h1v1h-1v1H6v-1H5z'/%3E%3C/svg%3E"); }
+.ms-board { display: grid; box-shadow: inset 3px 3px #808080, inset -3px -3px #fff; padding: 3px; justify-content: start; width: max-content; }
+.ms-board:focus-visible { outline: 1px dotted #000; }
+.ms-board .c { width: 16px; height: 16px; background: #c0c0c0 center no-repeat; box-shadow: inset -2px -2px #808080, inset 2px 2px #fff; font: bold 13px/16px Tahoma, Verdana, Arial, sans-serif; text-align: center; cursor: default; }
+.ms-board .c.o, .ms-board .c.down { box-shadow: inset 1px 1px #808080; }
+.ms-board .c.f { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath fill='%23f00' d='M7 3h2v1H7zM5 4h4v1H5zM4 5h5v1H4zM5 6h4v1H5zM7 7h2v1H7z'/%3E%3Cpath d='M8 8h1v2H8zM6 10h4v1H6zM4 11h8v2H4z'/%3E%3C/svg%3E"); }
+.ms-board .c.q::after { content: "?"; color: #000; }
+.ms-board .c.m { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath d='M7 2h1v13H7zM1 8h13v1H1zM3 4h1v1H3zM11 4h1v1h-1zM3 12h1v1H3zM11 12h1v1h-1zM5 4h5v1h1v1h1v5h-1v1h-1v1H5v-1H4v-1H3V6h1V5h1z'/%3E%3Cpath fill='%23fff' d='M5 6h2v2H5z'/%3E%3C/svg%3E"); }
+.ms-board .c.m.hit { background-color: #f00; }
+.ms-board .c.m.wrong { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath d='M7 2h1v13H7zM1 8h13v1H1zM3 4h1v1H3zM11 4h1v1h-1zM3 12h1v1H3zM11 12h1v1h-1zM5 4h5v1h1v1h1v5h-1v1h-1v1H5v-1H4v-1H3V6h1V5h1z'/%3E%3Cpath fill='%23fff' d='M5 6h2v2H5z'/%3E%3Cpath d='M1.5 2.5l12 12M13.5 2.5l-12 12' stroke='%23f00' stroke-width='1.6' shape-rendering='auto'/%3E%3C/svg%3E"); }
+.ms-board .c.n1 { color: #0000ff; } .ms-board .c.n2 { color: #008000; } .ms-board .c.n3 { color: #ff0000; } .ms-board .c.n4 { color: #000080; }
+.ms-board .c.n5 { color: #800000; } .ms-board .c.n6 { color: #008080; } .ms-board .c.n7 { color: #000000; } .ms-board .c.n8 { color: #808080; }
+.ms.mono { filter: grayscale(1); }
+.ms-best td { padding: 2px 10px 2px 0; }
+.ms-best .num { font-variant-numeric: tabular-nums; }
+.ms-cfs { display: flex; flex-direction: column; gap: 8px; }
+.ms-cf { display: grid; grid-template-columns: 60px 70px; align-items: center; }
+.win.max .ms-wrap { align-items: center; overflow: auto; }
+
+/* ---------- Solitaire ---------- */
+.sol { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.sol-board { position: relative; flex: 1; min-height: 0; overflow: auto; background: #008000; touch-action: none; user-select: none; box-shadow: var(--thin-in); }
+.sol-board:focus-visible { outline: none; }
+.sol .statusbar > :nth-child(n+2) { flex: none; width: 92px; font-variant-numeric: tabular-nums; }
+.sol-spacer { position: absolute; left: 0; width: 1px; height: 1px; }
+.sol-slot { position: absolute; width: var(--cw); height: var(--ch); border: 1px solid #004000; border-radius: 4px; box-shadow: 1px 1px #00a000 inset, -1px -1px #00a000; }
+.sol-slot.stock::after { content: ""; position: absolute; inset: 22% 18%; border: max(3px, calc(var(--cw) * .08)) solid #00c000; border-radius: 50%; }
+.sol-slot.stock.done::after { border: 0; border-radius: 0; inset: 20%; background: linear-gradient(45deg, transparent 42%, #ff0000 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, #ff0000 42% 58%, transparent 58%); }
+.cd { position: absolute; width: var(--cw); height: var(--ch); border-radius: 4px; background: #fff; box-shadow: inset 0 0 0 1px #000; cursor: default; }
+.sol-board.dragging .cd { pointer-events: none; }
+.cd-front { display: none; position: absolute; inset: 0; color: #000; font-family: Arial, Helvetica, sans-serif; }
+.cd-front.red { color: #e00000; }
+.cd.up .cd-front { display: block; }
+.cd.up .cd-back { display: none; }
+.cd-corner { position: absolute; display: flex; flex-direction: column; align-items: center; line-height: .95; font-size: calc(var(--cw) * .19); }
+.cd-corner b { font-weight: bold; letter-spacing: -.06em; }
+.cd-corner i { font-style: normal; }
+.cd-corner.tl { left: 3px; top: 3px; }
+.cd-corner.br { right: 3px; bottom: 3px; transform: rotate(180deg); }
+.cd-mid { position: absolute; inset: 9% 22%; }
+.cd-pip { position: absolute; transform: translate(-50%, -50%); font-size: calc(var(--cw) * .22); line-height: 1; }
+.cd-pip.flip { transform: translate(-50%, -50%) rotate(180deg); }
+.cd-pip.ace { font-size: calc(var(--cw) * .55); }
+.cd-court { position: absolute; inset: 4% -6%; border: 1px solid currentColor; background: repeating-linear-gradient(135deg, #fff6c8 0 3px, #ffe680 3px 6px); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 2px 0; }
+.cd-court b { font: bold calc(var(--cw) * .26)/1 Georgia, "Times New Roman", serif; }
+.cd-court b.flip { transform: rotate(180deg); }
+.cd-court i { font-style: normal; font-size: calc(var(--cw) * .36); line-height: 1; }
+.cd-back { position: absolute; inset: 3px; border-radius: 2px; box-shadow: 0 0 0 1px #000; }
+[data-back="weave"] .cd-back { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .45) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(255, 255, 255, .45) 0 1px, transparent 1px 4px), #0000a8; }
+[data-back="bricks"] .cd-back { background: repeating-linear-gradient(0deg, #ffd0d0 0 1px, transparent 1px 6px), repeating-linear-gradient(90deg, #ffd0d0 0 1px, transparent 1px 10px), #b00000; }
+[data-back="fish"] .cd-back { background: radial-gradient(circle at 30% 30%, #9ff 0 1.5px, transparent 2.5px) 0 0 / 9px 9px, radial-gradient(circle at 70% 60%, #6cf 0 1px, transparent 2px) 0 0 / 13px 13px, linear-gradient(#0090c0, #003060); }
+.sol-fx { position: absolute; z-index: 5000; }
