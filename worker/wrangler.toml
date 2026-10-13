@@ -1,0 +1,13 @@
+name = "blankiekun95-send"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+[vars]
+# Sites allowed to send. Add http://localhost:8000 (or similar) while testing locally.
+ALLOWED_ORIGINS = "https://blankiekun.github.io"
+
+# At most 3 messages per visitor IP per minute.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1995"
+simple = { limit = 3, period = 60 }

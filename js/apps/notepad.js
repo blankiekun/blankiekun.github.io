@@ -5,10 +5,13 @@ import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
 import { walk } from '../fs.js';
+import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
 
 function open(arg) {
   let name = arg && arg.name ? arg.name : 'Untitled';
   let saved = arg && arg.text != null ? arg.text : '';
+  // Only notes the visitor writes get a Send button, not README.TXT and the other files on disk.
+  let own = !(arg && arg.text);
   let wrap = true;
   let lastFind = '';
 
@@ -29,7 +32,7 @@ function open(arg) {
     download(file === 'Untitled.txt' ? 'Untitled.txt' : file, new Blob([ta.value.replace(/\n/g, '\r\n')], { type: 'text/plain' }));
     saved = ta.value;
   }
-  function load(n, t) { name = n; saved = t; ta.value = t; win.setTitle(title()); ta.setSelectionRange(0, 0); ta.scrollTop = 0; }
+  function load(n, t) { name = n; saved = t; ta.value = t; own = t === ''; syncSend(); win.setTitle(title()); ta.setSelectionRange(0, 0); ta.scrollTop = 0; }
   async function openDialog() {
     if (!(await confirmSave())) return;
     const files = [];
@@ -67,11 +70,19 @@ function open(arg) {
     ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end');
   }
 
+  function sendNote() {
+    const t = ta.value;
+    if (!t.trim()) { msgbox({ title: 'Notepad', icon: 'info', parent: win, text: 'There is nothing to send yet. Type a note first!' }); return; }
+    if (t.length > 2000) { msgbox({ title: 'Notepad', icon: 'warn', parent: win, text: `Notes can be up to 2,000 characters. This one has ${t.length.toLocaleString('en-US')}.` }); return; }
+    sendDialog({ kind: 'note', parent: win, text: t });
+  }
+
   const bar = menubar([
     { label: '&File', items: () => [
       { label: '&New', action: async () => { if (await confirmSave()) load('Untitled', ''); } },
       { label: '&Open...', action: openDialog },
       { label: '&Save', action: save },
+      ...(sendEnabled() && own ? [{ label: 'S&end to blankiekun...', icon: 'i-mail', action: sendNote }] : []),
       { label: 'Save &As...', action: async () => { const v = await inputbox({ title: 'Save As', label: 'File name:', value: name, parent: win, ok: 'Save' }); if (v) { name = v; win.setTitle(title()); save(); } } },
       '-',
       { label: '&Print', action: () => { const w = window.open('', '_blank'); if (w) { w.document.write('<pre>' + ta.value.replace(/</g, '&lt;') + '</pre>'); w.print(); } } },
@@ -106,11 +117,22 @@ function open(arg) {
     if (e.key === 'F3') { e.preventDefault(); findNext(); }
   });
 
+  const root = h('div', { class: 'np' }, bar, ta);
+  let sendBtn = null, foot = null;
+  if (sendEnabled()) {
+    sendBtn = sendButton('Send to blankiekun...', sendNote);
+    foot = h('div', { class: 'np-foot' }, h('span', null, 'Wrote something? Send it to blankiekun.'), sendBtn);
+    root.append(foot);
+  }
+  function syncSend() { if (foot) foot.hidden = !own; }
+  syncSend();
+
   const win = createWindow({
-    app: 'notepad', title: title(), icon: 'i-notepad', body: h('div', { class: 'np' }, bar, ta),
+    app: 'notepad', title: title(), icon: 'i-notepad', body: root,
     width: 560, height: 420, minW: 200, minH: 120,
     route: 'notepad', autofocus: 'textarea', onClose: confirmSave,
   });
+  if (sendBtn) tipLater(sendBtn, root, 'notepad', 'Send your note to blankiekun with this button.', () => own && dirty() && ta.value.trim().length > 15);
   ta.focus();
   ta.setSelectionRange(0, 0);
   return win;

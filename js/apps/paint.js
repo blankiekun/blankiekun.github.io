@@ -5,6 +5,7 @@ import { h, clamp, download } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
+import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
 
 const PALETTE = [
   '#000000', '#808080', '#800000', '#808000', '#008000', '#008080', '#000080', '#800080', '#808040', '#004040', '#0080ff', '#004080', '#8000ff', '#804000',
@@ -34,6 +35,7 @@ function open() {
   const size = { brush: 2, eraser: 6, line: 1, airbrush: 8 };
   let fillMode = 'outline';
   const undoStack = [];
+  let drew = false;
 
   const canvas = h('canvas', { class: 'pt-canvas', width: W, height: H, 'aria-label': 'Drawing' });
   const overlay = h('canvas', { class: 'pt-overlay', width: W, height: H, 'aria-hidden': 'true' });
@@ -226,6 +228,7 @@ function open() {
       return;
     }
     pushUndo();
+    drew = true;
     if (tool === 'fill') { if (x >= 0 && y >= 0 && x < W && y < H) flood(x, y, main); return; }
     stroke = { x0: x, y0: y, lx: x, ly: y, main, other, id: e.pointerId };
     ctx.fillStyle = tool === 'eraser' ? bg : main;
@@ -331,6 +334,7 @@ function open() {
       } },
       { label: '&Open...', key: 'Ctrl+O', action: () => fileIn.click() },
       { label: '&Save', key: 'Ctrl+S', action: save },
+      ...(sendEnabled() ? ['-', { label: 'S&end to blankiekun...', icon: 'i-mail', action: sendDrawing }] : []),
       '-',
       { label: 'E&xit', action: () => win.close() },
     ] },
@@ -361,11 +365,28 @@ function open() {
     ] },
   ]);
 
+  function sendDrawing() {
+    const d = ctx.getImageData(0, 0, W, H).data;
+    let blank = true;
+    for (let i = 4; i < d.length && blank; i += 4) if (d[i] !== d[0] || d[i + 1] !== d[1] || d[i + 2] !== d[2]) blank = false;
+    if (blank) { msgbox({ title: 'Paint', icon: 'info', parent: win, text: 'The picture is empty. Draw something first!' }); return; }
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      if (blob.size > 1_500_000) { msgbox({ title: 'Paint', icon: 'warn', parent: win, text: 'This picture is too big to send. Make it smaller with Image > Attributes.' }); return; }
+      sendDialog({ kind: 'drawing', parent: win, blob });
+    }, 'image/png');
+  }
+
   function save() {
     canvas.toBlob(b => b && download('untitled.png', b), 'image/png');
   }
 
   const root = h('div', { class: 'pt' }, bar, h('div', { class: 'pt-main' }, toolbox, area), colorbox, status, fileIn);
+  if (sendEnabled()) {
+    const btn = sendButton('Send to blankiekun...', sendDrawing);
+    colorbox.append(btn);
+    tipLater(btn, root, 'paint', 'Send your drawing to blankiekun with this button.', () => drew);
+  }
   root.addEventListener('keydown', e => {
     if (!(e.ctrlKey || e.metaKey)) return;
     const k = e.key.toLowerCase();

@@ -5,6 +5,7 @@ import { createWindow, launch } from '../wm.js';
 import { about } from '../dialogs.js';
 import { walk, kindLabel, sizeLabel } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
+import { sendEnabled } from '../send.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 
@@ -93,6 +94,7 @@ const TOPICS = [
     ['Open a program', `<p>Double-click its icon on the desktop. On a touch screen, tap it once.</p><p>Or click <b>Start</b> and choose it from the menu. If you know its name, click <b>Start</b>, click <b>Run</b>, and type it (try <code>winmine</code>, <code>notepad</code> or <code>command</code>).</p>`],
     ['Move or resize a window', `<p>Drag the window's title bar. An outline follows the pointer and the window moves when you release the button. Press <b>Esc</b> while dragging to cancel.</p><p>To resize, drag any edge or corner of the window.</p><p>Double-click the title bar to maximize or restore the window.</p>`],
     ['Switch between windows', `<p>Each open window has a button on the taskbar. Click it to bring the window to the front. Click the button of the window that is already in front to minimize it.</p>`],
+    ...(sendEnabled() ? [['Send blankiekun a drawing or note', `<p>Draw something in <b>Paint</b> or write something in <b>Notepad</b>, then click <b>Send to blankiekun...</b> in the bottom-right corner of the window (it's also on the <b>File</b> menu).</p><p>Add your name if you like, tick the "are you human" check, and click <b>Send</b>. It goes to a private channel that only blankiekun reads.</p><p>You can send once a minute.</p>`]] : []),
     ['Change the desktop', `<p>Right-click an empty part of the desktop and click <b>Properties</b>, or click <b>Start</b>, point to <b>Settings</b>, and click <b>Display</b>.</p><p>You can choose a pattern, a wallpaper, a desktop colour, and a colour scheme for windows. Your choices are saved in this browser.</p>`],
   ] },
   { book: 'Games', pages: [
