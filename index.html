@@ -64,7 +64,8 @@ code { font-family: var(--font-dos); font-size: 1.15em; }
   max-width: 1180px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 960px) 96px;
+  justify-content: center;
   gap: 24px;
   align-items: start;
 }
@@ -82,7 +83,8 @@ code { font-family: var(--font-dos); font-size: 1.15em; }
 .icon:hover span, .icon:focus-visible span { background: var(--title); outline: 1px dotted var(--hilite); }
 .icon:focus-visible { outline: none; }
 
-.windows { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.windows { min-width: 0; }
+.empty { color: var(--title-ink); text-align: center; padding-block: 120px; }
 
 /* ---------- window chrome ---------- */
 .win {
@@ -97,7 +99,6 @@ code { font-family: var(--font-dos); font-size: 1.15em; }
   background: var(--title); color: var(--title-ink);
   padding: 3px 3px 3px 4px; min-height: 22px;
 }
-.win:not(:focus-within):not(.active) .titlebar { background: var(--title-off); color: var(--face); }
 .titlebar svg { width: 16px; height: 16px; flex: none; }
 .titlebar h2, .titlebar .t { font: bold 13px/1.2 var(--font-ui); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tbtns { display: flex; gap: 2px; }
@@ -118,7 +119,6 @@ code { font-family: var(--font-dos); font-size: 1.15em; }
 .menubar a:hover, .menubar a:focus-visible { background: var(--title); color: var(--title-ink); outline: none; }
 
 .body { padding: 12px; display: flex; flex-direction: column; gap: 14px; }
-.win.min .menubar, .win.min .body, .win.min .statusbar { display: none; }
 
 .statusbar { display: flex; gap: 2px; padding-top: 2px; }
 .statusbar span { box-shadow: inset 1px 1px var(--shadow), inset -1px -1px var(--hilite); padding: 2px 6px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -149,7 +149,11 @@ fieldset {
 legend { padding: 0 4px; }
 fieldset ul { display: flex; flex-direction: column; gap: 5px; }
 
-.btnrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding-top: 12px; box-shadow: inset 0 1px var(--shadow), inset 0 2px var(--hilite); }
+.btnrow, .wizard { display: flex; flex-wrap: wrap; gap: 6px; }
+.wizard { margin-left: auto; }
+.btn[aria-disabled="true"] { color: var(--shadow); text-shadow: 1px 1px var(--hilite); cursor: default; }
+.btn[aria-disabled="true"]:active { box-shadow: var(--raised); padding: 5px 14px; }
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   min-width: 88px; justify-content: center;
@@ -263,6 +267,9 @@ fieldset ul { display: flex; flex-direction: column; gap: 5px; }
 .startmenu hr { border: 0; height: 2px; margin: 3px 2px; box-shadow: inset 0 1px var(--shadow), inset 0 -1px var(--hilite); }
 
 /* ---------- small screens ---------- */
+@media (max-width: 1200px) {
+  .desktop { grid-template-columns: 96px minmax(0, 960px); }
+}
 @media (max-width: 860px) {
   .cols { grid-template-columns: minmax(0, 1fr); }
 }
@@ -387,10 +394,12 @@ fieldset ul { display: flex; flex-direction: column; gap: 5px; }
           </div>
         </div>
 
-        <div class="btnrow">
-          <a class="btn default" href="#chimimouryou">Next &gt;</a>
+        <div class="actions"><div class="btnrow">
           <a class="btn" href="https://github.com/blankiekun"><svg><use href="#i-github"/></svg>GitHub</a>
-        </div>
+        </div><div class="wizard">
+          <span class="btn" aria-disabled="true">&lt; Back</span>
+          <a class="btn default" href="#chimimouryou">Next &gt;</a>
+        </div></div>
       </div>
     </section>
 
@@ -458,10 +467,13 @@ fieldset ul { display: flex; flex-direction: column; gap: 5px; }
 <b>C:\CHIMIM~1&gt;</b> docker compose up -d
 <b>C:\CHIMIM~1&gt;</b> docker compose exec account ebook-account initial-admin</pre>
 
-        <div class="btnrow">
-          <a class="btn default" href="https://github.com/blankiekun/chimimouryou"><svg><use href="#i-github"/></svg>Open repository</a>
+        <div class="actions"><div class="btnrow">
+          <a class="btn" href="https://github.com/blankiekun/chimimouryou"><svg><use href="#i-github"/></svg>Open repository</a>
           <a class="btn" href="https://github.com/blankiekun/chimimouryou/blob/main/docs/INSTALL.md">Install guide</a>
-        </div>
+        </div><div class="wizard">
+          <a class="btn" href="#welcome">&lt; Back</a>
+          <a class="btn default" href="#convert">Next &gt;</a>
+        </div></div>
       </div>
       <div class="statusbar"><span>Docker images for amd64 and arm64 · ghcr.io/blankiekun/chimimouryou</span><span>Svelte · TypeScript</span></div>
     </section>
@@ -526,9 +538,12 @@ Writing 0.txt, arc.nsa .. ok
           </fieldset>
         </div>
 
-        <div class="btnrow">
-          <a class="btn default" href="https://github.com/blankiekun/conscripter-convert"><svg><use href="#i-github"/></svg>Open repository</a>
-        </div>
+        <div class="actions"><div class="btnrow">
+          <a class="btn" href="https://github.com/blankiekun/conscripter-convert"><svg><use href="#i-github"/></svg>Open repository</a>
+        </div><div class="wizard">
+          <a class="btn" href="#chimimouryou">&lt; Back</a>
+          <a class="btn default" href="#conscripter">Next &gt;</a>
+        </div></div>
       </div>
       <div class="statusbar"><span>Tested with 最果てのイマ COMPLETE (Xuse)</span><span>Rust · GPL-3.0</span></div>
     </section>
@@ -598,14 +613,18 @@ pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
           </div>
         </div>
 
-        <div class="btnrow">
-          <a class="btn default" href="https://github.com/blankiekun/CONscripter/releases"><svg><use href="#i-game"/></svg>Download</a>
+        <div class="actions"><div class="btnrow">
+          <a class="btn" href="https://github.com/blankiekun/CONscripter/releases"><svg><use href="#i-game"/></svg>Download</a>
           <a class="btn" href="https://github.com/blankiekun/CONscripter"><svg><use href="#i-github"/></svg>Repository</a>
-        </div>
+        </div><div class="wizard">
+          <a class="btn" href="#convert">&lt; Back</a>
+          <a class="btn default" href="#welcome">Finish</a>
+        </div></div>
       </div>
       <div class="statusbar"><span>Based on ONScripter, ONScripter-Jh and ONScripter-Yuri</span><span>C++ · GPL-2.0</span></div>
     </section>
 
+    <p class="empty" id="empty" hidden>Click a button on the taskbar to open a window.</p>
   </main>
 </div>
 
@@ -636,39 +655,44 @@ pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
 (() => {
   const wins = [...document.querySelectorAll('.win')];
   const tasks = [...document.querySelectorAll('.task')];
+  const empty = document.getElementById('empty');
+  const ids = wins.map(w => w.id);
 
-  function activate(id) {
-    wins.forEach(w => w.classList.toggle('active', w.id === id));
+  // One window on the desktop at a time; the URL hash says which.
+  function show(id, animate) {
+    wins.forEach(w => { w.hidden = w.id !== id; });
     tasks.forEach(t => t.classList.toggle('on', t.dataset.for === id));
+    empty.hidden = ids.includes(id);
+    const w = document.getElementById(id);
+    if (w && animate) {
+      w.classList.remove('opening'); void w.offsetWidth; w.classList.add('opening');
+    }
+    window.scrollTo(0, 0);
   }
 
-  // Title-bar buttons fold the window down to its title bar.
-  document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => {
-    const w = b.closest('.win');
-    w.classList.toggle('min');
-    activate(w.id);
-  }));
+  function go(id) {
+    if (location.hash === '#' + id) show(id, true);
+    else location.hash = id;
+  }
 
-  // Clicking a window, a desktop icon or a taskbar button brings it forward (and restores it).
-  wins.forEach(w => w.addEventListener('pointerdown', () => activate(w.id)));
-  document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', () => {
-    const w = document.getElementById(a.getAttribute('href').slice(1));
-    if (!w) return;
-    if (w.classList.contains('min')) {
-      w.classList.remove('min');
-      w.classList.add('opening');
-      setTimeout(() => w.classList.remove('opening'), 300);
-    }
-    activate(w.id);
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.slice(1);
+    show(ids.includes(id) ? id : 'welcome', true);
     closeMenu();
+  });
+
+  // Minimize and close leave an empty desktop; the taskbar brings windows back.
+  document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => {
+    history.replaceState(null, '', location.pathname);
+    show('', false);
   }));
 
-  // Highlight the taskbar button of the window in view.
-  const io = new IntersectionObserver(es => {
-    const vis = es.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-    if (vis) activate(vis.target.id);
-  }, { threshold: [0.25, 0.5] });
-  wins.forEach(w => io.observe(w));
+  // A taskbar button for the window already open minimizes it, like Windows does.
+  tasks.forEach(t => t.addEventListener('click', e => {
+    const w = document.getElementById(t.dataset.for);
+    if (!w.hidden) { e.preventDefault(); history.replaceState(null, '', location.pathname); show('', false); }
+    else if (location.hash === '#' + t.dataset.for) { e.preventDefault(); go(t.dataset.for); }
+  }));
 
   // Start menu.
   const start = document.getElementById('start');
@@ -679,8 +703,14 @@ pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
     menu.hidden = !menu.hidden;
     start.setAttribute('aria-expanded', String(!menu.hidden));
   });
+  menu.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault(); closeMenu(); go(a.getAttribute('href').slice(1));
+  }));
   document.addEventListener('click', e => { if (!menu.contains(e.target)) closeMenu(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  const first = location.hash.slice(1);
+  show(ids.includes(first) ? first : 'welcome', false);
 
   // Tray clock.
   const clock = document.getElementById('clock');
