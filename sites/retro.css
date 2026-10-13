@@ -1,0 +1,53 @@
+/* Shared pieces for the 90s homepages: counters, webring, badges, construction signs.
+   Each page sets its own colours and type on top. */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; padding: 12px 16px 24px; font-size: 15px; line-height: 1.45; overflow-wrap: break-word; }
+img { max-width: 100%; height: auto; }
+a:focus-visible { outline: 2px dotted currentColor; outline-offset: 2px; }
+pre { overflow-x: auto; }
+table { border-collapse: collapse; }
+.wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.center { text-align: center; }
+
+marquee, .marquee { display: block; white-space: nowrap; overflow: hidden; }
+
+@keyframes blink { 50% { visibility: hidden; } }
+.blink { animation: blink 1s steps(1) infinite; }
+@media (prefers-reduced-motion: reduce) { .blink { animation: none; } }
+
+hr.rainbow { border: 0; height: 6px; background: linear-gradient(90deg, #f00, #f80, #ff0, #0c0, #00f, #80f, #f0f); margin: 4px 0; }
+hr.groove { border: 0; border-top: 2px groove #c0c0c0; margin: 4px 0; }
+
+.new { display: inline-block; font: bold 11px/1 Arial, sans-serif; color: #ff0; background: #f00; padding: 2px 4px; transform: rotate(-6deg); vertical-align: 2px; margin-left: 4px; }
+
+.construction {
+  display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap;
+  padding: 8px 12px; color: #000; font: bold 14px Arial, sans-serif; text-align: center;
+  background: #ffcc00; border: 4px solid transparent;
+  border-image: repeating-linear-gradient(45deg, #000 0 8px, #ffcc00 8px 16px) 4;
+}
+.construction .man { font-size: 22px; }
+
+.counter { display: inline-flex; gap: 1px; padding: 2px; background: #000; border: 2px inset #808080; vertical-align: middle; }
+.counter span { display: inline-block; width: 13px; text-align: center; font: bold 15px/20px "Courier New", monospace; color: #0f0; background: linear-gradient(#222, #000 50%, #222); }
+
+.webring { border: 3px ridge #c0c0c0; background: #c0c0c0; color: #000; padding: 8px; text-align: center; font: 13px Arial, sans-serif; }
+.webring b { display: block; margin-bottom: 4px; }
+.webring a { color: #000080; }
+.webring nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
+
+.badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.badge { display: inline-flex; flex-direction: column; justify-content: center; align-items: center; width: 88px; height: 31px; font: bold 9px/1.05 Verdana, Arial, sans-serif; text-align: center; text-decoration: none; border: 1px solid #000; overflow: hidden; }
+.badge.ie { background: linear-gradient(#0a2a8a, #2a62d8); color: #fff; }
+.badge.ie b { font: italic bold 14px/1 Georgia, serif; color: #ffd700; }
+.badge.np { background: #fff; color: #000; }
+.badge.gh { background: #000; color: #fff; }
+.badge.res { background: #c0c0c0; color: #000; }
+
+.shot { display: inline-block; border: 2px outset #c0c0c0; background: #c0c0c0; padding: 3px; }
+.shot img { display: block; border: 1px inset #808080; }
+.cap { font-size: 12px; margin-top: 3px; }
+
+.btn3d { display: inline-block; padding: 8px 16px; font: bold 15px Arial, sans-serif; text-decoration: none; border: 4px outset; }
+.btn3d:active { border-style: inset; }

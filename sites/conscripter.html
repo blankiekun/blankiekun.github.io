@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CONscripter - Play Visual Novels Everywhere!</title>
+<link rel="stylesheet" href="retro.css">
+<style>
+/* A game fansite from the TimesSquare/Arcade neighbourhood: purple checkerboard, glowing headings, a big download button. */
+body {
+  color: #fff; font: 15px/1.5 Arial, Helvetica, sans-serif;
+  background-color: #1a0033;
+  background-image: repeating-conic-gradient(#24004a 0 25%, #1a0033 0 50%);
+  background-size: 40px 40px;
+}
+a { color: #66ffff; } a:visited { color: #ff99ff; }
+.logo { text-align: center; }
+.logo h1 {
+  margin: 0; font: italic 900 clamp(34px, 9vw, 64px)/1 Impact, "Arial Black", sans-serif; letter-spacing: .02em;
+  color: #ffff00; text-shadow: 3px 3px 0 #ff00ff, 6px 6px 0 #00ffff;
+}
+.logo p { margin: 6px 0 0; color: #ff99ff; font-weight: bold; }
+.panel { background: #000; border: 4px ridge #9933ff; padding: 12px; }
+h2 { margin: 0 0 8px; font: bold 22px Arial, sans-serif; color: #00ffff; text-shadow: 0 0 8px #00ffff; text-transform: uppercase; letter-spacing: .04em; }
+p { margin: 0 0 8px; } p:last-child { margin: 0; }
+.dl { text-align: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.btn3d { background: #ff0066; color: #ffff00; border-color: #ff66a3 #99003d #99003d #ff66a3; font-size: 18px; text-shadow: 2px 2px 0 #000; }
+.btn3d.alt { background: #6600cc; border-color: #9933ff #330066 #330066 #9933ff; color: #fff; }
+.shots { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.shots .col { display: flex; flex-direction: column; gap: 10px; }
+.shot { color: #000; }
+.cap { color: #ccc; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+pre.code { background: #ffffff; color: #000; border: 2px inset #c0c0c0; padding: 8px; font: 13px/1.45 "Courier New", monospace; margin: 0 0 8px; }
+pre.code i { color: #008000; font-style: normal; }
+table.plat { width: 100%; font-size: 14px; border: 3px outset #9933ff; }
+.plat th, .plat td { border: 2px inset #9933ff; padding: 4px 8px; text-align: left; }
+.plat th { background: #330066; color: #ffff00; }
+.plat tr:nth-child(even) td { background: #14002a; }
+footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+@media (max-width: 600px) {
+  .shots, .cols { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <h1>CONscripter</h1>
+    <p>&#9733; Play NScripter visual novels on the Web, Windows, Linux, macOS, Android and RetroArch! &#9733;</p>
+  </div>
+
+  <div class="panel">
+    <h2>What is it?</h2>
+    <p>An ONScripter engine for playing NScripter visual novels on the web, Windows, Linux, macOS, Android and RetroArch.
+      It is a fork of <a href="https://github.com/YuriSizuku/OnscripterYuri">ONScripter-Yuri</a>, built on SDL2, and the engine behind
+      <a href="chimimouryou.html">chimimouryou</a>'s visual novel player and <a href="convert.html">conscripter-convert</a>'s output.</p>
+  </div>
+
+  <div class="dl">
+    <a class="btn3d" href="https://github.com/blankiekun/CONscripter/releases">&#9660; DOWNLOAD NOW! &#9660;</a>
+    <a class="btn3d alt" href="https://github.com/blankiekun/CONscripter">Repository</a>
+  </div>
+
+  <div class="panel">
+    <h2>Screenshots</h2>
+    <div class="shots">
+      <div><div class="shot"><a href="../img/cons-web.jpg"><img src="../img/cons-web.jpg" width="864" height="646" alt="A visual novel running in the browser with CONscripter's WebAssembly build" loading="lazy"></a></div><div class="cap">The WebAssembly build in a desktop browser</div></div>
+      <div class="col">
+        <div><div class="shot"><a href="../img/cons-phone.jpg"><img src="../img/cons-phone.jpg" width="1400" height="630" alt="A visual novel in a phone browser" loading="lazy"></a></div><div class="cap">Phone browser</div></div>
+        <div><div class="shot"><a href="../img/cons-android.jpg"><img src="../img/cons-android.jpg" width="1400" height="656" alt="CONscripter's Android app" loading="lazy"></a></div><div class="cap">Android</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="panel">
+      <h2>New commands</h2>
+<pre class="code"><i>; night tint on sprite 10</i>
+spfilter 10,1,1,256,148,152,200
+<i>; black silhouette</i>
+spfilter 10,1,0,256,0,0,0
+<i>; run a scene, then put the screen back</i>
+pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
+      <p>Every addition is opt-in. Scripts that don't use them behave exactly as in ONScripter-Yuri, and the extra state is kept in save files.
+        <a href="https://github.com/blankiekun/CONscripter#conscripter-additions">Full list of additions</a></p>
+    </div>
+    <div class="panel">
+      <h2>Platforms</h2>
+      <table class="plat">
+        <thead><tr><th scope="col">Platform</th><th scope="col">Builds</th></tr></thead>
+        <tbody>
+          <tr><td>Web</td><td>WebAssembly, saves in IndexedDB</td></tr>
+          <tr><td>Windows</td><td>x86, x64, ARM64</td></tr>
+          <tr><td>Linux</td><td>x86, x64, arm, aarch64</td></tr>
+          <tr><td>macOS</td><td>x64, arm64</td></tr>
+          <tr><td>Android</td><td>5.1 and later</td></tr>
+          <tr><td>RetroArch</td><td>libretro core</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="rainbow">
+  <footer>
+    <div>Based on ONScripter, ONScripter-Jh and ONScripter-Yuri · C++ · GPL-2.0</div>
+    <div><a href="convert.html">&lt;&lt; conscripter-convert</a> | <a href="home.html">Home</a> | <a href="chimimouryou.html">chimimouryou &gt;&gt;</a></div>
+    <div class="badges">
+      <span class="badge ie"><b>e</b>Best viewed with IE 3.0</span>
+      <span class="badge res">SDL2<br>inside!</span>
+      <a class="badge gh" href="https://github.com/blankiekun/CONscripter/releases">Get it on<br>GitHub</a>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

@@ -3,295 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>blankiekun</title>
+<title>blankiekun 95</title>
 <meta name="description" content="chimimouryou, CONscripter and conscripter-convert: a self-hosted Japanese e-book reader, a visual novel engine for the web, and a converter that brings more games to it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=VT323&display=swap">
-<style>
-/* Layout: a Windows 95 desktop. Desktop icons on the left, project windows stacked
-   on the right, a fixed taskbar along the bottom. Single fixed look, no dark variant. */
-:root {
-  color-scheme: light;
-  --desktop: #008080;
-  --face: #c0c0c0;
-  --light: #dfdfdf;
-  --hilite: #ffffff;
-  --shadow: #808080;
-  --dark: #0a0a0a;
-  --ink: #000000;
-  --title: #000080;
-  --title-off: #808080;
-  --title-ink: #ffffff;
-  --paper: #ffffff;
-  --dos: #000000;
-  --dos-ink: #c0c0c0;
-  --tip: #ffffe1;
-  --link: #000080;
-  --ok: #008000;
-  --part: #808000;
-  --no: #800000;
-
-  --font-ui: Tahoma, "MS Sans Serif", "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
-  --font-pixel: "DotGothic16", "MS Gothic", "Osaka", monospace;
-  --font-dos: "VT323", "Lucida Console", "Courier New", monospace;
-
-  --raised: inset -1px -1px var(--dark), inset 1px 1px var(--hilite), inset -2px -2px var(--shadow), inset 2px 2px var(--light);
-  --sunken: inset -1px -1px var(--hilite), inset 1px 1px var(--shadow), inset -2px -2px var(--light), inset 2px 2px var(--dark);
-  --field: inset -1px -1px var(--hilite), inset 1px 1px var(--shadow), inset -2px -2px var(--light), inset 2px 2px var(--dark);
-}
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-html { background: var(--desktop); }
-body {
-  margin: 0;
-  background: var(--desktop);
-  color: var(--ink);
-  font: 13px/1.5 var(--font-ui);
-  padding-block: 20px calc(60px + env(safe-area-inset-bottom, 0px));
-  padding-inline: 16px;
-}
-a { color: var(--link); }
-a:focus-visible, button:focus-visible, summary:focus-visible { outline: 1px dotted var(--ink); outline-offset: -4px; }
-img { max-width: 100%; display: block; }
-h1, h2, h3 { text-wrap: balance; margin: 0; }
-p { margin: 0; max-width: 68ch; }
-ul { margin: 0; padding-left: 18px; }
-code { font-family: var(--font-dos); font-size: 1.15em; }
-
-/* ---------- desktop ---------- */
-.desktop {
-  max-width: 1180px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 96px minmax(0, 960px) 96px;
-  justify-content: center;
-  gap: 24px;
-  align-items: start;
-}
-.icons {
-  display: flex; flex-direction: column; gap: 18px;
-  position: sticky; top: calc(20px + env(safe-area-inset-top, 0px));
-}
-.icon {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  color: var(--title-ink); text-decoration: none; text-align: center;
-  font-size: 12px; line-height: 1.25; padding: 2px;
-}
-.icon svg { width: 36px; height: 36px; }
-.icon span { padding: 1px 3px; }
-.icon:hover span, .icon:focus-visible span { background: var(--title); outline: 1px dotted var(--hilite); }
-.icon:focus-visible { outline: none; }
-
-.windows { min-width: 0; }
-.empty { color: var(--title-ink); text-align: center; padding-block: 120px; }
-
-/* ---------- window chrome ---------- */
-.win {
-  background: var(--face);
-  box-shadow: var(--raised);
-  padding: 3px;
-  min-width: 0;
-  scroll-margin-top: 16px;
-}
-.titlebar {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--title); color: var(--title-ink);
-  padding: 3px 3px 3px 4px; min-height: 22px;
-}
-.titlebar svg { width: 16px; height: 16px; flex: none; }
-.titlebar h2, .titlebar .t { font: bold 13px/1.2 var(--font-ui); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tbtns { display: flex; gap: 2px; }
-.tbtn {
-  width: 18px; height: 16px; padding: 0;
-  background: var(--face); box-shadow: var(--raised); border: 0;
-  display: grid; place-items: center; cursor: pointer; color: var(--ink);
-}
-.tbtn:active { box-shadow: var(--sunken); }
-.tbtn svg { width: 8px; height: 8px; }
-.tbtn + .tbtn.x { margin-left: 2px; }
-
-.menubar { display: flex; flex-wrap: wrap; gap: 0; padding: 2px 0; }
-.menubar a {
-  color: var(--ink); text-decoration: none; padding: 2px 8px;
-}
-.menubar a::first-letter { text-decoration: underline; }
-.menubar a:hover, .menubar a:focus-visible { background: var(--title); color: var(--title-ink); outline: none; }
-
-.body { padding: 12px; display: flex; flex-direction: column; gap: 14px; }
-
-.statusbar { display: flex; gap: 2px; padding-top: 2px; }
-.statusbar span { box-shadow: inset 1px 1px var(--shadow), inset -1px -1px var(--hilite); padding: 2px 6px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.statusbar span:first-child { flex: 1; min-width: 0; }
-
-/* ---------- content parts ---------- */
-.lede { display: flex; gap: 14px; align-items: flex-start; }
-.lede .big { flex: none; width: 48px; height: 48px; }
-.lede h3 { font: 26px/1.15 var(--font-pixel); margin-bottom: 4px; }
-.lede .kana { font: 15px/1.3 var(--font-pixel); color: var(--shadow); margin-bottom: 6px; }
-
-.cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: start; }
-.cols > * { min-width: 0; }
-
-.frame { background: var(--paper); box-shadow: var(--sunken); padding: 2px; }
-.frame img { width: 100%; height: auto; }
-figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
-figcaption { font-size: 12px; }
-
-.shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.shots.phone-row { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; }
-
-fieldset {
-  border: 0; margin: 0; padding: 14px 10px 10px;
-  box-shadow: inset -1px -1px var(--hilite), inset 1px 1px var(--shadow), inset -2px -2px var(--shadow), inset 2px 2px var(--hilite);
-  min-width: 0;
-}
-legend { padding: 0 4px; }
-fieldset ul { display: flex; flex-direction: column; gap: 5px; }
-
-.actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding-top: 12px; box-shadow: inset 0 1px var(--shadow), inset 0 2px var(--hilite); }
-.btnrow, .wizard { display: flex; flex-wrap: wrap; gap: 6px; }
-.wizard { margin-left: auto; }
-.btn[aria-disabled="true"] { color: var(--shadow); text-shadow: 1px 1px var(--hilite); cursor: default; }
-.btn[aria-disabled="true"]:active { box-shadow: var(--raised); padding: 5px 14px; }
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  min-width: 88px; justify-content: center;
-  padding: 5px 14px; background: var(--face); box-shadow: var(--raised);
-  color: var(--ink); text-decoration: none; border: 0; font: inherit; cursor: pointer;
-}
-.btn.default { box-shadow: inset 0 0 0 1px var(--dark), inset -2px -2px var(--dark), inset 2px 2px var(--hilite), inset -3px -3px var(--shadow), inset 3px 3px var(--light); }
-.btn:active { box-shadow: var(--sunken); padding: 6px 13px 4px 15px; }
-.btn svg { width: 16px; height: 16px; }
-
-.dos {
-  background: var(--dos); color: var(--dos-ink);
-  font: 18px/1.2 var(--font-dos);
-  padding: 10px 12px; box-shadow: var(--sunken);
-  overflow-x: auto; white-space: pre; margin: 0;
-}
-.dos b { color: var(--hilite); font-weight: normal; }
-
-.notepad {
-  background: var(--paper); box-shadow: var(--field);
-  font: 13px/1.45 "Courier New", monospace;
-  padding: 8px 10px; margin: 0; overflow-x: auto; white-space: pre;
-}
-.notepad i { color: var(--shadow); font-style: normal; }
-
-.listview { background: var(--paper); box-shadow: var(--field); padding: 2px; overflow-x: auto; }
-.listview table { border-collapse: collapse; width: 100%; min-width: 420px; }
-.listview th {
-  background: var(--face); box-shadow: var(--raised); font-weight: normal; text-align: left;
-  padding: 2px 6px; white-space: nowrap;
-}
-.listview td { padding: 2px 6px; vertical-align: top; }
-.listview tr:hover td { background: var(--title); color: var(--title-ink); }
-.st { white-space: nowrap; }
-.st::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; box-shadow: inset 0 0 0 1px var(--ink); vertical-align: 0; }
-.st.ok::before { background: var(--ok); }
-.st.part::before { background: var(--part); }
-.st.no::before { background: var(--no); }
-
-/* pipeline diagram */
-.pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; }
-.stage {
-  flex: 1 1 140px; min-width: 0;
-  background: var(--paper); box-shadow: var(--field);
-  padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;
-}
-.stage b { font: 15px/1.2 var(--font-pixel); }
-.stage small { font-size: 12px; color: var(--shadow); }
-.stage a { text-decoration: none; }
-.stage a b { text-decoration: underline; }
-.arrow { flex: none; display: grid; place-items: center; width: 26px; }
-.arrow svg { width: 16px; height: 16px; }
-
-.tip {
-  display: flex; gap: 12px; align-items: flex-start;
-  background: var(--tip); box-shadow: var(--field); padding: 10px 12px;
-}
-.tip svg { width: 32px; height: 32px; flex: none; }
-.tip b { display: block; margin-bottom: 2px; }
-
-/* ---------- taskbar ---------- */
-.taskbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-  background: var(--face);
-  box-shadow: inset 0 1px var(--light), inset 0 2px var(--hilite);
-  padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
-  display: flex; gap: 4px; align-items: center;
-}
-.start {
-  display: flex; align-items: center; gap: 4px;
-  font: bold 13px var(--font-ui); padding: 3px 6px; height: 28px;
-  background: var(--face); box-shadow: var(--raised); border: 0; cursor: pointer; color: var(--ink);
-}
-.start[aria-expanded="true"] { box-shadow: var(--sunken); }
-.start svg { width: 20px; height: 18px; }
-.tasks { flex: 1; min-width: 0; display: flex; gap: 3px; overflow: hidden; }
-.task {
-  flex: 0 1 170px; min-width: 0; height: 28px;
-  display: flex; align-items: center; gap: 4px; padding: 0 6px;
-  background: var(--face); box-shadow: var(--raised); color: var(--ink); text-decoration: none;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px;
-}
-.task svg { width: 16px; height: 16px; flex: none; }
-.task span { overflow: hidden; text-overflow: ellipsis; }
-.task.on { box-shadow: var(--sunken); background: repeating-conic-gradient(var(--face) 0 25%, var(--hilite) 0 50%) 0 0 / 2px 2px; font-weight: bold; }
-.tray {
-  height: 28px; padding: 0 10px; display: flex; align-items: center; gap: 6px;
-  box-shadow: inset 1px 1px var(--shadow), inset -1px -1px var(--hilite);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.tray svg { width: 16px; height: 16px; }
-
-.startmenu {
-  position: fixed; left: 2px; bottom: calc(36px + env(safe-area-inset-bottom, 0px)); z-index: 11;
-  background: var(--face); box-shadow: var(--raised); padding: 3px;
-  display: flex; min-width: 230px;
-}
-.startmenu .side {
-  background: var(--shadow); color: var(--face);
-  writing-mode: vertical-rl; transform: rotate(180deg);
-  font: bold 20px/1 var(--font-ui); padding: 8px 5px; letter-spacing: .02em;
-}
-.startmenu .side b { color: var(--hilite); }
-.startmenu ul { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; }
-.startmenu a {
-  display: flex; align-items: center; gap: 10px; padding: 6px 18px 6px 8px;
-  color: var(--ink); text-decoration: none;
-}
-.startmenu a svg { width: 24px; height: 24px; flex: none; }
-.startmenu a:hover, .startmenu a:focus-visible { background: var(--title); color: var(--title-ink); outline: none; }
-.startmenu hr { border: 0; height: 2px; margin: 3px 2px; box-shadow: inset 0 1px var(--shadow), inset 0 -1px var(--hilite); }
-
-/* ---------- small screens ---------- */
-@media (max-width: 1200px) {
-  .desktop { grid-template-columns: 96px minmax(0, 960px); }
-}
-@media (max-width: 860px) {
-  .cols { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 700px) {
-  body { padding-block-start: 12px; }
-  .desktop { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .icons { position: static; flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
-  .icon { width: 74px; }
-  .shots { grid-template-columns: minmax(0, 1fr); }
-  .shots.phone-row { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
-  .lede .big { display: none; }
-  .tasks .task span { display: none; }
-  .task { flex: 0 0 36px; justify-content: center; }
-  .arrow { width: 100%; height: 22px; }
-  .arrow svg { transform: rotate(90deg); }
-  .stage { flex-basis: 100%; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .win.opening { animation: open .18s steps(4) both; }
-  @keyframes open { from { clip-path: inset(0 100% 100% 0); } to { clip-path: inset(0 0 0 0); } }
-}
-</style>
+<link rel="stylesheet" href="css/win95.css">
+<link rel="stylesheet" href="css/apps.css">
+<script>
+  // Apply saved display settings before first paint so the desktop doesn't flash teal.
+  try {
+    const d = JSON.parse(localStorage.getItem('w95.display') || 'null');
+    if (d && d.vars) for (const [k, v] of Object.entries(d.vars)) document.documentElement.style.setProperty(k, v);
+  } catch {}
+</script>
 </head>
 <body>
 
@@ -301,6 +26,11 @@ fieldset ul { display: flex; flex-direction: column; gap: 5px; }
     <path fill="#800000" d="M2 2h10v12H2z"/><path fill="#ff0000" d="M3 2h9v11H3z"/>
     <path fill="#fff" d="M12 3h2v11H4v-1h8z"/><path fill="#000" d="M2 1h10v1H2zM1 2h1v12H1zM2 14h12v1H2zM14 3h1v11h-1zM12 2h2v1h-2z"/>
     <path fill="#ffff00" d="M5 5h5v1H5zM5 7h4v1H5z"/>
+  </symbol>
+  <symbol id="i-helpbook" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000080" d="M2 2h10v12H2z"/><path fill="#0000ff" d="M3 2h9v11H3z"/>
+    <path fill="#fff" d="M12 3h2v11H4v-1h8z"/><path fill="#000" d="M2 1h10v1H2zM1 2h1v12H1zM2 14h12v1H2zM14 3h1v11h-1zM12 2h2v1h-2z"/>
+    <path fill="#ffff00" d="M6 4h3v1h1v2H9v1H8v1H7V7h1V6h1V5H6zM7 10h1v1H7z"/>
   </symbol>
   <symbol id="i-game" viewBox="0 0 16 16" shape-rendering="crispEdges">
     <path fill="#000" d="M1 2h14v10H1z"/><path fill="#008080" d="M2 3h12v8H2z"/>
@@ -321,6 +51,11 @@ fieldset ul { display: flex; flex-direction: column; gap: 5px; }
     <path fill="#000" d="M2 1h12v10H2z"/><path fill="#c0c0c0" d="M3 2h10v8H3z"/><path fill="#008080" d="M4 3h8v6H4z"/>
     <path fill="#808080" d="M6 11h4v1H6z"/><path fill="#000" d="M2 12h12v3H2z"/><path fill="#c0c0c0" d="M3 13h10v1H3z"/>
   </symbol>
+  <symbol id="i-shutdown" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M2 1h12v10H2z"/><path fill="#c0c0c0" d="M3 2h10v8H3z"/><path fill="#000080" d="M4 3h8v6H4z"/>
+    <path fill="#ffff00" d="M8 4h2v1H9v3h1v1H8V8H7V5h1z"/>
+    <path fill="#808080" d="M6 11h4v1H6z"/><path fill="#000" d="M2 12h12v3H2z"/><path fill="#c0c0c0" d="M3 13h10v1H3z"/>
+  </symbol>
   <symbol id="i-flag" viewBox="0 0 20 18" shape-rendering="crispEdges">
     <path fill="#ff0000" d="M3 2h6v6H3z"/><path fill="#00a000" d="M10 2h6v6h-6z"/>
     <path fill="#0000ff" d="M3 9h6v6H3z"/><path fill="#ffff00" d="M10 9h6v6h-6z"/>
@@ -331,397 +66,206 @@ fieldset ul { display: flex; flex-direction: column; gap: 5px; }
     <path fill="#fff" d="M5 2h6v1h1v1h1v2h1v4h-1v2h-1v1h-1v1H5v-1H4v-1H3v-2H2V6h1V4h1V3h1z"/>
     <path fill="#0000ff" d="M7 4h2v2H7zM7 7h2v5H7zM6 7h1v1H6zM6 11h4v1H6z"/>
   </symbol>
+  <symbol id="i-error" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M5 1h6v1h2v2h1v2h1v4h-1v2h-1v2h-2v1H5v-1H3v-2H2v-2H1V6h1V4h1V2h2z"/>
+    <path fill="#ff0000" d="M5 2h6v1h1v1h1v2h1v4h-1v2h-1v1h-1v1H5v-1H4v-1H3v-2H2V6h1V4h1V3h1z"/>
+    <path fill="#fff" d="M5 5h2v1h2V5h2v2h-1v2h1v2H9v-1H7v1H5V9h1V7H5z"/>
+  </symbol>
+  <symbol id="i-warn" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M7 1h2v2h1v2h1v2h1v2h1v2h1v2h1v2H1v-2h1v-2h1V9h1V7h1V5h1V3h1z"/>
+    <path fill="#ffff00" d="M7 3h2v2h1v2h1v2h1v2h1v2H3v-2h1V9h1V7h1V5h1z"/>
+    <path fill="#000" d="M7 5h2v5H7zM7 11h2v1H7z"/>
+  </symbol>
+  <symbol id="i-question" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M5 1h6v1h2v2h1v2h1v4h-1v2h-1v1h-2v1H6v2H5v-1H4v-1H3v-1H2v-2H1V6h1V4h1V2h2z"/>
+    <path fill="#fff" d="M5 2h6v1h1v1h1v2h1v4h-1v2h-1v1H5v-1H4v-1H3v-2H2V6h1V4h1V3h1z"/>
+    <path fill="#0000ff" d="M6 4h4v1h1v2h-1v1H9v1H7V7h1V6h1V5H7v1H5V5h1zM7 10h2v2H7z"/>
+  </symbol>
   <symbol id="i-dos" viewBox="0 0 16 16" shape-rendering="crispEdges">
     <path fill="#000" d="M1 2h14v12H1z"/><path fill="#c0c0c0" d="M2 3h12v1H2z"/><path fill="#000080" d="M2 3h1v1H2z"/>
     <path fill="#fff" d="M3 6h1v1H3zM4 7h1v1H4zM3 8h1v1H3zM6 9h4v1H6z"/>
   </symbol>
+  <symbol id="i-ie" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000080" d="M5 3h6v1h1v1h1v4H6v1h1v1h4v-1h2v2h-1v1h-1v1H5v-1H4v-1H3V5h1V4h1z"/>
+    <path fill="#0000ff" d="M5 4h6v1h1v3H6v3h1v1h4v-1h1v1h-1v1H5v-1H4V5h1z"/>
+    <path fill="#00ffff" d="M5 5h1v2H5z"/>
+    <path fill="#fff" d="M6 5h4v1h1v1H6z"/>
+    <path fill="#ffff00" d="M12 1h2v1h1v3h-1V3h-1V2h-1zM1 11h1v2h1v1h2v1H2v-1H1z"/>
+    <path fill="#808000" d="M14 5h1v1h-1zM5 14h1v1H5z"/>
+  </symbol>
+  <symbol id="i-mine" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M7 1h2v2H7zM7 13h2v2H7zM1 7h2v2H1zM13 7h2v2h-2zM3 3h1v1H3zM12 3h1v1h-1zM3 12h1v1H3zM12 12h1v1h-1z"/>
+    <path fill="#000" d="M6 3h4v1h1v1h1v1h1v4h-1v1h-1v1h-1v1H6v-1H5v-1H4v-1H3V6h1V5h1V4h1z"/>
+    <path fill="#fff" d="M6 6h2v2H6z"/>
+  </symbol>
+  <symbol id="i-trash" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 2h10v1H3zM2 3h1v2H2zM13 3h1v2h-1zM3 5h10v1H3zM3 6h1v8H3zM12 6h1v8h-1zM4 14h8v1H4z"/>
+    <path fill="#fff" d="M3 3h10v2H3z"/>
+    <path fill="#c0c0c0" d="M4 6h8v8H4z"/>
+    <path fill="#808080" d="M5 7h1v6H5zM7 7h1v6H7zM9 7h1v6H9zM11 7h1v6h-1z"/>
+  </symbol>
+  <symbol id="i-trash-full" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M4 0h4v1H4zM3 1h1v1H3zM8 1h4v1H8zM12 2h1v1h-1z"/>
+    <path fill="#fff" d="M4 1h4v1h4v1H4z"/>
+    <path fill="#000" d="M3 2h10v1H3zM2 3h1v2H2zM13 3h1v2h-1zM3 5h10v1H3zM3 6h1v8H3zM12 6h1v8h-1zM4 14h8v1H4z"/>
+    <path fill="#ffff80" d="M3 3h10v2H3z"/>
+    <path fill="#c0c0c0" d="M4 6h8v8H4z"/>
+    <path fill="#808080" d="M5 7h1v6H5zM7 7h1v6H7zM9 7h1v6H9zM11 7h1v6h-1z"/>
+  </symbol>
+  <symbol id="i-notepad" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 2h10v13H3z"/><path fill="#fff" d="M4 3h8v11H4z"/><path fill="#00ffff" d="M4 3h8v1H4z"/>
+    <path fill="#000" d="M4 1h1v3H4zM6 1h1v3H6zM8 1h1v3H8zM10 1h1v3h-1z"/>
+    <path fill="#808080" d="M5 6h6v1H5zM5 8h6v1H5zM5 10h6v1H5zM5 12h4v1H5z"/>
+  </symbol>
+  <symbol id="i-txt" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 1h8v1h1v1h1v12H3z"/><path fill="#fff" d="M4 2h6v3h2v9H4z"/><path fill="#c0c0c0" d="M10 2h1v1h1v2h-2z"/>
+    <path fill="#000" d="M10 2h1v3h-1zM10 4h2v1h-2z"/>
+    <path fill="#808080" d="M5 6h4v1H5zM5 8h6v1H5zM5 10h6v1H5zM5 12h5v1H5z"/>
+  </symbol>
+  <symbol id="i-htm" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 1h8v1h1v1h1v12H3z"/><path fill="#fff" d="M4 2h6v3h2v9H4z"/><path fill="#c0c0c0" d="M10 2h1v1h1v2h-2z"/>
+    <path fill="#000" d="M10 2h1v3h-1zM10 4h2v1h-2z"/>
+    <path fill="#0000ff" d="M7 7h4v1h1v2H8v1h3v1h1v1H7v-1H6V8h1zM8 8h2v1H8z"/>
+    <path fill="#808080" d="M5 4h4v1H5z"/>
+  </symbol>
+  <symbol id="i-exe" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 3h14v10H1z"/><path fill="#fff" d="M2 4h12v8H2z"/><path fill="#000080" d="M2 4h12v2H2z"/>
+    <path fill="#c0c0c0" d="M11 4h2v1h-2z"/>
+  </symbol>
+  <symbol id="i-run" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M4 3h11v10H4z"/><path fill="#fff" d="M5 4h9v8H5z"/><path fill="#000080" d="M5 4h9v2H5z"/>
+    <path fill="#008000" d="M1 8h5V6h1v1h1v1h1v1H8v1H7v1H6V9H1z"/>
+  </symbol>
+  <symbol id="i-paint" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M2 5h7v1h2v1h1v3h-1v1H9v1H8v2H3v-1H2v-1H1V6h1z"/>
+    <path fill="#e0c080" d="M2 6h7v1h2v3H9v1H8v1H7v1H3v-1H2z"/>
+    <path fill="#ff0000" d="M3 7h2v1H3z"/><path fill="#0000ff" d="M3 9h2v1H3z"/><path fill="#008000" d="M5 11h2v1H5z"/><path fill="#ffff00" d="M6 7h2v1H6z"/>
+    <path fill="#800000" d="M13 1h2v1h-1v1h-1v1h-1v1h-1v1h-1V5h1V4h1V3h1V2h1z"/>
+    <path fill="#000" d="M9 6h1v1h-1v1H8V7h1z"/>
+  </symbol>
+  <symbol id="i-calc" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 1h10v14H3z"/><path fill="#c0c0c0" d="M4 2h8v12H4z"/>
+    <path fill="#808080" d="M5 3h6v3H5z"/><path fill="#c0ffc0" d="M6 4h5v2H6z"/><path fill="#000" d="M8 4h2v1H8z"/>
+    <path fill="#000" d="M5 7h1v1H5zM7 7h1v1H7zM9 7h2v1H9zM5 9h1v1H5zM7 9h1v1H7zM9 9h2v1H9zM5 11h1v2H5zM7 11h1v2H7z"/>
+    <path fill="#ff0000" d="M9 11h2v2H9z"/>
+  </symbol>
+  <symbol id="i-sol" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 1h8v11H1z"/><path fill="#0000ff" d="M2 2h6v9H2z"/><path fill="#00ffff" d="M3 3h1v1H3zM5 3h1v1H5zM4 4h1v1H4zM6 4h1v1H6zM3 5h1v1H3zM5 5h1v1H5zM4 6h1v1H4zM3 7h1v1H3zM5 7h1v1H5zM4 8h1v1H4zM3 9h1v1H3zM5 9h1v1H5z"/>
+    <path fill="#000" d="M6 4h9v12H6z"/><path fill="#fff" d="M7 5h7v10H7z"/>
+    <path fill="#ff0000" d="M8 8h2v1h1V8h2v2h-1v1h-1v1h-1v-1H9v-1H8zM8 6h1v1H8z"/>
+  </symbol>
+  <symbol id="i-display" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 1h14v11H1z"/><path fill="#c0c0c0" d="M2 2h12v9H2z"/><path fill="#008080" d="M3 3h10v7H3z"/>
+    <path fill="#fff" d="M5 4h6v4H5z"/><path fill="#000080" d="M5 4h6v1H5z"/>
+    <path fill="#808080" d="M6 12h4v1H6z"/><path fill="#000" d="M3 13h10v2H3z"/><path fill="#c0c0c0" d="M4 13h8v1H4z"/>
+  </symbol>
+  <symbol id="i-ctrl" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 2h14v12H1z"/><path fill="#c0c0c0" d="M2 3h12v10H2z"/>
+    <path fill="#000" d="M4 4h1v8H4zM8 4h1v8H8zM12 4h1v8h-1z"/>
+    <path fill="#ff0000" d="M3 9h3v2H3z"/><path fill="#00a000" d="M7 5h3v2H7z"/><path fill="#0000ff" d="M11 7h3v2h-3z"/>
+  </symbol>
+  <symbol id="i-folder" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 3h6v1h1v1h7v10H1z"/><path fill="#ffff00" d="M2 4h4v1h1v1h7v8H2z"/>
+    <path fill="#fff" d="M2 4h4v1H2zM2 5h1v8H2z"/><path fill="#808000" d="M3 13h11v1H3zM13 6h1v7h-1z"/>
+  </symbol>
+  <symbol id="i-folder-open" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 3h6v1h1v1h5v2h2v1h-1v1h-1v2h-1v2h-1v2H1z"/><path fill="#808000" d="M2 4h4v1h1v1h5v1H5v1H4v2H3v2H2z"/>
+    <path fill="#ffff00" d="M5 8h9v1h-1v2h-1v2h-1v1H3v-1h1v-2h1z"/>
+  </symbol>
+  <symbol id="i-programs" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 3h6v1h1v1h7v10H1z"/><path fill="#ffff00" d="M2 4h4v1h1v1h7v8H2z"/>
+    <path fill="#808000" d="M3 13h11v1H3zM13 6h1v7h-1z"/>
+    <path fill="#000" d="M5 7h8v6H5z"/><path fill="#fff" d="M6 8h6v4H6z"/><path fill="#000080" d="M6 8h6v1H6z"/>
+  </symbol>
+  <symbol id="i-docs" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 5h6v1h1v1h7v8H1z"/><path fill="#ffff00" d="M2 6h4v1h1v1h7v6H2z"/>
+    <path fill="#000" d="M5 1h7v8H5z"/><path fill="#fff" d="M6 2h5v6H6z"/><path fill="#808080" d="M7 3h3v1H7zM7 5h3v1H7z"/>
+    <path fill="#ffff00" d="M2 9h12v5H2z"/><path fill="#808000" d="M2 13h12v1H2z"/><path fill="#000" d="M1 8h14v1H1z"/>
+  </symbol>
+  <symbol id="i-find" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M2 1h8v1h1v1h1v3h-1V3h-1V2H3v12h3v1H2z"/><path fill="#fff" d="M3 2h7v4H8v1H7v3H6v4H3z"/>
+    <path fill="#000" d="M8 6h4v1h1v4h-1v1H8v-1H7V7h1z"/><path fill="#00ffff" d="M8 7h4v4H8z"/><path fill="#fff" d="M8 7h2v1H8z"/>
+    <path fill="#000" d="M12 11h2v1h1v2h-1v-1h-1v-1h-1z"/>
+  </symbol>
+  <symbol id="i-logoff" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M2 5h4v1h1v1h8v3h-1v1h-1v-1h-1v1h-1v-1H7v1H6v1H2v-1H1V6h1z"/>
+    <path fill="#ffff00" d="M2 6h4v1h1v1h7v1h-1v1h-1V9h-1v1h-1V9H6v1H5v1H2v-1H1V7h1z"/>
+    <path fill="#000" d="M3 8h1v1H3z"/>
+  </symbol>
+  <symbol id="i-floppy" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 1h14v14H1z"/><path fill="#000080" d="M2 2h12v12H2z"/>
+    <path fill="#fff" d="M4 2h8v5H4z"/><path fill="#808080" d="M5 3h6v1H5zM5 5h6v1H5z"/>
+    <path fill="#c0c0c0" d="M5 10h6v4H5z"/><path fill="#000" d="M9 11h1v2H9z"/>
+  </symbol>
+  <symbol id="i-drive" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M2 4h13v1h-1v7H1V5h1z"/><path fill="#fff" d="M2 5h12v1H2z"/><path fill="#c0c0c0" d="M2 6h12v5H2z"/>
+    <path fill="#808080" d="M3 8h6v1H3z"/><path fill="#00ff00" d="M11 8h2v1h-2z"/>
+  </symbol>
+  <symbol id="i-cd" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M5 1h6v1h2v2h1v2h1v4h-1v2h-1v2h-2v1H5v-1H3v-2H2v-2H1V6h1V4h1V2h2z"/>
+    <path fill="#c0c0c0" d="M5 2h6v1h1v1h1v2h1v4h-1v2h-1v1h-1v1H5v-1H4v-1H3v-2H2V6h1V4h1V3h1z"/>
+    <path fill="#00ffff" d="M4 4h2v1H4zM3 5h2v1H3zM5 3h2v1H5z"/><path fill="#ff00ff" d="M10 11h2v1h-2zM11 10h2v1h-2zM9 12h2v1H9z"/>
+    <path fill="#fff" d="M6 6h4v4H6z"/><path fill="#000" d="M7 7h2v2H7z"/>
+  </symbol>
+  <symbol id="i-printer" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M4 1h8v5H4z"/><path fill="#fff" d="M5 2h6v4H5z"/>
+    <path fill="#000" d="M1 6h14v6H1z"/><path fill="#c0c0c0" d="M2 7h12v4H2z"/><path fill="#00ff00" d="M12 8h1v1h-1z"/>
+    <path fill="#000" d="M4 10h8v5H4z"/><path fill="#fff" d="M5 11h6v3H5z"/>
+  </symbol>
+  <symbol id="i-back" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M7 2h1v4h7v5H8v4H7v-1H6v-1H5v-1H4v-1H3v-1H2V9H1V8h1V7h1V6h1V5h1V4h1V3h1z"/>
+    <path fill="#00a000" d="M7 4v3h7v3H7v3H6v-1H5v-1H4v-1H3V9H2V8h1V7h1V6h1V5h1V4z"/>
+  </symbol>
+  <symbol id="i-fwd" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M8 2H9v1h1v1h1v1h1v1h1v1h1v1h1v1h-1v1h-1v1h-1v1h-1v1h-1v1H9v1H8v-4H1V6h7z"/>
+    <path fill="#00a000" d="M9 4v3H2v3h7v3h1v-1h1v-1h1v-1h1V9h1V8h-1V7h-1V6h-1V5h-1V4z"/>
+  </symbol>
+  <symbol id="i-refresh" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 1h8v1h-1v1H8v1H4v1H3v6h1v1h4v-2h2v3H9v1H3v-1H2v-1H1V3h1V2h1zM9 3h4v1h1v8h-1v1h-1V5h-1V4H9z"/>
+    <path fill="#00a000" d="M3 2h7v1H8v1H4v1H3v6h1v1h4v-1h1v2H4v-1H3v-1H2V4h1zM10 4h2v1h1v7h-1V5h-2z"/>
+  </symbol>
+  <symbol id="i-home" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M7 1h2v1h1v1h1v1h1v1h1v1h1v1h1v2h-2v6H3V9H1V7h1V6h1V5h1V4h1V3h1V2h1z"/>
+    <path fill="#ff0000" d="M7 2h2v1h1v1h1v1h1v1h1v1h1v1H2V7h1V6h1V5h1V4h1V3h1z"/>
+    <path fill="#fff" d="M4 9h8v5H4z"/><path fill="#800000" d="M7 10h2v4H7z"/><path fill="#00ffff" d="M10 10h1v2h-1z"/>
+  </symbol>
+  <symbol id="i-fav" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 3h6v1h1v1h7v10H1z"/><path fill="#ffff00" d="M2 4h4v1h1v1h7v8H2z"/>
+    <path fill="#808000" d="M3 13h11v1H3zM13 6h1v7h-1z"/>
+    <path fill="#000" d="M8 6h1v2h3v1h-1v1h-1v2h-1v-1H8v1H7v-2H6V9H5V8h3z"/>
+    <path fill="#ff0000" d="M8 8h1v1h1v1H9v1H8v-1H7V9h1z"/>
+  </symbol>
+  <symbol id="i-stop" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M5 1h6v1h1v1h1v1h1v1h1v6h-1v1h-1v1h-1v1h-1v1H5v-1H4v-1H3v-1H2v-1H1V5h1V4h1V3h1V2h1z"/>
+    <path fill="#ff0000" d="M5 2h6v1h1v1h1v1h1v6h-1v1h-1v1h-1v1H5v-1H4v-1H3v-1H2V5h1V4h1V3h1z"/>
+    <path fill="#fff" d="M5 5h2v1h2V5h2v2h-1v2h1v2H9v-1H7v1H5V9h1V7H5z"/>
+  </symbol>
+  <symbol id="i-globe" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M5 1h6v1h2v2h1v2h1v4h-1v2h-1v2h-2v1H5v-1H3v-2H2v-2H1V6h1V4h1V2h2z"/>
+    <path fill="#0000ff" d="M5 2h6v1h1v1h1v2h1v4h-1v2h-1v1h-1v1H5v-1H4v-1H3v-2H2V6h1V4h1V3h1z"/>
+    <path fill="#00a000" d="M5 3h3v1h1v2H8v1H6v2h1v3H6v-1H5V9H4V7H3V5h1V4h1zM10 6h2v1h1v3h-1v1h-1V9h-1z"/>
+  </symbol>
   <symbol id="i-min" viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M1 6h6v2H1z"/></symbol>
   <symbol id="i-max" viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M0 0h8v2H0zM0 2h1v6H0zM7 2h1v6H7zM1 7h6v1H1z"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M2 0h6v2H2zM2 2h1v1H2zM7 2h1v3H7zM6 4h1v1H6zM0 3h6v2H0zM0 5h1v3H0zM5 5h1v3H5zM1 7h4v1H1z"/></symbol>
   <symbol id="i-x" viewBox="0 0 8 8" shape-rendering="crispEdges"><path d="M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v2h1v1h1v1h1v1H6V7H5V6H3v1H2v1H0V7h1V6h1V5h1V3H2V2H1V1H0z"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#000" d="M1 7h9V3h1v1h1v1h1v1h1v1h1v2h-1v1h-1v1h-1v1h-1v1h-1V9H1z"/></symbol>
   <symbol id="i-speaker" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#000" d="M2 6h3V5h1V4h1V3h1v10H7v-1H6v-1H5v-1H2z"/><path fill="#808080" d="M10 5h1v6h-1zM12 4h1v8h-1z"/></symbol>
 </svg>
 
-<div class="desktop">
-  <nav class="icons" aria-label="Desktop">
-    <a class="icon" href="#welcome"><svg><use href="#i-computer"/></svg><span>My Computer</span></a>
-    <a class="icon" href="#chimimouryou"><svg><use href="#i-book"/></svg><span>chimimouryou</span></a>
-    <a class="icon" href="#convert"><svg><use href="#i-convert"/></svg><span>conscripter-convert</span></a>
-    <a class="icon" href="#conscripter"><svg><use href="#i-game"/></svg><span>CONscripter</span></a>
-    <a class="icon" href="https://github.com/blankiekun"><svg><use href="#i-github"/></svg><span>GitHub</span></a>
-  </nav>
-
-  <main class="windows">
-
-    <!-- ================= Welcome ================= -->
-    <section class="win active" id="welcome" aria-labelledby="welcome-t">
-      <div class="titlebar">
-        <svg><use href="#i-computer"/></svg>
-        <h2 id="welcome-t">Welcome to blankiekun</h2>
-        <div class="tbtns">
-          <button class="tbtn" data-min aria-label="Minimize"><svg><use href="#i-min"/></svg></button>
-          <button class="tbtn x" data-min aria-label="Close"><svg><use href="#i-x"/></svg></button>
-        </div>
-      </div>
-      <div class="body">
-        <div class="lede">
-          <svg class="big"><use href="#i-computer"/></svg>
-          <div>
-            <h3>Read Japanese. Play visual novels. In the browser.</h3>
-            <p>Three open-source projects that fit together. <b>chimimouryou</b> is a self-hosted reader for your Calibre library.
-              <b>CONscripter</b> is the visual novel engine it uses to play games in the browser.
-              <b>conscripter-convert</b> turns games made with other engines into games CONscripter can play.</p>
-          </div>
-        </div>
-
-        <fieldset>
-          <legend>How a game reaches your browser</legend>
-          <div class="pipe">
-            <div class="stage"><b>Your game</b><small>a visual novel you own, e.g. 最果てのイマ</small></div>
-            <div class="arrow" aria-hidden="true"><svg><use href="#i-arrow"/></svg></div>
-            <div class="stage"><a href="#convert"><b>conscripter-convert</b></a><small>Xuse archives and scripts → <code>0.txt</code> + <code>arc.nsa</code></small></div>
-            <div class="arrow" aria-hidden="true"><svg><use href="#i-arrow"/></svg></div>
-            <div class="stage"><a href="#conscripter"><b>CONscripter</b></a><small>plays it natively or as WebAssembly</small></div>
-            <div class="arrow" aria-hidden="true"><svg><use href="#i-arrow"/></svg></div>
-            <div class="stage"><a href="#chimimouryou"><b>chimimouryou</b></a><small>lays the text over the game for Yomitan</small></div>
-          </div>
-        </fieldset>
-
-        <div class="tip">
-          <svg><use href="#i-info"/></svg>
-          <div><b>Did you know...</b>
-            <p>Every page CONscripter draws in chimimouryou hands its text, and where each character landed, to the web page. That is what lets you look words up with Yomitan and count what you read in your reading statistics.</p>
-          </div>
-        </div>
-
-        <div class="actions"><div class="btnrow">
-          <a class="btn" href="https://github.com/blankiekun"><svg><use href="#i-github"/></svg>GitHub</a>
-        </div><div class="wizard">
-          <span class="btn" aria-disabled="true">&lt; Back</span>
-          <a class="btn default" href="#chimimouryou">Next &gt;</a>
-        </div></div>
-      </div>
-    </section>
-
-    <!-- ================= chimimouryou ================= -->
-    <section class="win" id="chimimouryou" aria-labelledby="chimi-t">
-      <div class="titlebar">
-        <svg><use href="#i-book"/></svg>
-        <h2 id="chimi-t">chimimouryou — 魑魅魍魎</h2>
-        <div class="tbtns">
-          <button class="tbtn" data-min aria-label="Minimize"><svg><use href="#i-min"/></svg></button>
-          <button class="tbtn x" data-min aria-label="Close"><svg><use href="#i-x"/></svg></button>
-        </div>
-      </div>
-      <nav class="menubar" aria-label="chimimouryou links">
-        <a href="https://github.com/blankiekun/chimimouryou">Repository</a>
-        <a href="https://github.com/blankiekun/chimimouryou#setup">Setup</a>
-        <a href="https://github.com/blankiekun/chimimouryou/blob/main/docs/INSTALL.md">Install guide</a>
-        <a href="https://github.com/blankiekun/chimimouryou/blob/main/CHANGELOG.md">Changelog</a>
-      </nav>
-      <div class="body">
-        <div class="lede">
-          <svg class="big"><use href="#i-book"/></svg>
-          <div>
-            <h3>chimimouryou</h3>
-            <div class="kana">ちみもうりょう</div>
-            <p>A self-hosted Japanese e-book reader for your Calibre library. It is a fork of
-              <a href="https://github.com/ttu-ttu/ebook-reader">ッツ Ebook Reader</a> that runs on your own server, so everyone in the house reads from one library with their own account, synced progress and highlights, plus tools for language learners.</p>
-          </div>
-        </div>
-
-        <figure>
-          <div class="frame"><img src="img/chimi-reader.png" width="1280" height="800" alt="Reading 坊っちゃん in vertical text, with a highlight and the selection toolbar showing Note and Ask AI"></div>
-          <figcaption>坊っちゃん in vertical text, with a highlight and the selection toolbar.</figcaption>
-        </figure>
-
-        <div class="cols">
-          <fieldset>
-            <legend>What it adds</legend>
-            <ul>
-              <li><b>Your Calibre library</b> as the bookshelf: covers, series, tags, "Continue reading", filters and sorting.</li>
-              <li><b>Accounts</b> with an admin panel. Progress, statistics, highlights and settings sync across devices.</li>
-              <li><b>Highlights, notes</b> and full-text search that ignores furigana.</li>
-              <li><b>AI helpers</b> with your own keys: Ask AI, spoiler-free "Story so far" recaps, a lorebook, and read-aloud with the current line highlighted.</li>
-              <li><b>Manga</b> (CBZ/ZIP) in a page-turning reader.</li>
-              <li><b>Visual novels</b> played in the browser with CONscripter, with saves synced and the text counted in your stats.</li>
-              <li><b>Difficulty estimates</b> from <a href="https://github.com/Sirush/Jiten">Jiten</a>'s features, computed on your server.</li>
-            </ul>
-          </fieldset>
-          <div class="shots phone-row">
-            <figure>
-              <div class="frame"><img src="img/chimi-store.png" width="1280" height="800" alt="The library's Store tab with book covers" loading="lazy"></div>
-              <figcaption>Library</figcaption>
-              <div class="frame"><img src="img/chimi-settings.png" width="1280" height="800" alt="Settings, AI section" loading="lazy"></div>
-              <figcaption>Settings → AI</figcaption>
-            </figure>
-            <figure>
-              <div class="frame"><img src="img/chimi-phone-store.png" width="780" height="1688" alt="The library on a phone" loading="lazy"></div>
-              <figcaption>Phone</figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <pre class="dos" aria-label="Setup commands"><b>C:\&gt;</b> git clone https://github.com/blankiekun/chimimouryou
-<b>C:\&gt;</b> cd chimimouryou &amp;&amp; cp .env.example .env
-<b>C:\CHIMIM~1&gt;</b> docker compose up -d
-<b>C:\CHIMIM~1&gt;</b> docker compose exec account ebook-account initial-admin</pre>
-
-        <div class="actions"><div class="btnrow">
-          <a class="btn" href="https://github.com/blankiekun/chimimouryou"><svg><use href="#i-github"/></svg>Open repository</a>
-          <a class="btn" href="https://github.com/blankiekun/chimimouryou/blob/main/docs/INSTALL.md">Install guide</a>
-        </div><div class="wizard">
-          <a class="btn" href="#welcome">&lt; Back</a>
-          <a class="btn default" href="#convert">Next &gt;</a>
-        </div></div>
-      </div>
-      <div class="statusbar"><span>Docker images for amd64 and arm64 · ghcr.io/blankiekun/chimimouryou</span><span>Svelte · TypeScript</span></div>
-    </section>
-
-    <!-- ================= conscripter-convert ================= -->
-    <section class="win" id="convert" aria-labelledby="convert-t">
-      <div class="titlebar">
-        <svg><use href="#i-convert"/></svg>
-        <h2 id="convert-t">conscripter-convert</h2>
-        <div class="tbtns">
-          <button class="tbtn" data-min aria-label="Minimize"><svg><use href="#i-min"/></svg></button>
-          <button class="tbtn x" data-min aria-label="Close"><svg><use href="#i-x"/></svg></button>
-        </div>
-      </div>
-      <nav class="menubar" aria-label="conscripter-convert links">
-        <a href="https://github.com/blankiekun/conscripter-convert">Repository</a>
-        <a href="https://github.com/blankiekun/conscripter-convert#converting-a-game">Usage</a>
-        <a href="https://github.com/blankiekun/conscripter-convert/blob/main/PLAN.md">Design notes</a>
-      </nav>
-      <div class="body">
-        <div class="lede">
-          <svg class="big"><use href="#i-convert"/></svg>
-          <div>
-            <h3>conscripter-convert</h3>
-            <p>Converts Japanese visual novels you own into games that run on CONscripter, including its WebAssembly build.
-              It reads a game's archives, images, audio and compiled scripts, translates them into an engine-neutral
-              intermediate form, and writes a <code>0.txt</code> script plus <code>.nsa</code> archives.
-              It ships no game data and reads only your own installation.</p>
-          </div>
-        </div>
-
-        <pre class="dos" aria-label="Converting a game"><b>C:\&gt;</b> conscripter-convert convert-game D:\SAIHATE -o out\imaa --font ipag.ttf --title "最果てのイマ"
-Reading archives ........ ok
-Decompiling scripts ..... ok
-Writing 0.txt, arc.nsa .. ok
-
-<b>C:\&gt;</b> conscripter --root out\imaa</pre>
-
-        <div class="cols">
-          <div class="listview" role="region" aria-label="Xuse support" tabindex="0">
-            <table>
-              <thead><tr><th scope="col">Xuse feature</th><th scope="col">Status</th></tr></thead>
-              <tbody>
-                <tr><td>Archives, images, BGM, sound effects, voices</td><td class="st ok">Decoded</td></tr>
-                <tr><td>Script text, speaker names, hyperlinks</td><td class="st ok">Converted</td></tr>
-                <tr><td>Control flow: variables, goto, gosub/return</td><td class="st ok">Converted</td></tr>
-                <tr><td>Transitions with original durations</td><td class="st ok">Converted</td></tr>
-                <tr><td>Evening and night character tints</td><td class="st ok">Pre-rendered</td></tr>
-                <tr><td>Title, save/load, settings, backlog menus</td><td class="st ok">Built in-script</td></tr>
-                <tr><td>Movies</td><td class="st no">Not yet</td></tr>
-                <tr><td>Special text displays, ~35 rarer opcodes</td><td class="st no">Not yet</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <fieldset>
-            <legend>How it works</legend>
-            <ul>
-              <li>Each source engine is a separate reader that feeds the same output stage. Xuse is the first; Nitroplus is in progress.</li>
-              <li>Anything it can't convert yet stays in <code>0.txt</code> as a comment naming the source instruction, and each run prints a ranked list of what was left out.</li>
-              <li>When a game needs something NScripter can't do, the feature is added to CONscripter rather than approximated.</li>
-            </ul>
-          </fieldset>
-        </div>
-
-        <div class="actions"><div class="btnrow">
-          <a class="btn" href="https://github.com/blankiekun/conscripter-convert"><svg><use href="#i-github"/></svg>Open repository</a>
-        </div><div class="wizard">
-          <a class="btn" href="#chimimouryou">&lt; Back</a>
-          <a class="btn default" href="#conscripter">Next &gt;</a>
-        </div></div>
-      </div>
-      <div class="statusbar"><span>Tested with 最果てのイマ COMPLETE (Xuse)</span><span>Rust · GPL-3.0</span></div>
-    </section>
-
-    <!-- ================= CONscripter ================= -->
-    <section class="win" id="conscripter" aria-labelledby="cons-t">
-      <div class="titlebar">
-        <svg><use href="#i-game"/></svg>
-        <h2 id="cons-t">CONscripter</h2>
-        <div class="tbtns">
-          <button class="tbtn" data-min aria-label="Minimize"><svg><use href="#i-min"/></svg></button>
-          <button class="tbtn x" data-min aria-label="Close"><svg><use href="#i-x"/></svg></button>
-        </div>
-      </div>
-      <nav class="menubar" aria-label="CONscripter links">
-        <a href="https://github.com/blankiekun/CONscripter">Repository</a>
-        <a href="https://github.com/blankiekun/CONscripter/releases">Downloads</a>
-        <a href="https://github.com/blankiekun/CONscripter#conscripter-additions">Additions</a>
-      </nav>
-      <div class="body">
-        <div class="lede">
-          <svg class="big"><use href="#i-game"/></svg>
-          <div>
-            <h3>CONscripter</h3>
-            <p>An ONScripter engine for playing NScripter visual novels on the web, Windows, Linux, macOS, Android and RetroArch.
-              It is a fork of <a href="https://github.com/YuriSizuku/OnscripterYuri">ONScripter-Yuri</a>, built on SDL2, and the engine behind
-              chimimouryou's visual novel player and conscripter-convert's output.</p>
-          </div>
-        </div>
-
-        <div class="shots phone-row">
-          <figure>
-            <div class="frame"><img src="img/cons-web.jpg" width="864" height="646" alt="A visual novel running in the browser with CONscripter's WebAssembly build" loading="lazy"></div>
-            <figcaption>The WebAssembly build in a desktop browser</figcaption>
-          </figure>
-          <figure>
-            <div class="frame"><img src="img/cons-phone.jpg" width="1400" height="630" alt="A visual novel in a phone browser" loading="lazy"></div>
-            <figcaption>Phone browser</figcaption>
-            <div class="frame"><img src="img/cons-android.jpg" width="1400" height="656" alt="CONscripter's Android app" loading="lazy"></div>
-            <figcaption>Android</figcaption>
-          </figure>
-        </div>
-
-        <div class="cols">
-          <fieldset>
-            <legend>Commands it adds to NScripter</legend>
-            <pre class="notepad"><i>; night tint on sprite 10</i>
-spfilter 10,1,1,256,148,152,200
-<i>; black silhouette</i>
-spfilter 10,1,0,256,0,0,0
-<i>; run a scene, then put the screen back</i>
-pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
-            <p style="margin-top:8px">Every addition is opt-in. Scripts that don't use them behave exactly as in ONScripter-Yuri, and the extra state is kept in save files.</p>
-          </fieldset>
-          <div class="listview" role="region" aria-label="Platforms" tabindex="0">
-            <table>
-              <thead><tr><th scope="col">Platform</th><th scope="col">Builds</th></tr></thead>
-              <tbody>
-                <tr><td>Web</td><td>WebAssembly, saves in IndexedDB</td></tr>
-                <tr><td>Windows</td><td>x86, x64, ARM64</td></tr>
-                <tr><td>Linux</td><td>x86, x64, arm, aarch64</td></tr>
-                <tr><td>macOS</td><td>x64, arm64</td></tr>
-                <tr><td>Android</td><td>5.1 and later</td></tr>
-                <tr><td>RetroArch</td><td>libretro core</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="actions"><div class="btnrow">
-          <a class="btn" href="https://github.com/blankiekun/CONscripter/releases"><svg><use href="#i-game"/></svg>Download</a>
-          <a class="btn" href="https://github.com/blankiekun/CONscripter"><svg><use href="#i-github"/></svg>Repository</a>
-        </div><div class="wizard">
-          <a class="btn" href="#convert">&lt; Back</a>
-          <a class="btn default" href="#welcome">Finish</a>
-        </div></div>
-      </div>
-      <div class="statusbar"><span>Based on ONScripter, ONScripter-Jh and ONScripter-Yuri</span><span>C++ · GPL-2.0</span></div>
-    </section>
-
-    <p class="empty" id="empty" hidden>Click a button on the taskbar to open a window.</p>
-  </main>
+<div id="desktop" class="desktop">
+  <div id="icons" class="icons" role="listbox" aria-label="Desktop" aria-orientation="vertical"></div>
+  <div id="windows" class="windows"></div>
 </div>
 
-<!-- ================= Start menu + taskbar ================= -->
-<div class="startmenu" id="startmenu" hidden>
-  <div class="side" aria-hidden="true"><b>blankie</b>kun</div>
-  <ul>
-    <li><a href="#chimimouryou"><svg><use href="#i-book"/></svg>chimimouryou</a></li>
-    <li><a href="#convert"><svg><use href="#i-convert"/></svg>conscripter-convert</a></li>
-    <li><a href="#conscripter"><svg><use href="#i-game"/></svg>CONscripter</a></li>
-    <li><hr></li>
-    <li><a href="https://github.com/blankiekun"><svg><use href="#i-github"/></svg>GitHub profile</a></li>
-  </ul>
-</div>
-
-<footer class="taskbar">
-  <button class="start" id="start" aria-expanded="false" aria-controls="startmenu"><svg><use href="#i-flag"/></svg>Start</button>
-  <nav class="tasks" aria-label="Open windows">
-    <a class="task on" href="#welcome" data-for="welcome"><svg><use href="#i-computer"/></svg><span>Welcome</span></a>
-    <a class="task" href="#chimimouryou" data-for="chimimouryou"><svg><use href="#i-book"/></svg><span>chimimouryou</span></a>
-    <a class="task" href="#convert" data-for="convert"><svg><use href="#i-convert"/></svg><span>conscripter-convert</span></a>
-    <a class="task" href="#conscripter" data-for="conscripter"><svg><use href="#i-game"/></svg><span>CONscripter</span></a>
-  </nav>
+<footer class="taskbar" id="taskbar">
+  <button class="start" id="start" aria-haspopup="menu" aria-expanded="false"><svg viewBox="0 0 20 18"><use href="#i-flag"/></svg><span>Start</span></button>
+  <nav class="tasks" id="tasks" aria-label="Open windows"></nav>
   <div class="tray"><svg aria-hidden="true"><use href="#i-speaker"/></svg><time id="clock">12:00 PM</time></div>
 </footer>
 
-<script>
-(() => {
-  const wins = [...document.querySelectorAll('.win')];
-  const tasks = [...document.querySelectorAll('.task')];
-  const empty = document.getElementById('empty');
-  const ids = wins.map(w => w.id);
+<noscript><div class="noscript">This desktop needs JavaScript. The projects live at <a href="https://github.com/blankiekun">github.com/blankiekun</a>.</div></noscript>
 
-  // One window on the desktop at a time; the URL hash says which.
-  function show(id, animate) {
-    wins.forEach(w => { w.hidden = w.id !== id; });
-    tasks.forEach(t => t.classList.toggle('on', t.dataset.for === id));
-    empty.hidden = ids.includes(id);
-    const w = document.getElementById(id);
-    if (w && animate) {
-      w.classList.remove('opening'); void w.offsetWidth; w.classList.add('opening');
-    }
-    window.scrollTo(0, 0);
-  }
-
-  function go(id) {
-    if (location.hash === '#' + id) show(id, true);
-    else location.hash = id;
-  }
-
-  window.addEventListener('hashchange', () => {
-    const id = location.hash.slice(1);
-    show(ids.includes(id) ? id : 'welcome', true);
-    closeMenu();
-  });
-
-  // Minimize and close leave an empty desktop; the taskbar brings windows back.
-  document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => {
-    history.replaceState(null, '', location.pathname);
-    show('', false);
-  }));
-
-  // A taskbar button for the window already open minimizes it, like Windows does.
-  tasks.forEach(t => t.addEventListener('click', e => {
-    const w = document.getElementById(t.dataset.for);
-    if (!w.hidden) { e.preventDefault(); history.replaceState(null, '', location.pathname); show('', false); }
-    else if (location.hash === '#' + t.dataset.for) { e.preventDefault(); go(t.dataset.for); }
-  }));
-
-  // Start menu.
-  const start = document.getElementById('start');
-  const menu = document.getElementById('startmenu');
-  function closeMenu() { menu.hidden = true; start.setAttribute('aria-expanded', 'false'); }
-  start.addEventListener('click', e => {
-    e.stopPropagation();
-    menu.hidden = !menu.hidden;
-    start.setAttribute('aria-expanded', String(!menu.hidden));
-  });
-  menu.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
-    e.preventDefault(); closeMenu(); go(a.getAttribute('href').slice(1));
-  }));
-  document.addEventListener('click', e => { if (!menu.contains(e.target)) closeMenu(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
-
-  const first = location.hash.slice(1);
-  show(ids.includes(first) ? first : 'welcome', false);
-
-  // Tray clock.
-  const clock = document.getElementById('clock');
-  const tick = () => {
-    const d = new Date();
-    clock.textContent = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    clock.dateTime = d.toISOString();
-  };
-  tick();
-  setInterval(tick, 15000);
-})();
-</script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

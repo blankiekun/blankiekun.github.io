@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ja-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chimimouryou ~ 魑魅魍魎 ~ Japanese E-Book Reader</title>
+<link rel="stylesheet" href="retro.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+/* GeoCities Tokyo neighbourhood: night sky tile, gold and white type, kanji headings. */
+body {
+  color: #f0f0ff; font-family: Verdana, Geneva, Arial, sans-serif; font-size: 14px;
+  background-color: #000033;
+  background-image:
+    radial-gradient(1px 1px at 10px 14px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 52px 40px, #ccf 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 80px 8px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 30px 70px, #ffd 50%, transparent 51%),
+    radial-gradient(1px 1px at 90px 84px, #fff 50%, transparent 51%);
+  background-size: 100px 100px;
+}
+a { color: #ffcc00; } a:visited { color: #ff99cc; }
+h1, h2 { font-family: "DotGothic16", "MS Gothic", "Osaka", monospace; font-weight: normal; }
+.banner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; border: 3px double #ffcc00; padding: 12px; background: rgba(0, 0, 60, .8); }
+.kanji { font: 46px/1 "DotGothic16", "MS Gothic", monospace; color: #ff3333; writing-mode: vertical-rl; text-shadow: 2px 2px 0 #000, 0 0 8px #ff000088; letter-spacing: .05em; }
+h1 { margin: 0; font-size: clamp(28px, 7vw, 44px); line-height: 1; color: #fff; text-shadow: 3px 3px 0 #0000aa; }
+.kana { font: 18px "DotGothic16", monospace; color: #ffcc00; margin: 4px 0 8px; }
+.banner p { margin: 0; }
+marquee, .marquee { color: #00ffff; font: 14px "DotGothic16", monospace; border-top: 1px solid #33f; border-bottom: 1px solid #33f; padding: 3px 0; }
+h2 { margin: 0 0 8px; font-size: 22px; color: #ffcc00; display: flex; align-items: center; gap: 8px; }
+h2::before { content: "◆"; color: #ff3333; font-size: 14px; }
+section { background: rgba(0, 0, 40, .85); border: 2px ridge #6666cc; padding: 12px; }
+.features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.features li { padding-left: 22px; position: relative; }
+.features li::before { content: "★"; position: absolute; left: 0; color: #ffcc00; }
+.features b { color: #fff; }
+.gallery { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.gallery .col { display: flex; flex-direction: column; gap: 10px; }
+.shot { color: #000; }
+.hero-shot { text-align: center; }
+pre.dos { background: #000; color: #c0c0c0; border: 2px inset #808080; padding: 10px; font: 13px/1.5 "Courier New", monospace; margin: 0; }
+pre.dos b { color: #fff; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.links a { background: #ffcc00; color: #000033; padding: 6px 12px; border: 3px outset #ffe680; text-decoration: none; font-weight: bold; }
+.links a:active { border-style: inset; }
+.info { width: 100%; font-size: 13px; }
+.info th, .info td { border: 1px solid #6666cc; padding: 4px 8px; text-align: left; vertical-align: top; }
+.info th { color: #ffcc00; width: 34%; font-weight: normal; }
+footer { text-align: center; font-size: 12px; display: flex; flex-direction: column; gap: 10px; align-items: center; color: #aab; }
+@media (max-width: 560px) {
+  .banner { grid-template-columns: minmax(0, 1fr); }
+  .kanji { writing-mode: horizontal-tb; font-size: 36px; }
+  .gallery { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <div class="kanji" lang="ja" aria-hidden="true">魑魅魍魎</div>
+    <div>
+      <h1>chimimouryou</h1>
+      <div class="kana" lang="ja">ちみもうりょう</div>
+      <p>A self-hosted Japanese e-book reader for your Calibre library. It is a fork of
+        <a href="https://github.com/ttu-ttu/ebook-reader">ッツ Ebook Reader</a> that runs on your own server, so everyone in the house reads from one library with their own account, synced progress and highlights, plus tools for language learners.</p>
+    </div>
+  </div>
+
+  <marquee scrollamount="3" lang="ja">ようこそ！ Welcome to the chimimouryou homepage ★ Read Japanese books, manga and visual novels in one place ★ Docker images for amd64 and arm64 ★</marquee>
+
+  <section class="hero-shot">
+    <div class="shot"><a href="../img/chimi-reader.png"><img src="../img/chimi-reader.png" width="640" height="400" alt="Reading 坊っちゃん in vertical text, with a highlight and the selection toolbar showing Note and Ask AI"></a></div>
+    <div class="cap">坊っちゃん in vertical text, with a highlight and the selection toolbar. (Click for the full size picture!)</div>
+  </section>
+
+  <section>
+    <h2>What it adds</h2>
+    <ul class="features">
+      <li><b>Your Calibre library</b> as the bookshelf: covers, series, tags, "Continue reading", filters and sorting.</li>
+      <li><b>Accounts</b> with an admin panel. Progress, statistics, highlights and settings sync across devices.</li>
+      <li><b>Highlights, notes</b> and full-text search that ignores furigana.</li>
+      <li><b>AI helpers</b> with your own keys: Ask AI, spoiler-free "Story so far" recaps, a lorebook, and read-aloud with the current line highlighted.</li>
+      <li><b>Manga</b> (CBZ/ZIP) in a page-turning reader.</li>
+      <li><b>Visual novels</b> played in the browser with <a href="conscripter.html">CONscripter</a>, with saves synced and the text counted in your stats. <span class="new">NEW!</span></li>
+      <li><b>Difficulty estimates</b> from <a href="https://github.com/Sirush/Jiten">Jiten</a>'s features, computed on your server.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Screenshots</h2>
+    <div class="gallery">
+      <div class="col">
+        <div><div class="shot"><a href="../img/chimi-store.png"><img src="../img/chimi-store.png" width="1280" height="800" alt="The library's Store tab with book covers" loading="lazy"></a></div><div class="cap">Library</div></div>
+        <div><div class="shot"><a href="../img/chimi-settings.png"><img src="../img/chimi-settings.png" width="1280" height="800" alt="Settings, AI section" loading="lazy"></a></div><div class="cap">Settings &rarr; AI</div></div>
+      </div>
+      <div><div class="shot"><a href="../img/chimi-phone-store.png"><img src="../img/chimi-phone-store.png" width="780" height="1688" alt="The library on a phone" loading="lazy"></a></div><div class="cap">Phone</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Setup</h2>
+    <pre class="dos" aria-label="Setup commands"><b>C:\&gt;</b> git clone https://github.com/blankiekun/chimimouryou
+<b>C:\&gt;</b> cd chimimouryou &amp;&amp; cp .env.example .env
+<b>C:\CHIMIM~1&gt;</b> docker compose up -d
+<b>C:\CHIMIM~1&gt;</b> docker compose exec account ebook-account initial-admin</pre>
+  </section>
+
+  <section>
+    <h2>Info</h2>
+    <table class="info">
+      <tr><th scope="row">Docker images</th><td>amd64 and arm64 · ghcr.io/blankiekun/chimimouryou</td></tr>
+      <tr><th scope="row">Written in</th><td>Svelte · TypeScript</td></tr>
+      <tr><th scope="row">Works with</th><td><a href="conscripter.html">CONscripter</a> for visual novels, <a href="convert.html">conscripter-convert</a> for more games</td></tr>
+    </table>
+  </section>
+
+  <div class="links">
+    <a href="https://github.com/blankiekun/chimimouryou">Repository</a>
+    <a href="https://github.com/blankiekun/chimimouryou#setup">Setup</a>
+    <a href="https://github.com/blankiekun/chimimouryou/blob/main/docs/INSTALL.md">Install guide</a>
+    <a href="https://github.com/blankiekun/chimimouryou/blob/main/CHANGELOG.md">Changelog</a>
+  </div>
+
+  <hr class="rainbow">
+  <footer>
+    <div><a href="home.html">&lt;&lt; Back to blankiekun's Homepage</a> · <a href="convert.html">Next: conscripter-convert &gt;&gt;</a></div>
+    <div class="badges">
+      <span class="badge ie"><b>e</b>Best viewed with IE 3.0</span>
+      <span class="badge res" lang="ja">日本語<br>Shift_JIS OK</span>
+      <a class="badge gh" href="https://github.com/blankiekun/chimimouryou">View source<br>on GitHub</a>
+    </div>
+    <div>Part of the <a href="home.html">Japanese Reading Tools WebRing</a></div>
+  </footer>
+</div>
+</body>
+</html>

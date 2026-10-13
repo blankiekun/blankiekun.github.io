@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>conscripter-convert :: visual novel converter</title>
+<link rel="stylesheet" href="retro.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<style>
+/* An Angelfire tech page: black background, phosphor green, ASCII banners, bordered tables. */
+body { background: #000; color: #33ff33; font: 15px/1.5 "Courier New", Courier, monospace; }
+a { color: #00ffff; } a:visited { color: #ff66ff; }
+pre.ascii { margin: 0; color: #33ff33; font: 13px/1.2 "Courier New", monospace; text-align: center; text-shadow: 0 0 6px #00ff0099; overflow-x: auto; }
+.tag { text-align: center; color: #ffff00; }
+.tag .blink { color: #ff3333; }
+h2 { margin: 0 0 8px; font: 28px/1 "VT323", "Courier New", monospace; color: #ffff00; }
+h2::before { content: "[ "; color: #33ff33; } h2::after { content: " ]"; color: #33ff33; }
+p { margin: 0 0 8px; }
+p:last-child { margin: 0; }
+.term { background: #001100; border: 1px solid #33ff33; padding: 10px; margin: 0; font: 18px/1.25 "VT323", "Courier New", monospace; color: #c0c0c0; box-shadow: 0 0 12px #00ff0044 inset; }
+.term b { color: #fff; font-weight: normal; }
+.term i { color: #33ff33; font-style: normal; }
+table.support { width: 100%; border: 2px solid #33ff33; font-size: 14px; }
+.support th, .support td { border: 1px solid #1a801a; padding: 4px 8px; text-align: left; vertical-align: top; }
+.support th { background: #003300; color: #ffff00; }
+.ok { color: #33ff33; white-space: nowrap; } .ok::before { content: "[OK] "; }
+.no { color: #ff3333; white-space: nowrap; } .no::before { content: "[--] "; }
+ul.how { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+ul.how li::before { content: "> "; color: #ffff00; }
+code { color: #fff; }
+.box { border: 1px dashed #33ff33; padding: 12px; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: center; }
+.links a::before { content: "<"; } .links a::after { content: ">"; }
+footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; color: #1aaa1a; }
+.hits { color: #ffff00; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<pre class="ascii" aria-label="conscripter-convert">
++========================================================+
+|                                                        |
+|        c o n s c r i p t e r  -  c o n v e r t         |
+|                                                        |
+|   your visual novels  ----&gt;  CONscripter  ----&gt;  web   |
+|                                                        |
++========================================================+
+</pre>
+  <div class="tag">::: visual novel converter ::: Rust ::: GPL-3.0 ::: <span class="blink">NOW WITH XUSE SUPPORT</span> :::</div>
+
+  <div class="box">
+    <h2>About</h2>
+    <p>Converts Japanese visual novels you own into games that run on <a href="conscripter.html">CONscripter</a>, including its WebAssembly build.
+      It reads a game's archives, images, audio and compiled scripts, translates them into an engine-neutral
+      intermediate form, and writes a <code>0.txt</code> script plus <code>.nsa</code> archives.</p>
+    <p>It ships no game data and reads only your own installation.</p>
+  </div>
+
+  <div>
+    <h2>Usage</h2>
+<pre class="term" aria-label="Converting a game"><b>C:\&gt;</b> conscripter-convert convert-game D:\SAIHATE -o out\imaa --font ipag.ttf --title "最果てのイマ"
+Reading archives ........ <i>ok</i>
+Decompiling scripts ..... <i>ok</i>
+Writing 0.txt, arc.nsa .. <i>ok</i>
+
+<b>C:\&gt;</b> conscripter --root out\imaa</pre>
+  </div>
+
+  <div>
+    <h2>Xuse support</h2>
+    <table class="support">
+      <thead><tr><th scope="col">Xuse feature</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr><td>Archives, images, BGM, sound effects, voices</td><td class="ok">Decoded</td></tr>
+        <tr><td>Script text, speaker names, hyperlinks</td><td class="ok">Converted</td></tr>
+        <tr><td>Control flow: variables, goto, gosub/return</td><td class="ok">Converted</td></tr>
+        <tr><td>Transitions with original durations</td><td class="ok">Converted</td></tr>
+        <tr><td>Evening and night character tints</td><td class="ok">Pre-rendered</td></tr>
+        <tr><td>Title, save/load, settings, backlog menus</td><td class="ok">Built in-script</td></tr>
+        <tr><td>Movies</td><td class="no">Not yet</td></tr>
+        <tr><td>Special text displays, ~35 rarer opcodes</td><td class="no">Not yet</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:6px">Tested with 最果てのイマ COMPLETE (Xuse).</p>
+  </div>
+
+  <div class="box">
+    <h2>How it works</h2>
+    <ul class="how">
+      <li>Each source engine is a separate reader that feeds the same output stage. Xuse is the first; Nitroplus is in progress.</li>
+      <li>Anything it can't convert yet stays in <code>0.txt</code> as a comment naming the source instruction, and each run prints a ranked list of what was left out.</li>
+      <li>When a game needs something NScripter can't do, the feature is added to <a href="conscripter.html">CONscripter</a> rather than approximated.</li>
+    </ul>
+  </div>
+
+  <div class="links">
+    <a href="https://github.com/blankiekun/conscripter-convert">Repository</a>
+    <a href="https://github.com/blankiekun/conscripter-convert#converting-a-game">Usage</a>
+    <a href="https://github.com/blankiekun/conscripter-convert/blob/main/PLAN.md">Design notes</a>
+  </div>
+
+  <footer>
+    <div>---------------------------------------------</div>
+    <div><a href="chimimouryou.html">&lt;&lt; chimimouryou</a> | <a href="home.html">home</a> | <a href="conscripter.html">CONscripter &gt;&gt;</a></div>
+    <div class="badges">
+      <span class="badge np">Made with<br>Notepad</span>
+      <span class="badge gh">Powered by<br>Rust</span>
+      <a class="badge gh" href="https://github.com/blankiekun/conscripter-convert">Source code<br>on GitHub</a>
+    </div>
+    <div>this page has been viewed <span class="hits">lots of</span> times. no warez here.</div>
+  </footer>
+</div>
+</body>
+</html>

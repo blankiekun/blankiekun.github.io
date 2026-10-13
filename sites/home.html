@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>blankiekun's Homepage</title>
+<link rel="stylesheet" href="retro.css">
+<style>
+/* A 1996 personal homepage: tiled background, a framed white page, nav down the side. */
+body {
+  color: #000; font-family: "Times New Roman", Times, serif;
+  background-color: #9ec3e6;
+  background-image:
+    linear-gradient(45deg, #b3d1ee 25%, transparent 25%, transparent 75%, #b3d1ee 75%),
+    linear-gradient(45deg, #b3d1ee 25%, transparent 25%, transparent 75%, #b3d1ee 75%);
+  background-size: 24px 24px; background-position: 0 0, 12px 12px;
+}
+a { color: #0000ee; } a:visited { color: #551a8b; }
+.page { background: #fff; border: 4px ridge #c0c0c0; padding: 14px; display: flex; flex-direction: column; gap: 16px; }
+h1 {
+  margin: 0; text-align: center; font: bold clamp(26px, 6vw, 40px)/1.1 "Comic Sans MS", "Comic Neue", "Chalkboard SE", cursive;
+  background: linear-gradient(90deg, #e00000, #ff8c00, #d4b000, #009000, #0040ff, #8000c0);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, .25));
+}
+.sub { text-align: center; font-style: italic; margin: 0; }
+marquee, .marquee { background: #000080; color: #ffff00; font: bold 14px "Courier New", monospace; padding: 4px 0; }
+.layout { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; align-items: start; }
+.nav { background: #000080; color: #fff; padding: 10px; border: 3px outset #6060c0; font: 14px Arial, sans-serif; }
+.nav b { display: block; color: #ffff00; margin-bottom: 6px; text-align: center; }
+.nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nav a { color: #fff; }
+.nav li::before { content: "\25BA  "; color: #00ffff; font-size: 10px; }
+.main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+h2 { margin: 0; font: bold 21px "Times New Roman", serif; color: #800000; border-bottom: 2px solid #800000; }
+p { margin: 0; }
+.pipe { width: 100%; border: 2px solid #000; background: #ffffe0; font-size: 14px; }
+.pipe td { border: 1px solid #808080; padding: 8px; vertical-align: top; text-align: center; }
+.pipe td.arr { border: 0; font: bold 22px Arial, sans-serif; color: #c00000; width: 24px; padding: 0; vertical-align: middle; }
+.pipe small { display: block; font-size: 12px; color: #404040; margin-top: 4px; }
+.dyk { border: 2px dashed #008000; background: #f0fff0; padding: 10px; }
+.dyk b { color: #008000; }
+.projects { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.proj { border: 2px outset #c0c0c0; background: #e8e8e8; padding: 8px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.proj a { font-weight: bold; font-size: 16px; }
+.proj span { color: #404040; font-size: 13px; }
+.news { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+@media (max-width: 620px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .nav ul { flex-direction: row; flex-wrap: wrap; gap: 6px 14px; }
+  .projects { grid-template-columns: minmax(0, 1fr); }
+  .pipe, .pipe tbody, .pipe tr, .pipe td { display: block; width: 100%; }
+  .pipe td.arr { width: 100%; padding: 2px 0; text-align: center; transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page">
+    <h1>Welcome to blankiekun's Homepage!</h1>
+    <p class="sub">Read Japanese. Play visual novels. In the browser.</p>
+    <marquee scrollamount="4">*** Welcome!!! *** 3 open-source projects online *** chimimouryou * CONscripter * conscripter-convert *** Sign my guestbook on GitHub! ***</marquee>
+
+    <div class="layout">
+      <nav class="nav" aria-label="Site">
+        <b>~ Navigate ~</b>
+        <ul>
+          <li><a href="home.html">Home</a></li>
+          <li><a href="chimimouryou.html">chimimouryou</a></li>
+          <li><a href="convert.html">conscripter-convert</a></li>
+          <li><a href="conscripter.html">CONscripter</a></li>
+          <li><a href="https://github.com/blankiekun">My GitHub</a></li>
+          <li><a href="https://github.com/blankiekun?tab=repositories">All my repos</a></li>
+        </ul>
+      </nav>
+
+      <div class="main">
+        <p>Hi, and thanks for stopping by! I make three open-source projects that fit together.
+          <b>chimimouryou</b> is a self-hosted reader for your Calibre library.
+          <b>CONscripter</b> is the visual novel engine it uses to play games in the browser.
+          <b>conscripter-convert</b> turns games made with other engines into games CONscripter can play.</p>
+
+        <h2>My Projects</h2>
+        <div class="projects">
+          <div class="proj"><a href="chimimouryou.html">chimimouryou</a><span>魑魅魍魎</span>A Japanese e-book reader for the whole household.</div>
+          <div class="proj"><a href="convert.html">conscripter-convert</a><span>Rust · GPL-3.0</span>Brings more visual novels to CONscripter.</div>
+          <div class="proj"><a href="conscripter.html">CONscripter</a><span>C++ · GPL-2.0</span>Plays NScripter games on the web and everywhere else.</div>
+        </div>
+
+        <h2>How a game reaches your browser</h2>
+        <table class="pipe">
+          <tr>
+            <td><b>Your game</b><small>a visual novel you own, e.g. 最果てのイマ</small></td>
+            <td class="arr" aria-hidden="true">&rarr;</td>
+            <td><a href="convert.html"><b>conscripter-convert</b></a><small>Xuse archives and scripts &rarr; <code>0.txt</code> + <code>arc.nsa</code></small></td>
+            <td class="arr" aria-hidden="true">&rarr;</td>
+            <td><a href="conscripter.html"><b>CONscripter</b></a><small>plays it natively or as WebAssembly</small></td>
+            <td class="arr" aria-hidden="true">&rarr;</td>
+            <td><a href="chimimouryou.html"><b>chimimouryou</b></a><small>lays the text over the game for Yomitan</small></td>
+          </tr>
+        </table>
+
+        <div class="dyk"><b>Did you know...</b>
+          Every page CONscripter draws in chimimouryou hands its text, and where each character landed, to the web page.
+          That is what lets you look words up with Yomitan and count what you read in your reading statistics.</div>
+
+        <h2>What's New</h2>
+        <ul class="news">
+          <li><span class="new">NEW!</span> chimimouryou plays visual novels in the browser, with saves synced.</li>
+          <li><span class="new">NEW!</span> conscripter-convert converts 最果てのイマ COMPLETE (Xuse).</li>
+          <li>CONscripter adds <code>spfilter</code> and <code>pushscreen</code>/<code>popscreen</code> to NScripter.</li>
+          <li>Coming soon: a Nitroplus reader for conscripter-convert.</li>
+        </ul>
+
+        <div class="construction" role="note"><span class="man" aria-hidden="true">&#9874;</span> This page is ALWAYS under construction! Check back often! <span class="man" aria-hidden="true">&#9874;</span></div>
+      </div>
+    </div>
+
+    <hr class="rainbow">
+    <footer>
+      <div>You are visitor number <span class="counter" id="counter" aria-label="visitor count"></span> since 1995</div>
+      <div class="webring">
+        <b>&#9733; The Japanese Reading Tools WebRing &#9733;</b>
+        <nav aria-label="WebRing">
+          <a href="conscripter.html">&lt;&lt; Prev</a>
+          <a href="chimimouryou.html">Random</a>
+          <a href="https://github.com/blankiekun">List Sites</a>
+          <a href="convert.html">Next &gt;&gt;</a>
+        </nav>
+      </div>
+      <div class="badges">
+        <span class="badge ie"><b>e</b>Best viewed with IE 3.0</span>
+        <span class="badge res">800 x 600<br>16 colors</span>
+        <span class="badge np">Made with<br>Notepad</span>
+        <a class="badge gh" href="https://github.com/blankiekun">Sign my guestbook<br>on GitHub</a>
+      </div>
+      <div><small>&copy; blankiekun. All projects are open source on <a href="https://github.com/blankiekun">GitHub</a>.</small></div>
+    </footer>
+  </div>
+</div>
+<script>
+  // A hit counter that only counts you. It's 1996, nobody checks.
+  (function () {
+    var n = 1995;
+    try { n += +(localStorage.getItem('hits') || 0) + 1; localStorage.setItem('hits', n - 1995); } catch (e) { n += 1; }
+    var s = String(n).padStart(7, '0'), el = document.getElementById('counter');
+    for (var i = 0; i < s.length; i++) { var d = document.createElement('span'); d.textContent = s[i]; el.appendChild(d); }
+  })();
+</script>
+</body>
+</html>
