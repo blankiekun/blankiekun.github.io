@@ -263,7 +263,7 @@ function outlineDrag(win, e, mode) {
   const r = win.el.getBoundingClientRect();
   const sx = e.clientX, sy = e.clientY;
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
-  let outline = null;
+  let outline = null, drawn = -Infinity;
   const id = e.pointerId;
   try { target.setPointerCapture(id); } catch {}
   if (mode !== 'move') e.preventDefault();
@@ -292,6 +292,12 @@ function outlineDrag(win, e, mode) {
       if (mode.includes('n')) top = clamp(r.top + dy, A.top, r.bottom - minH);
       Object.assign(box, { x: left, y: top, w: right - left, h: bottom - top });
     }
+    // The real XOR rectangle couldn't keep up with the mouse, so redraw in steps.
+    if (ev.timeStamp - drawn < 70) return;
+    drawn = ev.timeStamp;
+    draw();
+  }
+  function draw() {
     Object.assign(outline.style, { left: box.x + 'px', top: box.y + 'px', width: box.w + 'px', height: box.h + 'px' });
   }
   function end(ev, cancel) {

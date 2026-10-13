@@ -294,6 +294,7 @@
 .calc-keys { display: grid; grid-template-columns: 36px repeat(5, 36px); gap: 6px 4px; }
 .calc-keys > :nth-child(6n + 1) { margin-right: 6px; }
 .calc-key { min-width: 0; height: 28px; padding: 0; font-size: 12px; }
+.calc-key:active:not(:disabled) { padding: 1px 0 0 1px; }
 .calc-key.wide { height: 28px; }
 .calc-key.red { color: #ff0000; }
 .calc-key.blue { color: #0000ff; }
@@ -318,6 +319,7 @@
 
 /* ---------- Send to blankiekun ---------- */
 .send-btn { min-width: 0; padding: 0 8px; flex: none; }
+.send-btn:active:not(:disabled) { padding: 1px 7px 0 9px; }
 .send-btn:disabled svg { filter: grayscale(1) opacity(.5); }
 .pt { position: relative; }
 .pt-colorbox .send-btn { margin-left: auto; }
