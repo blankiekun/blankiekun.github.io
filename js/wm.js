@@ -332,13 +332,15 @@ window.addEventListener('blur', () => setTimeout(() => {
   }
 }));
 
-window.addEventListener('resize', () => {
+function onViewport() {
   wins.forEach(w => {
     if (small.matches && !w.opts.dialog && w.state === 'normal') maximize(w);
     else if (w.state !== 'max') fit(w);
     if (w.opts.onResize) w.opts.onResize();
   });
-});
+}
+window.addEventListener('resize', onViewport);
+small.addEventListener('change', onViewport);
 
 function syncRoute() {
   const r = active && active.route ? (typeof active.route === 'function' ? active.route() : active.route) : '';

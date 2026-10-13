@@ -213,7 +213,8 @@
 .ms-best .num { font-variant-numeric: tabular-nums; }
 .ms-cfs { display: flex; flex-direction: column; gap: 8px; }
 .ms-cf { display: grid; grid-template-columns: 60px 70px; align-items: center; }
-.win.max .ms-wrap { align-items: center; overflow: auto; }
+.win.max .ms-wrap { overflow: auto; }
+.win.max .ms { align-self: center; margin-top: 8px; }
 
 /* ---------- Solitaire ---------- */
 .sol { display: flex; flex-direction: column; flex: 1; min-height: 0; }

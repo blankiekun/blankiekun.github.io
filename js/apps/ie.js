@@ -3,7 +3,7 @@
 
 import { h, icon, esc, wait, reducedMotion } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { menubar } from '../menu.js';
+import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 
 export const PAGES = {
@@ -87,7 +87,7 @@ function open(arg) {
     { label: 'conscripter-convert repository', icon: 'i-github', action: () => window.open(GITHUB + '/conscripter-convert', '_blank', 'noopener') },
   ];
   function favMenu(btn) {
-    import('../menu.js').then(m => m.openMenu(favItems(), { rect: btn.getBoundingClientRect() }));
+    openMenu(favItems(), { rect: btn.getBoundingClientRect() });
   }
 
   const bar = menubar([

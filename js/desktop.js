@@ -1,7 +1,7 @@
 // The desktop surface: icons, right-click menu, Start menu, tray clock,
 // and the boot / shut down / log off screens.
 
-import { h, icon, clamp, wait, small, reducedMotion } from './util.js';
+import { h, icon, clamp, wait, reducedMotion } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
 import { launch, createWindow, all, close, deactivate, appInfo } from './wm.js';
 import { msgbox } from './dialogs.js';
@@ -284,8 +284,10 @@ function shutDown() {
     ['dos', 'Restart the computer in &MS-DOS mode?'],
     ['logoff', '&Close all programs and log on as a different user?'],
   ];
+  // The dither goes inside the window layer so the dialog can sit above it.
   const dim = h('div', { class: 'screen dim' });
-  document.body.append(dim);
+  document.getElementById('windows').append(dim);
+  document.body.classList.add('shutting');
   const form = h('form', { class: 'dlg', style: { width: 'min(380px, calc(100vw - 24px))' } },
     h('div', { class: 'row' }, icon('i-shutdown'), h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
       h('div', null, 'Are you sure you want to:'),
@@ -309,8 +311,8 @@ function shutDown() {
     if (e.key === 'y') form.requestSubmit();
     if (e.key === 'n') win.close();
   });
-  const win = createWindow({ title: 'Shut Down blankiekun 95', body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, onClosed: () => dim.remove() });
-  win.el.style.zIndex = 30001;
+  const win = createWindow({ title: 'Shut Down blankiekun 95', body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, onClosed: () => { dim.remove(); document.body.classList.remove('shutting'); } });
+  win.el.style.zIndex = 9001;
   form.querySelector('.btn').focus();
 }
 
@@ -408,5 +410,4 @@ export function initDesktop() {
   renderIcons();
   lastH = desktopEl.clientHeight;
   clock();
-  if (small.matches) { /* icons still tap-to-open; windows open maximized */ }
 }
