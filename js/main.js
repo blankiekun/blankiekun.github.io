@@ -3,7 +3,7 @@
 import { register, launch, appInfo, activeWindow } from './wm.js';
 import { initDesktop, boot } from './desktop.js';
 
-const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'display', 'system'];
+const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'paint', 'calc', 'dos', 'display', 'system'];
 
 // Older links to this site used #welcome, #chimimouryou, #convert and #conscripter.
 const LEGACY = { welcome: 'ie/home', chimimouryou: 'ie/chimimouryou', convert: 'ie/convert', conscripter: 'ie/conscripter' };

@@ -79,7 +79,7 @@ const OLDSITE = `<html>
 `;
 
 const app = (name, appId, icon, size, arg) => ({ name, kind: 'app', app: appId, icon, size, arg });
-const page = (name, key, size) => ({ name, kind: 'page', page: key, icon: 'i-htm', size });
+const page = (name, key, size, dos) => ({ name, kind: 'page', page: key, icon: 'i-htm', size, dos });
 const txt = (name, text) => ({ name, kind: 'file', icon: 'i-txt', text, size: text.length });
 
 export const root = {
@@ -119,7 +119,7 @@ export const root = {
         page('index.htm', 'home', 9216),
         page('chimimouryou.htm', 'chimimouryou', 14336),
         page('conscripter-convert.htm', 'convert', 11264),
-        page('CONscripter.htm', 'conscripter', 12288),
+        page('CONscripter.htm', 'conscripter', 12288, 'CONSCR~2.HTM'),
         { name: 'GitHub', kind: 'link', href: 'https://github.com/blankiekun', icon: 'i-github' },
       ],
     },
