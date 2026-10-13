@@ -1,6 +1,8 @@
 name = "blankiekun95-send"
 main = "src/index.js"
 compatibility_date = "2025-06-01"
+workers_dev = true
+preview_urls = false
 
 [vars]
 # Sites allowed to send. Add http://localhost:8000 (or similar) while testing locally.
