@@ -8,6 +8,18 @@ import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 
+let tipShown = false;
+
+// The Setup picture: a little monitor with a visual novel on it.
+const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="crispEdges">
+<path fill="#fff" d="M2 2h60v1H3v41H2z"/><path fill="#000" d="M2 45h61V2h-1v42H2z"/><path fill="#c0c0c0" d="M3 3h59v41H3z"/><path fill="#808080" d="M6 6h53v1H7v33H6z"/><path fill="#fff" d="M7 40h52V7h-1v32H7z"/>
+<path fill="#202060" d="M7 7h51v6H7z"/><path fill="#503070" d="M7 13h51v5H7z"/><path fill="#a04878" d="M7 18h51v4H7z"/><path fill="#e08060" d="M7 22h51v3H7z"/><path fill="#f0c070" d="M7 25h51v2H7z"/>
+<path fill="#fff" d="M12 9h1v1h-1zM24 11h1v1h-1zM41 8h1v1h-1zM52 12h1v1h-1z"/><path fill="#fff0c0" d="M46 9h4v1h1v3h-1v1h-4v-1h-1v-3h1z"/>
+<path fill="#203020" d="M7 27h51v12H7z"/><path fill="#402820" d="M15 20h2v9h-2z"/><path fill="#f8b0c8" d="M10 15h12v2h2v3h-2v2H10v-2H8v-3h2z"/><path fill="#e07898" d="M11 19h3v1h-3zM18 16h3v1h-3zM16 20h4v1h-4z"/>
+<path fill="#282040" d="M37 19h5v2h1v4h2v8h-10v-8h2v-4h1z"/>
+<path fill="#000040" d="M9 29h47v9H9z"/><path fill="#8080ff" d="M9 29h47v1H9z"/><path fill="#fff" d="M11 31h30v1H11zM11 34h22v1H11z"/><path class="cons-blink" fill="#ff0" d="M50 34h3v1h-1v1h-1v-1h-1z"/>
+<path fill="#808080" d="M26 45h13v4H26z"/><path fill="#c0c0c0" d="M16 49h33v4H16z"/><path fill="#fff" d="M16 49h33v1H16z"/><path fill="#000" d="M16 53h33v1H16z"/></svg>`;
+
 const SCRIPTS = ['0.txt', '00.txt', 'nscript.dat', 'nscr_sec.dat', 'onscript.nt', 'onscript.nt2', 'onscript.nt3', 'nscript.___'];
 
 // ---------- reading what the visitor gave us ----------
@@ -164,21 +176,40 @@ function open() {
 
   // Welcome page, drawn like a 95 Setup wizard.
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
-    h('div', null, h('b', null, 'Drag a game folder here'), h('br'), 'the one with 0.txt, 00.txt or nscript.dat in it'));
+    h('b', null, 'Drag a game folder here'),
+    h('span', null, 'the one with 0.txt, 00.txt or nscript.dat in it'));
+  const keepText = h('span');
+  const keep = h('div', { class: 'cons-keep' }, icon('i-drive'), keepText);
   const welcome = h('div', { class: 'cons-welcome' },
-    h('div', { class: 'cons-side', 'aria-hidden': 'true' }, icon('i-game'), h('span', null, 'CON', h('b', null, 'scripter'))),
+    h('div', { class: 'cons-side', 'aria-hidden': 'true' },
+      h('div', { class: 'cons-art', html: ART }),
+      h('span', null, 'CON', h('b', null, 'scripter'))),
     h('div', { class: 'cons-main' },
       h('h2', null, 'Welcome to CONscripter'),
-      h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder from your computer to start.'),
+      h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder from your computer to start. The game is read from your disk and never leaves this computer.'),
       dropBox,
       h('div', { class: 'cons-btns' },
-        h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' }))),
-      h('p', { class: 'cons-note' }, icon('i-info'), h('span', null, 'The game is read from your disk and never leaves this computer. Saves are kept in this browser; use File > Export Saves to back them up.'))));
+        h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
+        h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
+      h('fieldset', { class: 'group cons-warn' },
+        h('legend', null, 'Your saves'),
+        h('div', { class: 'cons-warn-row' }, icon('i-warn'),
+          h('p', null, 'Saves are kept only in this browser. ', h('b', null, 'Clearing browsing data, cookies or site data erases them'),
+            ', and so does closing a private window. Some browsers also clean up sites you haven\'t visited in a while. Use ',
+            h('b', null, 'File > Export Saves'), ' to keep a copy.')),
+        keep)));
+
+  // Shown over the game until dismissed, once per visit.
+  const tip = h('div', { class: 'cons-tip', role: 'note', hidden: true }, icon('i-warn'),
+    h('span', null, 'Saves live only in this browser. Clearing site data erases them.'),
+    h('button', { class: 'btn', type: 'button', onclick: () => exportSaves() }, 'Export Saves...'),
+    h('button', { class: 'cons-tip-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { tipShown = true; tip.hidden = true; frame && frame.focus(); } }, icon('i-x')));
 
   const view = h('div', { class: 'cons-view' }, welcome);
   const statusText = h('span', null, 'Ready');
   const statusGame = h('span', { class: 'cons-size' }, '');
-  const status = h('div', { class: 'statusbar' }, statusText, statusGame, h('span', { class: 'cons-saves' }, icon('i-floppy'), 'Saves: this browser'));
+  const statusSaves = h('span', { class: 'cons-saves' }, icon('i-floppy'), 'Saves: this browser');
+  const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSaves);
   const say = t => { statusText.textContent = t; };
 
   const bar = menubar([
@@ -204,12 +235,26 @@ function open() {
     ] },
   ]);
 
-  const root = h('div', { class: 'cons' }, bar, view, status);
+  const root = h('div', { class: 'cons' }, bar, tip, view, status);
+
+  // Ask the browser not to evict saves on its own. Clearing site data still erases them.
+  function showKeep(kept) {
+    keep.classList.toggle('kept', !!kept);
+    keepText.textContent = kept ? 'This browser has agreed not to clear saves on its own.'
+      : 'This browser may also clear saves on its own when it runs low on space.';
+    statusSaves.title = kept ? 'Saves are in this browser, protected from automatic cleanup' : 'Saves are in this browser and may be cleared automatically';
+  }
+  const storage = navigator.storage;
+  if (storage && storage.persisted) storage.persisted().then(showKeep, () => showKeep(null)); else showKeep(null);
+  function askKeep() {
+    if (storage && storage.persist && !keep.classList.contains('kept')) storage.persist().then(showKeep, () => {});
+  }
 
   function stop(msg) {
     if (frame) frame.remove();
     frame = null; skip = false;
     view.classList.remove('playing');
+    tip.hidden = true;
     view.replaceChildren(welcome);
     win.setTitle('CONscripter');
     statusGame.textContent = '';
@@ -232,6 +277,8 @@ function open() {
       frame.focus();
     }, { once: true });
     view.classList.add('playing');
+    tip.hidden = tipShown;
+    askKeep();
     view.replaceChildren(frame);
     win.setTitle(g.title + ' - CONscripter');
     statusGame.textContent = g.files.length.toLocaleString('en-US') + ' files, ' + bytes(g.size);
