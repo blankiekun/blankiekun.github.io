@@ -26,7 +26,6 @@ table.support { width: 100%; border: 2px solid #33ff33; font-size: 14px; }
 .support th, .support td { border: 1px solid #1a801a; padding: 4px 8px; text-align: left; vertical-align: top; }
 .support th { background: #003300; color: #ffff00; }
 .ok { color: #33ff33; white-space: nowrap; } .ok::before { content: "[OK] "; }
-.no { color: #ff3333; white-space: nowrap; } .no::before { content: "[--] "; }
 .wip { color: #ffff00; } .wip::before { content: "[..] "; }
 ul.how { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 ul.how li::before { content: "> "; color: #ffff00; }
@@ -81,23 +80,6 @@ Writing 0.txt, arc.nsa .. <i>ok</i>
       </tbody>
     </table>
     <p style="margin-top:6px">Each engine links to its game's write-up: the file formats, what converts, what doesn't and why.</p>
-  </div>
-
-  <div>
-    <h2>最果てのイマ</h2>
-    <table class="support">
-      <thead><tr><th scope="col">Xuse feature</th><th scope="col">Status</th></tr></thead>
-      <tbody>
-        <tr><td>Archives, images, BGM with loop points, sound effects, voices, movies</td><td class="ok">Decoded</td></tr>
-        <tr><td>Text, speaker names, ruby, text sizes and colours, route links</td><td class="ok">Converted</td></tr>
-        <tr><td>Every transition, drawn as in the original</td><td class="ok">Converted</td></tr>
-        <tr><td>Colour filters, shakes, ripples, flashes, quakes</td><td class="ok">Converted</td></tr>
-        <tr><td>Title, save/load, settings, backlog with voice replay</td><td class="ok">Built in-script</td></tr>
-        <tr><td>CG gallery, scene replay, BGM room</td><td class="ok">Built in-script</td></tr>
-        <tr><td>System-voice room, chapter history, autosave</td><td class="no">Not converted</td></tr>
-      </tbody>
-    </table>
-    <p style="margin-top:6px">Every story instruction converts, and the game plays from start to end. Movies play on the web, Windows and Android.</p>
   </div>
 
   <div class="box">
