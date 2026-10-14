@@ -42,6 +42,8 @@ section { background: rgba(0, 0, 40, .85); border: 2px ridge #6666cc; padding: 1
 .hero-shot { text-align: center; }
 pre.dos { background: #000; color: #c0c0c0; border: 2px inset #808080; padding: 10px; font: 13px/1.5 "Courier New", monospace; margin: 0; }
 pre.dos b { color: #fff; }
+section p { margin: 8px 0 0; } section h2 + p { margin-top: 0; }
+code { color: #fff; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .links a { background: #ffcc00; color: #000033; padding: 6px 12px; border: 3px outset #ffe680; text-decoration: none; font-weight: bold; }
 .links a:active { border-style: inset; }
@@ -64,11 +66,11 @@ footer { text-align: center; font-size: 12px; display: flex; flex-direction: col
       <h1>chimimouryou</h1>
       <div class="kana" lang="ja">ちみもうりょう</div>
       <p>A self-hosted Japanese e-book reader for your Calibre library. It is a fork of
-        <a href="https://github.com/ttu-ttu/ebook-reader">ッツ Ebook Reader</a> that runs on your own server, so everyone in the house reads from one library with their own account, synced progress and highlights, plus tools for language learners.</p>
+        <a href="https://github.com/ttu-ttu/ebook-reader">ッツ Ebook Reader</a> that runs on your own server: everyone in the house reads books, manga and visual novels from one library, with their own account, synced progress and highlights, and tools for language learners.</p>
     </div>
   </div>
 
-  <marquee scrollamount="3" lang="ja">ようこそ！ Welcome to the chimimouryou homepage ★ Read Japanese books, manga and visual novels in one place ★ Docker images for amd64 and arm64 ★</marquee>
+  <marquee scrollamount="3" lang="ja">ようこそ！ Welcome to the chimimouryou homepage ★ Version 3.4.0 is out: books on Home can be read offline ★ Visual novels on CONscripter 0.19 ★ Docker images for amd64 and arm64 ★</marquee>
 
   <section class="hero-shot">
     <div class="shot"><a href="../img/chimi-reader.png"><img src="../img/chimi-reader.png" width="640" height="400" alt="Reading 坊っちゃん in vertical text, with a highlight and the selection toolbar showing Note and Ask AI"></a></div>
@@ -78,13 +80,16 @@ footer { text-align: center; font-size: 12px; display: flex; flex-direction: col
   <section>
     <h2>What it adds</h2>
     <ul class="features">
-      <li><b>Your Calibre library</b> as the bookshelf: covers, series, tags, "Continue reading", filters and sorting.</li>
-      <li><b>Accounts</b> with an admin panel. Progress, statistics, highlights and settings sync across devices.</li>
-      <li><b>Highlights, notes</b> and full-text search that ignores furigana.</li>
-      <li><b>AI helpers</b> with your own keys: Ask AI, spoiler-free "Story so far" recaps, a lorebook, and read-aloud with the current line highlighted.</li>
+      <li><b>Your Calibre library</b> as the bookshelf. Home shows today's reading, streaks and "Continue reading"; the Store has the whole library as books or series, with filters and sorting. Books you import go into Calibre.</li>
+      <li><b>Accounts</b> with permissions, added by an admin. Progress, statistics, highlights and settings sync across devices.</li>
+      <li><b>Offline reading</b>: books on Home download in the background, and progress made offline uploads when the server is back. <span class="new">NEW!</span></li>
+      <li><b>Highlights and notes</b> in four colours, and full-text search that ignores furigana.</li>
+      <li><b>Audiobooks</b> that highlight the line being read, from a file or an Audiobookshelf server. No subtitles? Whisper makes them in the browser.</li>
+      <li><b>Anki mining</b> with Yomitan: cards get the sentence's audio and, in visual novels, a screenshot and the line's voice.</li>
+      <li><b>AI helpers</b>, off until you turn them on, with your own keys: Ask AI, spoiler-free "Story so far" recaps, a lorebook, and read-aloud.</li>
       <li><b>Manga</b> (CBZ/ZIP) in a page-turning reader.</li>
-      <li><b>Visual novels</b> played in the browser with <a href="conscripter.html">CONscripter</a>, with saves synced and the text counted in your stats. <span class="new">NEW!</span></li>
-      <li><b>Difficulty estimates</b> from <a href="https://github.com/Sirush/Jiten">Jiten</a>'s features, computed on your server.</li>
+      <li><b>Visual novels</b> played in the browser with <a href="conscripter.html">CONscripter</a>. The text is laid over the game for Yomitan, backlogs and choices too, and counted in your stats. Saves sync across devices, and admins update the engine from the admin panel.</li>
+      <li><b>Difficulty estimates</b> from <a href="https://github.com/Sirush/Jiten">Jiten</a>'s features, computed on your server: a score, the vocabulary you need, and how many of the book's kanji you have met.</li>
     </ul>
   </section>
 
@@ -92,7 +97,7 @@ footer { text-align: center; font-size: 12px; display: flex; flex-direction: col
     <h2>Screenshots</h2>
     <div class="gallery">
       <div class="col">
-        <div><div class="shot"><a href="../img/chimi-store.png"><img src="../img/chimi-store.png" width="1280" height="800" alt="The library's Store tab with book covers" loading="lazy"></a></div><div class="cap">Library</div></div>
+        <div><div class="shot"><a href="../img/chimi-store.png"><img src="../img/chimi-store.png" width="1280" height="800" alt="The library's Store tab with book covers" loading="lazy"></a></div><div class="cap">The Store</div></div>
         <div><div class="shot"><a href="../img/chimi-settings.png"><img src="../img/chimi-settings.png" width="1280" height="800" alt="Settings, AI section" loading="lazy"></a></div><div class="cap">Settings &rarr; AI</div></div>
       </div>
       <div><div class="shot"><a href="../img/chimi-phone-store.png"><img src="../img/chimi-phone-store.png" width="780" height="1688" alt="The library on a phone" loading="lazy"></a></div><div class="cap">Phone</div></div>
@@ -101,18 +106,22 @@ footer { text-align: center; font-size: 12px; display: flex; flex-direction: col
 
   <section>
     <h2>Setup</h2>
+    <p>You need Docker with the Compose plugin. Set the library folder and how you reach the server in <code>.env</code>, then:</p>
     <pre class="dos" aria-label="Setup commands"><b>C:\&gt;</b> git clone https://github.com/blankiekun/chimimouryou
 <b>C:\&gt;</b> cd chimimouryou &amp;&amp; cp .env.example .env
 <b>C:\CHIMIM~1&gt;</b> docker compose up -d
 <b>C:\CHIMIM~1&gt;</b> docker compose exec account ebook-account initial-admin</pre>
+    <p>The last command prints the password of the first account, <code>admin</code>. Use an existing Calibre library or start an empty one, on your own computer or on a server behind HTTPS: the <a href="https://github.com/blankiekun/chimimouryou#setup">setup guide</a> covers each case.</p>
   </section>
 
   <section>
     <h2>Info</h2>
     <table class="info">
+      <tr><th scope="row">Latest release</th><td><a href="https://github.com/blankiekun/chimimouryou/releases/tag/v3.4.0">3.4.0</a> (13 October 2026)</td></tr>
       <tr><th scope="row">Docker images</th><td>amd64 and arm64 · ghcr.io/blankiekun/chimimouryou</td></tr>
+      <tr><th scope="row">Updates</th><td>From the admin panel: Stable (releases) or Bleeding edge (main)</td></tr>
       <tr><th scope="row">Written in</th><td>Svelte · TypeScript</td></tr>
-      <tr><th scope="row">Works with</th><td><a href="conscripter.html">CONscripter</a> for visual novels, <a href="convert.html">conscripter-convert</a> for more games</td></tr>
+      <tr><th scope="row">Works with</th><td><a href="conscripter.html">CONscripter</a> for visual novels, <a href="convert.html">conscripter-convert</a> for games made with other engines</td></tr>
     </table>
   </section>
 

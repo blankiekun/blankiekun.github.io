@@ -27,6 +27,7 @@ table.support { width: 100%; border: 2px solid #33ff33; font-size: 14px; }
 .support th { background: #003300; color: #ffff00; }
 .ok { color: #33ff33; white-space: nowrap; } .ok::before { content: "[OK] "; }
 .no { color: #ff3333; white-space: nowrap; } .no::before { content: "[--] "; }
+.wip { color: #ffff00; } .wip::before { content: "[..] "; }
 ul.how { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 ul.how li::before { content: "> "; color: #ffff00; }
 code { color: #fff; }
@@ -48,12 +49,12 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 |                                                        |
 +========================================================+
 </pre>
-  <div class="tag">::: visual novel converter ::: Rust ::: GPL-3.0 ::: <span class="blink">NOW WITH XUSE SUPPORT</span> :::</div>
+  <div class="tag">::: visual novel converter ::: Rust ::: GPL-3.0 ::: <span class="blink">最果てのイマ FINISHED</span> :::</div>
 
   <div class="box">
     <h2>About</h2>
-    <p>Converts Japanese visual novels you own into games that run on <a href="conscripter.html">CONscripter</a>, including its WebAssembly build.
-      It reads a game's archives, images, audio and compiled scripts, translates them into an engine-neutral
+    <p>Converts Japanese visual novels you own into games that run on <a href="conscripter.html">CONscripter</a>, including its WebAssembly build, so they play in the browser and in <a href="chimimouryou.html">chimimouryou</a>.
+      It reads a game's archives, images, audio and scripts, translates them into an engine-neutral
       intermediate form, and writes a <code>0.txt</code> script plus <code>.nsa</code> archives.</p>
     <p>It ships no game data and reads only your own installation.</p>
   </div>
@@ -66,38 +67,52 @@ Decompiling scripts ..... <i>ok</i>
 Writing 0.txt, arc.nsa .. <i>ok</i>
 
 <b>C:\&gt;</b> conscripter --root out\imaa</pre>
+    <p style="margin-top:6px"><code>--webp</code> stores images as WebP at about half the size, for the web. Every build writes a <code>version.txt</code> and shows its build date and versions on the settings screen, so a bug report says which build it came from.</p>
   </div>
 
   <div>
-    <h2>Xuse support</h2>
+    <h2>Supported engines</h2>
+    <table class="support">
+      <thead><tr><th scope="col">Engine</th><th scope="col">Tested with</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr><td>Xuse</td><td lang="ja">最果てのイマ COMPLETE</td><td class="ok">Finished</td></tr>
+        <tr><td>5pb./MAGES (PS Vita)</td><td lang="ja">俺たちに翼はない</td><td class="wip">The story plays, with menus and extras</td></tr>
+        <tr><td>Nitroplus NSS</td><td lang="ja">装甲悪鬼村正</td><td class="wip">4 of 5 endings play through</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    <h2>最果てのイマ</h2>
     <table class="support">
       <thead><tr><th scope="col">Xuse feature</th><th scope="col">Status</th></tr></thead>
       <tbody>
-        <tr><td>Archives, images, BGM, sound effects, voices</td><td class="ok">Decoded</td></tr>
-        <tr><td>Script text, speaker names, hyperlinks</td><td class="ok">Converted</td></tr>
-        <tr><td>Control flow: variables, goto, gosub/return</td><td class="ok">Converted</td></tr>
-        <tr><td>Transitions with original durations</td><td class="ok">Converted</td></tr>
-        <tr><td>Evening and night character tints</td><td class="ok">Pre-rendered</td></tr>
-        <tr><td>Title, save/load, settings, backlog menus</td><td class="ok">Built in-script</td></tr>
-        <tr><td>Movies</td><td class="no">Not yet</td></tr>
-        <tr><td>Special text displays, ~35 rarer opcodes</td><td class="no">Not yet</td></tr>
+        <tr><td>Archives, images, BGM with loop points, sound effects, voices, movies</td><td class="ok">Decoded</td></tr>
+        <tr><td>Text, speaker names, ruby, text sizes and colours, route links</td><td class="ok">Converted</td></tr>
+        <tr><td>Every transition, drawn as in the original</td><td class="ok">Converted</td></tr>
+        <tr><td>Colour filters, shakes, ripples, flashes, quakes</td><td class="ok">Converted</td></tr>
+        <tr><td>Title, save/load, settings, backlog with voice replay</td><td class="ok">Built in-script</td></tr>
+        <tr><td>CG gallery, scene replay, BGM room</td><td class="ok">Built in-script</td></tr>
+        <tr><td>System-voice room, chapter history, autosave</td><td class="no">Not converted</td></tr>
       </tbody>
     </table>
-    <p style="margin-top:6px">Tested with 最果てのイマ COMPLETE (Xuse).</p>
+    <p style="margin-top:6px">Every story instruction converts, and the game plays from start to end. Movies play on the web, Windows and Android.</p>
   </div>
 
   <div class="box">
     <h2>How it works</h2>
     <ul class="how">
-      <li>Each source engine is a separate reader that feeds the same output stage. Xuse is the first; Nitroplus is in progress.</li>
+      <li>Each source engine is a separate reader that feeds the same output stage. Only the output stage knows about NScripter.</li>
       <li>Anything it can't convert yet stays in <code>0.txt</code> as a comment naming the source instruction, and each run prints a ranked list of what was left out.</li>
-      <li>When a game needs something NScripter can't do, the feature is added to <a href="conscripter.html">CONscripter</a> rather than approximated.</li>
+      <li>When a game needs something NScripter can't do, the feature is added to <a href="conscripter.html">CONscripter</a> rather than approximated: screen filters, shakes, new transitions and text sizes all came from here.</li>
+      <li>Converted games are tested by letting CONscripter play every route by itself and checking its debug trace for errors, missing files and stray sprites.</li>
     </ul>
   </div>
 
   <div class="links">
     <a href="https://github.com/blankiekun/conscripter-convert">Repository</a>
     <a href="https://github.com/blankiekun/conscripter-convert#converting-a-game">Usage</a>
+    <a href="https://github.com/blankiekun/conscripter-convert/blob/main/docs/new-game.md">Converting a new game</a>
     <a href="https://github.com/blankiekun/conscripter-convert/blob/main/PLAN.md">Design notes</a>
   </div>
 

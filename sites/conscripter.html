@@ -33,6 +33,7 @@ p { margin: 0 0 8px; } p:last-child { margin: 0; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 pre.code { background: #ffffff; color: #000; border: 2px inset #c0c0c0; padding: 8px; font: 13px/1.45 "Courier New", monospace; margin: 0 0 8px; }
 pre.code i { color: #008000; font-style: normal; }
+code { color: #ffff00; }
 table.plat { width: 100%; font-size: 14px; border: 3px outset #9933ff; }
 .plat th, .plat td { border: 2px inset #9933ff; padding: 4px 8px; text-align: left; }
 .plat th { background: #330066; color: #ffff00; }
@@ -52,13 +53,13 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 
   <div class="panel">
     <h2>What is it?</h2>
-    <p>An ONScripter engine for playing NScripter visual novels on the web, Windows, Linux, macOS, Android and RetroArch.
-      It is a fork of <a href="https://github.com/YuriSizuku/OnscripterYuri">ONScripter-Yuri</a>, built on SDL2, and the engine behind
+    <p>An ONScripter engine for playing NScripter visual novels. It is a fork of <a href="https://github.com/YuriSizuku/OnscripterYuri">ONScripter-Yuri</a>, built on SDL2, and the engine behind
       <a href="chimimouryou.html">chimimouryou</a>'s visual novel player and <a href="convert.html">conscripter-convert</a>'s output.</p>
+    <p>Want to try it? Double-click <b>CONscripter</b> on this desktop and open a game folder. The game is read straight from your disk and nothing is uploaded.</p>
   </div>
 
   <div class="dl">
-    <a class="btn3d" href="https://github.com/blankiekun/CONscripter/releases">&#9660; DOWNLOAD NOW! &#9660;</a>
+    <a class="btn3d" href="https://github.com/blankiekun/CONscripter/releases">&#9660; DOWNLOAD v0.19.1! &#9660;</a>
     <a class="btn3d alt" href="https://github.com/blankiekun/CONscripter">Repository</a>
   </div>
 
@@ -78,19 +79,22 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
       <h2>New commands</h2>
 <pre class="code"><i>; night tint on sprite 10</i>
 spfilter 10,1,1,256,148,152,200
-<i>; black silhouette</i>
-spfilter 10,1,0,256,0,0,0
-<i>; run a scene, then put the screen back</i>
-pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
-      <p>Every addition is opt-in. Scripts that don't use them behave exactly as in ONScripter-Yuri, and the extra state is kept in save files.
-        <a href="https://github.com/blankiekun/CONscripter#conscripter-additions">Full list of additions</a></p>
+<i>; darken the whole scene</i>
+screenfilter 1,4,0,256,-200:print 10
+<i>; slide the new picture in from the right</i>
+effect 20,99,800,"cons_slide.dll/0,-1,0"
+<i>; shout in bigger text</i>
+!z150「ぎゃーっ！！」!z100</pre>
+      <p>Colour filters on sprites and on the whole screen, shakes, ripples and pulses that move while the text goes on, slide, zoom, flip and melt transitions, text sizes, a saved screen stack and more.
+        Every addition is opt-in: scripts that don't use them behave exactly as in ONScripter-Yuri, and the extra state is kept in save files.
+        <a href="https://github.com/blankiekun/CONscripter/blob/master/ADDITIONS.md">Full list of additions</a></p>
     </div>
     <div class="panel">
       <h2>Platforms</h2>
       <table class="plat">
         <thead><tr><th scope="col">Platform</th><th scope="col">Builds</th></tr></thead>
         <tbody>
-          <tr><td>Web</td><td>WebAssembly, saves in IndexedDB</td></tr>
+          <tr><td>Web</td><td>WebAssembly: saves in IndexedDB with zip export, lazy loading, WebP, video</td></tr>
           <tr><td>Windows</td><td>x86, x64, ARM64</td></tr>
           <tr><td>Linux</td><td>x86, x64, arm, aarch64</td></tr>
           <tr><td>macOS</td><td>x64, arm64</td></tr>
@@ -101,9 +105,22 @@ pushscreen 0,999:gosub *scene:popscreen:print 10</pre>
     </div>
   </div>
 
+  <div class="cols">
+    <div class="panel">
+      <h2>Text for your web page</h2>
+      <p>The web build hands each page's text, and where each character was drawn, to the page around it. chimimouryou uses this to lay selectable text over the game for Yomitan, in backlogs and choices too.</p>
+      <p>The page also hears about voices, auto and skip mode, and the text window, and can turn auto mode, skip mode, furigana and text speed on and off.</p>
+    </div>
+    <div class="panel">
+      <h2>Bug hunting</h2>
+      <p><code>--auto-play</code> plays a game through by itself, and <code>--trace</code> writes what is on screen at every page, the choices made, missing files and script errors. A checker reads the trace and lists what looks wrong, and an explorer replays the game until it has reached every route.
+        <a href="https://github.com/blankiekun/CONscripter/blob/master/DEBUG.md">How to use them</a></p>
+    </div>
+  </div>
+
   <hr class="rainbow">
   <footer>
-    <div>Based on ONScripter, ONScripter-Jh and ONScripter-Yuri · C++ · GPL-2.0</div>
+    <div>Based on ONScripter, ONScripter-Jh and ONScripter-Yuri · C++ · GPL-2.0-or-later</div>
     <div><a href="convert.html">&lt;&lt; conscripter-convert</a> | <a href="home.html">Home</a> | <a href="chimimouryou.html">chimimouryou &gt;&gt;</a></div>
     <div class="badges">
       <span class="badge ie"><b>e</b>Best viewed with IE 3.0</span>
