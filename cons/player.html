@@ -22,7 +22,7 @@ video[hidden] { display: none; }
 <video id="video" hidden playsinline></video>
 <script src="conscripter.js"></script>
 <script>
-// The host page for CONscripter (conscripter.js/.wasm are the v0.17.0 web release).
+// The host page for CONscripter (conscripter.js/.wasm are the v0.18.0 web release).
 // The Program window in js/apps/conscripter.js makes one of these per game and calls
 // start() with the visitor's own files. Nothing is uploaded: game files are read
 // straight off their disk as the engine asks for them, so one big .nsa never has to
@@ -63,13 +63,24 @@ function flush_save() {
   return flushing;
 }
 
+// A skipped movie must stop: hiding it and clearing src leaves its sound
+// playing in some browsers.
+let videoSkippable = false;
 function videoEnded() {
+  videoSkippable = false;
+  video.onclick = null;
+  video.pause();
   canvas.style.display = overlay.style.display = '';
   video.hidden = true;
   if (video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
   video.removeAttribute('src');
+  video.load();
   g_onsyuri_module.wait_video = false;
 }
+// Enter, Space and Escape skip it, as in the native player.
+window.addEventListener('keyup', e => {
+  if (videoSkippable && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) videoEnded();
+});
 function playVideo(path, click, loop) {
   g_onsyuri_module.wait_video = true;
   const data = g_onsyuri_module.FS.readFile(path);
@@ -79,6 +90,7 @@ function playVideo(path, click, loop) {
   canvas.style.display = overlay.style.display = 'none';
   video.hidden = false;
   video.onclick = click ? videoEnded : null;
+  videoSkippable = !!click;
   video.loop = loop;
   video.muted = false;
   video.play().catch(() => { video.muted = true; video.play().catch(videoEnded); });
