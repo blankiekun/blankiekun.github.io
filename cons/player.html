@@ -5,13 +5,20 @@
 <title>CONscripter</title>
 <style>
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-body { display: flex; align-items: center; justify-content: center; }
-canvas, video { display: block; flex: none; outline: none; }
+canvas, video, #overlay { position: absolute; inset: 0; margin: auto; display: block; outline: none; }
 video[hidden] { display: none; }
+/* The page's text, invisible, over the characters the engine drew: Yomitan reads it on
+   hover, and selecting it shows where it is. Same idea as chimimouryou's player. */
+#overlay { pointer-events: none; overflow: hidden; }
+#page-text, #sprite-text, #choices { position: absolute; inset: 0; }
+#page-text[hidden], #sprite-text[hidden] { display: none; }
+#overlay div div { position: absolute; white-space: pre; line-height: 1; color: transparent; pointer-events: auto; cursor: default; }
+#overlay div div::selection { background: rgba(255, 220, 120, .35); }
 </style>
 </head>
 <body>
 <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<div id="overlay" lang="ja"><div id="page-text"></div><div id="sprite-text"></div><div id="choices"></div></div>
 <video id="video" hidden playsinline></video>
 <script src="conscripter.js"></script>
 <script>
@@ -23,6 +30,10 @@ video[hidden] { display: none; }
 
 const canvas = document.getElementById('canvas');
 const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const pageText = document.getElementById('page-text');
+const spriteText = document.getElementById('sprite-text');
+const choices = document.getElementById('choices');
 const GAMEDIR = '/onsyuri/game';
 let savedir = null;
 
@@ -37,8 +48,10 @@ var g_screen_width = 640, g_screen_height = 480;
 function scale_full(el, ratio) {
   const w = innerWidth, h = innerHeight;
   const fw = w / h > ratio ? h * ratio : w;
-  el.style.width = Math.floor(fw) + 'px';
-  el.style.height = Math.floor(fw / ratio) + 'px';
+  el.style.width = overlay.style.width = Math.floor(fw) + 'px';
+  el.style.height = overlay.style.height = Math.floor(fw / ratio) + 'px';
+  // Overlay lines are laid out in game pixels, scaled like the canvas.
+  overlay.style.setProperty('--scale', Math.floor(fw) / g_screen_width);
 }
 addEventListener('resize', () => scale_full(canvas, g_screen_width / g_screen_height));
 
@@ -51,7 +64,7 @@ function flush_save() {
 }
 
 function videoEnded() {
-  canvas.style.display = '';
+  canvas.style.display = overlay.style.display = '';
   video.hidden = true;
   if (video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
   video.removeAttribute('src');
@@ -63,7 +76,7 @@ function playVideo(path, click, loop) {
   video.src = URL.createObjectURL(new Blob([data], { type: 'video/mp4' }));
   video.style.width = canvas.style.width;
   video.style.height = canvas.style.height;
-  canvas.style.display = 'none';
+  canvas.style.display = overlay.style.display = 'none';
   video.hidden = false;
   video.onclick = click ? videoEnded : null;
   video.loop = loop;
@@ -72,6 +85,102 @@ function playVideo(path, click, loop) {
 }
 video.addEventListener('ended', videoEnded);
 video.addEventListener('error', videoEnded);
+
+// ---- text for Yomitan ----
+
+// The engine hands over the page's script bytes and where it drew each character
+// (byte offset, x, y, font size: four numbers each), at every click wait.
+let encoding = 'sjis';
+
+function decodeText(bytes) {
+  // Indents are written as a Shift JIS space even in UTF-8 games.
+  return new TextDecoder(encoding === 'utf8' ? 'utf-8' : 'shift_jis').decode(bytes).replace(/�@?/g, '　');
+}
+
+function charLength(lead) {
+  if (encoding === 'utf8') return lead < 0x80 ? 1 : lead >= 0xf0 ? 4 : lead >= 0xe0 ? 3 : 2;
+  return (lead >= 0x81 && lead <= 0x9f) || (lead >= 0xe0 && lead <= 0xfc) ? 2 : 1;
+}
+
+// Characters grouped into screen lines. Ruby readings have no boxes, so lines hold the base text.
+// One pitch per line, from its first and last character.
+function overlayLines(bytes, boxes) {
+  const lines = [];
+  for (let i = 0; i + 3 < boxes.length; i += 4) {
+    const off = boxes[i];
+    if (off >= bytes.length) break;
+    const ch = decodeText(bytes.subarray(off, off + charLength(bytes[off])));
+    const x = boxes[i + 1], y = boxes[i + 2], size = boxes[i + 3];
+    const line = lines[lines.length - 1];
+    if (line && line.y === y && x > line.last) { line.text += ch; line.last = x; line.count++; }
+    else lines.push({ text: ch, x, y, size, last: x, count: 1 });
+  }
+  return lines.map(l => ({ text: l.text, x: l.x, y: l.y, size: l.size, pitch: l.count > 1 ? (l.last - l.x) / (l.count - 1) : l.size }));
+}
+
+function lineDiv(line) {
+  const div = document.createElement('div');
+  div.textContent = line.text;
+  div.style.left = (100 * line.x) / g_screen_width + '%';
+  div.style.top = (100 * line.y) / g_screen_height + '%';
+  div.style.fontSize = `calc(var(--scale) * ${line.size}px)`;
+  div.style.letterSpacing = `calc(var(--scale) * ${line.pitch - line.size}px)`;
+  return div;
+}
+
+function onsyuriText(bytes, skipped, boxes) { pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
+
+// A choice or system menu item drawn by the engine.
+function onsyuriChoice(bytes, x, y, size, pitch) { choices.append(lineDiv({ text: decodeText(bytes), x, y, size, pitch })); }
+
+let stashedChoices = [], stashedPage = [], inSystem = false, inBacklog = false, windowHidden = false;
+function updateHidden() {
+  pageText.hidden = windowHidden || (inSystem && !inBacklog);
+  spriteText.hidden = inSystem;
+}
+
+// The engine says when text leaves the screen: 'page' (new page), 'hide'/'show' (text window
+// hidden and back), 'choices' (buttons removed), 'enter'/'leave' (system menu or backlog over
+// the page and back), 'reset' (left the system menu elsewhere, e.g. a loaded game).
+function onsyuriOverlay(event) {
+  if (event === 'page') pageText.textContent = '';
+  else if (event === 'choices') choices.textContent = '';
+  else if (event === 'hide') windowHidden = true;
+  else if (event === 'show') windowHidden = false;
+  else if (event === 'enter') {
+    stashedChoices = [...choices.children];
+    stashedPage = [...pageText.children];
+    choices.textContent = '';
+    inSystem = true; inBacklog = false;
+  } else if (event === 'leave') {
+    choices.replaceChildren(...stashedChoices);
+    pageText.replaceChildren(...stashedPage);
+    inSystem = false;
+  } else if (event === 'reset') {
+    pageText.textContent = choices.textContent = '';
+    inSystem = windowHidden = false;
+  }
+  updateHidden();
+}
+
+// A page of the built-in backlog (between 'enter' and 'leave').
+function onsyuriBacklog(bytes, boxes) {
+  pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv));
+  inBacklog = true;
+  updateHidden();
+}
+
+// The visible string sprites (strsp: script-drawn menus and backlogs) at each wait for input.
+function onsyuriSprites(bytes, boxes) { spriteText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
+
+// Clicks on the text go to the game, as if it weren't there. Hover stays with the page,
+// since Yomitan scans on mousemove.
+for (const type of ['mousedown', 'mouseup', 'mousemove', 'click', 'contextmenu', 'wheel', 'touchstart', 'touchmove', 'touchend']) {
+  overlay.addEventListener(type, e => {
+    if (type !== 'mousemove') e.preventDefault();
+    try { canvas.dispatchEvent(new e.constructor(type, e)); } catch (err) { console.warn('Could not pass ' + type + ' to the game', err); }
+  });
+}
 
 // ---- game files, read on demand ----
 
@@ -173,12 +282,13 @@ addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffec
 addEventListener('drop', e => { e.preventDefault(); if (window.onGameDrop) window.onGameDrop(e.dataTransfer); });
 addEventListener('pointerdown', () => canvas.focus());
 
-// game: { files: [{ path, file }], title, font, onExit(code), onError(msg) }
+// game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), onExit(code), onError(msg) }
 async function start(game) {
   const M = g_onsyuri_module;
   M.onExit = code => game.onExit && game.onExit(code);
   M.onAbort = what => game.onError && game.onError(String(what));
   g_onsyuri_index = { title: game.title };
+  encoding = game.encoding === 'utf8' ? 'utf8' : 'sjis';
   await onsyuri(M);
   const FS = M.FS;
   for (const f of game.files) {
@@ -191,7 +301,7 @@ async function start(game) {
   FS.mount(M.IDBFS, {}, savedir);
   await new Promise(res => FS.syncfs(true, err => { if (err) console.warn(err); res(); }));
   canvas.focus();
-  M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir]);
+  M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding]);
 }
 </script>
 </body>

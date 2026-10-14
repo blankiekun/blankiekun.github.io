@@ -35,10 +35,10 @@ function fromDrop(dt) {
   })();
 }
 
-function pickFiles(folder) {
+function pickFolder() {
   return new Promise(resolve => {
     const input = h('input', { type: 'file', multiple: true, hidden: true });
-    if (folder) input.webkitdirectory = true;
+    input.webkitdirectory = true;
     input.addEventListener('change', () => {
       resolve([...input.files].map(file => ({ path: file.webkitRelativePath || file.name, file })));
       input.remove();
@@ -69,7 +69,25 @@ async function findGame(list) {
     title = 'game-' + [...sum.slice(0, 4)].map(b => b.toString(16).padStart(2, '0')).join('');
   }
   title = title.replace(/[\\/:*?"<>|]/g, '_');
-  return { files, font, title, size: files.reduce((n, f) => n + f.file.size, 0) };
+  return { files, font, title, encoding: await detectEncoding(top), size: files.reduce((n, f) => n + f.file.size, 0) };
+}
+
+// The engine assumes GBK unless told, so read the script: UTF-8 if it decodes as UTF-8,
+// otherwise Shift JIS. nscript.dat is XORed with 0x84; encrypted scripts count as Shift JIS.
+async function detectEncoding(top) {
+  const utf8 = new TextDecoder('utf-8', { fatal: true });
+  const scripts = top.filter(f => /^\d+\.txt$/i.test(f.path) || f.path.toLowerCase() === 'nscript.dat');
+  if (!scripts.length) return 'sjis';
+  try {
+    for (const f of scripts) {
+      let bytes = new Uint8Array(await f.file.arrayBuffer());
+      if (f.path.toLowerCase() === 'nscript.dat') bytes = bytes.map(b => b ^ 0x84);
+      utf8.decode(bytes);
+    }
+    return 'utf8';
+  } catch {
+    return 'sjis';
+  }
 }
 
 function bytes(n) {
@@ -154,8 +172,7 @@ function open() {
       h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder from your computer to start.'),
       dropBox,
       h('div', { class: 'cons-btns' },
-        h('button', { class: 'btn default', type: 'button', onclick: () => openPicked(true), html: 'Open <u>F</u>older...' }),
-        h('button', { class: 'btn', type: 'button', onclick: () => openPicked(false), html: 'Open F<u>i</u>les...' })),
+        h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' }))),
       h('p', { class: 'cons-note' }, icon('i-info'), h('span', null, 'The game is read from your disk and never leaves this computer. Saves are kept in this browser; use File > Export Saves to back them up.'))));
 
   const view = h('div', { class: 'cons-view' }, welcome);
@@ -166,8 +183,7 @@ function open() {
 
   const bar = menubar([
     { label: '&File', items: () => [
-      { label: 'Open &Folder...', key: 'Ctrl+O', action: () => openPicked(true) },
-      { label: 'Open F&iles...', action: () => openPicked(false) },
+      { label: 'Open &Folder...', key: 'Ctrl+O', action: openPicked },
       '-',
       { label: '&Export Saves...', disabled: !player(), action: exportSaves },
       { label: '&Import Saves...', disabled: !player(), action: importSaves },
@@ -209,7 +225,7 @@ function open() {
       const w = frame.contentWindow;
       w.onGameDrop = takeDrop;
       w.start({
-        files: g.files, title: g.title, font: g.font,
+        files: g.files, title: g.title, font: g.font, encoding: g.encoding,
         onExit: code => { if (frame !== me) return; stop(code ? 'The game stopped (exit code ' + code + ')' : 'The game has ended'); },
         onError: msg => { if (frame !== me) return; stop('The game stopped'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'CONscripter has stopped.\n\n' + msg }); },
       }).catch(err => { stop('Ready'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The game could not be started.\n\n' + err }); });
@@ -250,7 +266,7 @@ function open() {
     boot(g);
   }
 
-  async function openPicked(folder) { load(await pickFiles(folder)); }
+  async function openPicked() { load(await pickFolder()); }
   function takeDrop(dt) { const p = fromDrop(dt); win.focus(); p.then(load); }
 
   async function exportSaves() {
@@ -306,7 +322,7 @@ function open() {
     takeDrop(e.dataTransfer);
   });
   root.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key.toLowerCase() === 'o') { e.preventDefault(); openPicked(true); }
+    if (e.ctrlKey && e.key.toLowerCase() === 'o') { e.preventDefault(); openPicked(); }
   });
 
   const win = createWindow({
