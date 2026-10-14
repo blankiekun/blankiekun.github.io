@@ -385,7 +385,9 @@
 .cons-warn { display: flex; flex-direction: column; gap: 8px; }
 .cons-warn-row { display: flex; gap: 10px; align-items: flex-start; }
 .cons-warn-row svg { width: 32px; height: 32px; flex: none; }
-.cons-keep { display: flex; gap: 6px; align-items: center; padding-left: 42px; }
+.cons-keep { display: flex; gap: 6px 8px; align-items: center; flex-wrap: wrap; padding-left: 42px; }
+.cons-keep > span { flex: 1 1 200px; }
+.cons-keep .btn { margin-left: auto; }
 .cons-keep svg { width: 16px; height: 16px; flex: none; }
 /* a tip bar over the game, like the yellow bars of the era */
 .cons-tip {

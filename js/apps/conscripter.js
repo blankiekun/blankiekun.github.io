@@ -179,7 +179,8 @@ function open() {
     h('b', null, 'Drag a game folder here'),
     h('span', null, 'the one with 0.txt, 00.txt or nscript.dat in it'));
   const keepText = h('span');
-  const keep = h('div', { class: 'cons-keep' }, icon('i-drive'), keepText);
+  const keepBtn = h('button', { class: 'btn', type: 'button', hidden: true, onclick: () => askKeep(true) }, h('span', { html: '<u>K</u>eep Saves...' }));
+  const keep = h('div', { class: 'cons-keep' }, icon('i-drive'), keepText, keepBtn);
   const welcome = h('div', { class: 'cons-welcome' },
     h('div', { class: 'cons-side', 'aria-hidden': 'true' },
       h('div', { class: 'cons-art', html: ART }),
@@ -238,16 +239,18 @@ function open() {
   const root = h('div', { class: 'cons' }, bar, tip, view, status);
 
   // Ask the browser not to evict saves on its own. Clearing site data still erases them.
-  function showKeep(kept) {
+  function showKeep(kept, refused) {
     keep.classList.toggle('kept', !!kept);
+    keepBtn.hidden = !!kept || !(storage && storage.persist);
     keepText.textContent = kept ? 'This browser has agreed not to clear saves on its own.'
-      : 'This browser may also clear saves on its own when it runs low on space.';
+      : refused ? 'The browser said no. Bookmarking this site makes it more likely to agree.'
+      : 'This browser may also clear saves on its own when it runs low on space. Ask it to keep them.';
     statusSaves.title = kept ? 'Saves are in this browser, protected from automatic cleanup' : 'Saves are in this browser and may be cleared automatically';
   }
   const storage = navigator.storage;
   if (storage && storage.persisted) storage.persisted().then(showKeep, () => showKeep(null)); else showKeep(null);
-  function askKeep() {
-    if (storage && storage.persist && !keep.classList.contains('kept')) storage.persist().then(showKeep, () => {});
+  function askKeep(asked) {
+    if (storage && storage.persist && !keep.classList.contains('kept')) storage.persist().then(k => showKeep(k, asked && !k), () => {});
   }
 
   function stop(msg) {
