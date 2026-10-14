@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CONscripter</title>
+<style>
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+body { display: flex; align-items: center; justify-content: center; }
+canvas, video { display: block; flex: none; outline: none; }
+video[hidden] { display: none; }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+<video id="video" hidden playsinline></video>
+<script src="conscripter.js"></script>
+<script>
+// The host page for CONscripter (conscripter.js/.wasm are the v0.17.0 web release).
+// The Program window in js/apps/conscripter.js makes one of these per game and calls
+// start() with the visitor's own files. Nothing is uploaded: game files are read
+// straight off their disk as the engine asks for them, so one big .nsa never has to
+// fit in memory, and saves live in this browser's IndexedDB.
+
+const canvas = document.getElementById('canvas');
+const video = document.getElementById('video');
+const GAMEDIR = '/onsyuri/game';
+let savedir = null;
+
+// ---- what the engine expects to find on the page ----
+
+var g_onsyuri_module = { canvas, print: s => console.log(s), printErr: s => console.warn(s) };
+var g_onsyuri_index = {};
+var g_onsyuri_filemap = {};      // empty: no server lazyload, every file is already mounted
+function fetch_file() { return Promise.resolve(0); }
+
+var g_screen_width = 640, g_screen_height = 480;
+function scale_full(el, ratio) {
+  const w = innerWidth, h = innerHeight;
+  const fw = w / h > ratio ? h * ratio : w;
+  el.style.width = Math.floor(fw) + 'px';
+  el.style.height = Math.floor(fw / ratio) + 'px';
+}
+addEventListener('resize', () => scale_full(canvas, g_screen_width / g_screen_height));
+
+let flushing = null;
+function flush_save() {
+  if (!savedir) return Promise.resolve();
+  const run = () => new Promise(res => g_onsyuri_module.FS.syncfs(false, err => { if (err) console.warn(err); res(); }));
+  flushing = (flushing || Promise.resolve()).then(run);
+  return flushing;
+}
+
+function videoEnded() {
+  canvas.style.display = '';
+  video.hidden = true;
+  if (video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+  video.removeAttribute('src');
+  g_onsyuri_module.wait_video = false;
+}
+function playVideo(path, click, loop) {
+  g_onsyuri_module.wait_video = true;
+  const data = g_onsyuri_module.FS.readFile(path);
+  video.src = URL.createObjectURL(new Blob([data], { type: 'video/mp4' }));
+  video.style.width = canvas.style.width;
+  video.style.height = canvas.style.height;
+  canvas.style.display = 'none';
+  video.hidden = false;
+  video.onclick = click ? videoEnded : null;
+  video.loop = loop;
+  video.muted = false;
+  video.play().catch(() => { video.muted = true; video.play().catch(videoEnded); });
+}
+video.addEventListener('ended', videoEnded);
+video.addEventListener('error', videoEnded);
+
+// ---- game files, read on demand ----
+
+// Emscripten's own lazy files need a web worker, so these nodes read 1 MB slices of
+// the File with a synchronous XHR on a blob: URL instead, and keep the most recent
+// chunks around. The engine's fread() never notices.
+const CHUNK = 1 << 20, CACHE_CHUNKS = 64;
+const cache = new Map();
+let nextId = 0;
+
+function readSlice(file, start, end) {
+  const url = URL.createObjectURL(file.slice(start, end));
+  try {
+    const x = new XMLHttpRequest();
+    x.open('GET', url, false);
+    x.overrideMimeType('text/plain; charset=x-user-defined');
+    x.send();
+    const s = x.responseText, out = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i) & 0xff;
+    return out;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function chunk(file, id, n) {
+  const key = id + ':' + n;
+  let c = cache.get(key);
+  if (c) { cache.delete(key); cache.set(key, c); return c; }
+  c = readSlice(file, n * CHUNK, Math.min(file.size, (n + 1) * CHUNK));
+  cache.set(key, c);
+  if (cache.size > CACHE_CHUNKS) cache.delete(cache.keys().next().value);
+  return c;
+}
+
+function mountFile(FS, path, file) {
+  const i = path.lastIndexOf('/');
+  const node = FS.createFile(path.slice(0, i), path.slice(i + 1), {}, true, false);
+  const id = nextId++;
+  Object.defineProperty(node, 'usedBytes', { get: () => file.size });
+  node.stream_ops = {
+    ...node.stream_ops,
+    read(stream, buffer, offset, length, position) {
+      const end = Math.min(file.size, position + length);
+      for (let p = position; p < end;) {
+        const n = Math.floor(p / CHUNK), c = chunk(file, id, n), s = p - n * CHUNK;
+        const take = Math.min(end - p, c.length - s);
+        buffer.set(c.subarray(s, s + take), offset + (p - position));
+        p += take;
+      }
+      return Math.max(0, end - position);
+    },
+  };
+}
+
+function mkdirs(FS, path) {
+  let cur = '';
+  for (const part of path.split('/').filter(Boolean)) {
+    cur += '/' + part;
+    try { FS.mkdir(cur); } catch {}
+  }
+}
+
+// ---- saves ----
+
+function listSaves() {
+  const FS = g_onsyuri_module.FS, out = [];
+  (function walk(dir, rel) {
+    for (const name of FS.readdir(dir)) {
+      if (name === '.' || name === '..') continue;
+      const p = dir + '/' + name, st = FS.stat(p);
+      if (FS.isDir(st.mode)) walk(p, rel + name + '/');
+      else if (FS.isFile(st.mode)) out.push({ path: rel + name, data: FS.readFile(p), mtime: st.mtime });
+    }
+  })(savedir, '');
+  return out;
+}
+
+async function writeSaves(files) {
+  const FS = g_onsyuri_module.FS;
+  for (const f of files) {
+    const p = savedir + '/' + f.path;
+    mkdirs(FS, p.slice(0, p.lastIndexOf('/')));
+    FS.writeFile(p, f.data);
+  }
+  await flush_save();
+}
+
+// ---- the parent window drives these ----
+
+function key(type, keyCode, code) {
+  canvas.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, keyCode, which: keyCode, key: code === 'Escape' ? 'Escape' : 'Control', code }));
+}
+function pressEsc() { key('keydown', 27, 'Escape'); setTimeout(() => key('keyup', 27, 'Escape'), 50); }
+function setSkip(on) { key(on ? 'keydown' : 'keyup', 17, 'ControlLeft'); }
+
+// Drops on the running game go to the window around it.
+addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+addEventListener('drop', e => { e.preventDefault(); if (window.onGameDrop) window.onGameDrop(e.dataTransfer); });
+addEventListener('pointerdown', () => canvas.focus());
+
+// game: { files: [{ path, file }], title, font, onExit(code), onError(msg) }
+async function start(game) {
+  const M = g_onsyuri_module;
+  M.onExit = code => game.onExit && game.onExit(code);
+  M.onAbort = what => game.onError && game.onError(String(what));
+  g_onsyuri_index = { title: game.title };
+  await onsyuri(M);
+  const FS = M.FS;
+  for (const f of game.files) {
+    const p = GAMEDIR + '/' + f.path;
+    mkdirs(FS, p.slice(0, p.lastIndexOf('/')));
+    mountFile(FS, p, f.file);
+  }
+  savedir = '/onsyuri_save/' + game.title;
+  mkdirs(FS, savedir);
+  FS.mount(M.IDBFS, {}, savedir);
+  await new Promise(res => FS.syncfs(true, err => { if (err) console.warn(err); res(); }));
+  canvas.focus();
+  M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir]);
+}
+</script>
+</body>
+</html>

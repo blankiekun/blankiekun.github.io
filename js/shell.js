@@ -9,6 +9,7 @@ export const ALIASES = {
   iexplore: 'ie', ie: 'ie', 'internet explorer': 'ie', explorer: 'explorer',
   winmine: 'minesweeper', minesweeper: 'minesweeper', mines: 'minesweeper',
   sol: 'solitaire', solitaire: 'solitaire',
+  onscripter: 'cons', cons: 'cons', 'conscripter player': 'cons',
   notepad: 'notepad', mspaint: 'paint', pbrush: 'paint', paint: 'paint',
   calc: 'calc', calculator: 'calc',
   command: 'dos', cmd: 'dos', 'command.com': 'dos', dos: 'dos',

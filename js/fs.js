@@ -97,6 +97,7 @@ export const root = {
           name: 'Program Files', kind: 'folder', dos: 'PROGRA~1', children: [
             { name: 'Internet Explorer', kind: 'folder', dos: 'INTERN~1', children: [app('IEXPLORE.EXE', 'ie', 'i-ie', 1012736)] },
             { name: 'Accessories', kind: 'folder', dos: 'ACCESS~1', children: [app('MSPAINT.EXE', 'paint', 'i-paint', 344064)] },
+            { name: 'CONscripter', kind: 'folder', dos: 'CONSCR~1', children: [app('CONSCRIPTER.EXE', 'cons', 'i-game', 4767101)] },
           ],
         },
         {

@@ -349,3 +349,38 @@
 .send-progress i { display: block; height: 100%; width: 40%; background: repeating-linear-gradient(90deg, var(--title) 0 8px, transparent 8px 10px); animation: sendbar 1.2s steps(10) infinite; }
 @keyframes sendbar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 @media (prefers-reduced-motion: reduce) { .send-progress i { animation: none; width: 100%; } }
+
+/* ---------- CONscripter ---------- */
+.cons { display: flex; flex-direction: column; flex: 1; min-height: 0; container-type: inline-size; }
+.cons-view { flex: 1; min-height: 0; display: flex; margin-top: 2px; overflow: auto; }
+.cons-view.playing { box-shadow: var(--sunken); padding: 2px; background: #000; overflow: hidden; }
+.cons-frame { display: block; flex: 1; width: 100%; height: 100%; border: 0; background: #000; }
+/* the welcome page is a Setup wizard page: picture down the left, text on the right */
+.cons-welcome { flex: 1; display: flex; gap: 14px; padding: 10px; min-height: min-content; }
+.cons-side {
+  width: 132px; flex: none; box-shadow: var(--sunken); padding: 2px;
+  background: linear-gradient(180deg, #000080, #008080) content-box;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+}
+.cons-side svg { width: 64px; height: 64px; margin-top: 22px; filter: drop-shadow(3px 3px 0 #000040); }
+.cons-side span { color: var(--face); font: italic bold 19px var(--font-ui); padding-bottom: 12px; text-shadow: 2px 2px 0 #000040; }
+.cons-side span b { color: var(--hilite); }
+.cons-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.cons-main h2 { margin: 2px 0 0; font: bold 16px var(--font-ui); }
+.cons-main p { margin: 0; line-height: 1.4; }
+.cons-drop {
+  flex: 1; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  text-align: center; padding: 12px; background: var(--paper); box-shadow: var(--sunken); color: var(--ink);
+  outline: 1px dashed var(--shadow); outline-offset: -7px;
+}
+.cons-drop svg { width: 32px; height: 32px; }
+.cons-drop.over { background: var(--select); color: var(--select-ink); outline-color: var(--select-ink); }
+.cons-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.cons-note { display: flex; gap: 8px; align-items: flex-start; padding-top: 8px; box-shadow: inset 0 1px var(--shadow), inset 0 2px var(--hilite); }
+.cons-note svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+.cons .statusbar .cons-size:empty { display: none; }
+.cons .statusbar .cons-size, .cons .statusbar .cons-saves { flex: none; }
+@container (max-width: 480px) {
+  .cons-side { display: none; }
+  .cons-saves { display: none !important; }
+}

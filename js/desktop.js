@@ -18,6 +18,7 @@ const ICONS = [
   { label: 'My Computer', app: 'mycomputer', icon: 'i-computer', type: 'System', open: () => launch('mycomputer') },
   { label: 'Recycle Bin', app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', open: () => launch('recycle') },
   { label: 'Internet Explorer', app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
+  { label: 'CONscripter', app: 'cons', icon: 'i-game', type: 'Application', open: () => launch('cons') },
   { label: 'Minesweeper', app: 'minesweeper', icon: 'i-mine', type: 'Application', open: () => launch('minesweeper') },
   { label: 'Solitaire', app: 'solitaire', icon: 'i-sol', type: 'Application', open: () => launch('solitaire') },
   { label: 'Paint', app: 'paint', icon: 'i-paint', type: 'Application', open: () => launch('paint') },
@@ -192,6 +193,7 @@ const banner = h('div', { class: 'side', 'aria-hidden': 'true' }, 'blankiekun', 
 function startItems() {
   const accessories = [
     { label: 'Games', icon: 'i-programs', submenu: [
+      { label: 'CONscripter', icon: 'i-game', action: () => launch('cons') },
       { label: 'Minesweeper', icon: 'i-mine', action: () => launch('minesweeper') },
       { label: 'Solitaire', icon: 'i-sol', action: () => launch('solitaire') },
     ] },
