@@ -200,11 +200,20 @@ function open() {
             h('b', null, 'File > Export Saves'), ' to keep a copy.')),
         keep)));
 
-  // Shown over the game until dismissed, once per visit.
-  const tip = h('div', { class: 'cons-tip', role: 'note', hidden: true }, icon('i-warn'),
-    h('span', null, 'Saves live only in this browser. Clearing site data erases them.'),
-    h('button', { class: 'btn', type: 'button', onclick: () => exportSaves() }, 'Export Saves...'),
-    h('button', { class: 'cons-tip-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { tipShown = true; tip.hidden = true; frame && frame.focus(); } }, icon('i-x')));
+  // Laid over the top of the game when it starts, once per visit, and gone after a few seconds.
+  const tip = h('div', { class: 'cons-tip', role: 'status', hidden: true }, icon('i-warn'),
+    h('span', null, 'Saves live only in this browser, and clearing site data erases them. To keep a copy, choose ',
+      h('b', null, 'File > Export Saves'), '. ', h('b', null, 'Import Saves'), ' loads the .zip back in.'),
+    h('button', { class: 'cons-tip-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { hideTip(); frame && frame.focus(); } }, icon('i-x')));
+  let tipTimer = 0;
+  function hideTip() { clearTimeout(tipTimer); tip.hidden = true; tip.classList.remove('going'); }
+  function showTip() {
+    tipShown = true;
+    tip.hidden = false;
+    tip.classList.remove('going');
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => { tip.classList.add('going'); tipTimer = setTimeout(hideTip, 300); }, 3000);
+  }
 
   const view = h('div', { class: 'cons-view' }, welcome);
   const statusText = h('span', null, 'Ready');
@@ -236,7 +245,7 @@ function open() {
     ] },
   ]);
 
-  const root = h('div', { class: 'cons' }, bar, tip, view, status);
+  const root = h('div', { class: 'cons' }, bar, view, status);
 
   // Ask the browser not to evict saves on its own. Clearing site data still erases them.
   function showKeep(kept, refused) {
@@ -257,7 +266,7 @@ function open() {
     if (frame) frame.remove();
     frame = null; skip = false;
     view.classList.remove('playing');
-    tip.hidden = true;
+    hideTip();
     view.replaceChildren(welcome);
     win.setTitle('CONscripter');
     statusGame.textContent = '';
@@ -280,9 +289,9 @@ function open() {
       frame.focus();
     }, { once: true });
     view.classList.add('playing');
-    tip.hidden = tipShown;
     askKeep();
-    view.replaceChildren(frame);
+    view.replaceChildren(frame, tip);
+    if (!tipShown) showTip();
     win.setTitle(g.title + ' - CONscripter');
     statusGame.textContent = g.files.length.toLocaleString('en-US') + ' files, ' + bytes(g.size);
     say('Playing ' + g.title);

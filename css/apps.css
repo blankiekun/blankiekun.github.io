@@ -389,14 +389,20 @@
 .cons-keep > span { flex: 1 1 200px; }
 .cons-keep .btn { margin-left: auto; }
 .cons-keep svg { width: 16px; height: 16px; flex: none; }
-/* a tip bar over the game, like the yellow bars of the era */
+/* a yellow tip laid over the top of the game for a few seconds */
+.cons-view.playing { position: relative; }
 .cons-tip {
-  display: flex; align-items: center; gap: 8px; margin-top: 2px; padding: 3px 3px 3px 6px;
-  background: var(--tip); color: #000; box-shadow: var(--thin-in);
+  position: absolute; top: 6px; left: 6px; right: 6px; z-index: 1;
+  display: flex; align-items: flex-start; gap: 8px; padding: 5px 4px 5px 6px;
+  background: var(--tip); color: #000; border: 1px solid #000; box-shadow: 2px 2px 0 rgba(0, 0, 0, .5);
 }
 .cons-tip > svg { width: 16px; height: 16px; flex: none; }
-.cons-tip > span { flex: 1; min-width: 0; }
-.cons-tip .btn { height: 21px; min-width: 0; }
+.cons-tip > span { flex: 1; min-width: 0; line-height: 1.4; }
+@media (prefers-reduced-motion: no-preference) {
+  .cons-tip { animation: tip-in .2s steps(3) both; }
+  .cons-tip.going { animation: cons-tip-out .3s steps(3) both; }
+  @keyframes cons-tip-out { to { opacity: 0; } }
+}
 .cons-tip-x { width: 16px; height: 14px; padding: 0; border: 0; background: var(--face); box-shadow: var(--raised-btn); display: grid; place-items: center; flex: none; }
 .cons-tip-x svg { width: 8px; height: 7px; }
 .cons-tip-x:active { box-shadow: var(--sunken); }
