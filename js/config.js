@@ -5,4 +5,4 @@ export const TURNSTILE_SITE_KEY = '0x4AAAAAAFWCQ9-1SF6-drbT';
 
 // CONscripter's Google Drive sync. Fill in the OAuth client ID from Google Cloud
 // (see docs/google-drive-sync.md). While it's empty, the sync options stay hidden.
-export const GOOGLE_CLIENT_ID = '';
+export const GOOGLE_CLIENT_ID = '850089411-r2cl5a2cupocjmf362kqh730ci91imt1.apps.googleusercontent.com';
