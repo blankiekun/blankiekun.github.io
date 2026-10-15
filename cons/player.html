@@ -120,7 +120,8 @@ function charLength(lead) {
 }
 
 // Characters grouped into screen lines. Ruby readings have no boxes, so lines hold the base text.
-// One pitch per line, from its first and last character.
+// A line runs right (same y) or, in vertical games like Muramasa, down (same x); its second
+// character decides which. One pitch per line, from its first and last character.
 function overlayLines(bytes, boxes) {
   const lines = [];
   for (let i = 0; i + 3 < boxes.length; i += 4) {
@@ -129,10 +130,15 @@ function overlayLines(bytes, boxes) {
     const ch = decodeText(bytes.subarray(off, off + charLength(bytes[off])));
     const x = boxes[i + 1], y = boxes[i + 2], size = boxes[i + 3];
     const line = lines[lines.length - 1];
-    if (line && line.y === y && x > line.last) { line.text += ch; line.last = x; line.count++; }
-    else lines.push({ text: ch, x, y, size, last: x, count: 1 });
+    const right = line && !line.vertical && line.y === y && x > line.lastX;
+    const down = line && (line.vertical || line.count === 1) && line.x === x && y > line.lastY;
+    if (right || down) { line.text += ch; line.lastX = x; line.lastY = y; line.count++; line.vertical = down; }
+    else lines.push({ text: ch, x, y, size, lastX: x, lastY: y, count: 1, vertical: false });
   }
-  return lines.map(l => ({ text: l.text, x: l.x, y: l.y, size: l.size, pitch: l.count > 1 ? (l.last - l.x) / (l.count - 1) : l.size }));
+  return lines.map(l => {
+    const span = l.vertical ? l.lastY - l.y : l.lastX - l.x;
+    return { text: l.text, x: l.x, y: l.y, size: l.size, vertical: l.vertical, pitch: l.count > 1 ? span / (l.count - 1) : l.size };
+  });
 }
 
 function lineDiv(line) {
@@ -142,6 +148,8 @@ function lineDiv(line) {
   div.style.top = (100 * line.y) / g_screen_height + '%';
   div.style.fontSize = `calc(var(--scale) * ${line.size}px)`;
   div.style.letterSpacing = `calc(var(--scale) * ${line.pitch - line.size}px)`;
+  // Yomitan reads writing-mode to know the text is vertical and opens its popup beside it.
+  if (line.vertical) div.style.writingMode = 'vertical-rl';
   return div;
 }
 
