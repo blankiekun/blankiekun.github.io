@@ -730,7 +730,7 @@ function open() {
   function showSaves() {
     const on = drive.enabled(), a = drive.account(), who = a && a.email ? ` (${a.email})` : '';
     warnRow.replaceChildren(...(on
-      ? [icon('i-info'), h('p', null, 'Saves are kept in this browser and copied to your Google Drive' + who + ' as you play. Open a game on any computer with sync on, and its saves come with it.')]
+      ? [icon('i-info'), h('p', null, 'Saves are kept in this browser and copied to your Google Drive as you play. Open a game on any computer with sync on, and its saves come with it.')]
       : [icon('i-warn'), h('p', null, 'Saves are kept only in this browser. ', h('b', null, 'Clearing browsing data, cookies or site data erases them'),
         ', and so does closing a private window. Some browsers also clean up sites you haven\'t visited in a while. Use ',
         h('b', null, 'File > Export Saves'), ' to keep a copy' + (drive.available ? ', or sync them with Google Drive.' : '.'))]));
