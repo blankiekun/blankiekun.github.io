@@ -20,6 +20,7 @@ The sync options stay hidden until `GOOGLE_CLIENT_ID` in `js/config.js` is fille
 4. **Branding.** Under Google Auth Platform > Branding:
    - Application home page: `https://blankiekun.github.io/`
    - Application privacy policy link: `https://blankiekun.github.io/privacy.html`
+   - Application terms of service link: `https://blankiekun.github.io/terms.html`
    - Authorized domains: add `blankiekun.github.io`. If the console refuses it, leave
      the field empty. The JavaScript origin in step 6 is what sign-in actually checks.
    - Save.
