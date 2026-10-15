@@ -425,6 +425,24 @@
 .menubar > .cons-fs svg { width: 8px; height: 7px; }
 .menubar > .cons-fs:active:not(:disabled) { box-shadow: var(--sunken); }
 .menubar > .cons-fs:disabled { color: var(--shadow); text-shadow: 1px 1px var(--hilite); }
+.menubar > .cons-sync { margin-right: 0; }
+.menubar > .cons-sync + .cons-fs { margin-left: 4px; }
+.menubar > .cons-sync .drive-logo { width: 14px; height: 13px; }
+.menubar > .cons-sync .drive-logo svg { width: 100%; height: 100%; }
+.menubar > .cons-sync.warn .cons-sync-label { color: #800000; font-weight: bold; }
+.drive-logo { display: inline-block; flex: none; }
+.drive-logo svg { display: block; width: 100%; height: 100%; }
+/* the welcome page's offer of Drive sync: a big 95 button */
+.cons-promo {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; text-align: left;
+  background: var(--face); color: #000; font: inherit; border: 0; box-shadow: var(--raised-btn);
+}
+.cons-promo:active { box-shadow: var(--sunken); }
+.cons-promo:active > * { transform: translate(1px, 1px); }
+.cons-promo:focus-visible .cons-promo-text b { outline: 1px dotted #000; }
+.cons-promo .drive-logo { width: 32px; height: 29px; }
+.cons-promo-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cons-promo-text b { color: #000080; }
 /* full screen: the window fills the page; the menu bar waits above the top edge */
 .win.cons-full { position: fixed; inset: 0 !important; width: auto !important; height: auto !important; padding: 0; box-shadow: none; }
 .win.cons-full > .titlebar, .win.cons-full > .resize, .cons-full .cons > .statusbar { display: none; }
@@ -447,6 +465,7 @@ body:has(.win.cons-full) .taskbar { display: none; }
 @container (max-width: 480px) {
   .cons-side { display: none; }
   .cons-saves { display: none !important; }
+  .cons-sync-label { display: none; }
   .cons-tip > span { font-size: 11px; }
 }
 
