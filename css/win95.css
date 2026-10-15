@@ -152,6 +152,7 @@ a { color: var(--link); }
 
 /* The drag rectangle: a dithered frame inverted over whatever is underneath,
    like Win95 with "Show window contents while dragging" turned off. */
+.drag-outline.snap { padding: 6px; }
 .drag-outline {
   position: fixed; z-index: 100000; pointer-events: none;
   padding: 4px;

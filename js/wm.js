@@ -266,7 +266,9 @@ function outlineDrag(win, e, mode) {
   let unmax = mode === 'move' && win.state === 'max';
   const sx = e.clientX, sy = e.clientY;
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
-  let outline = null, drawn = -Infinity;
+  let outline = null, drawn = -Infinity, snap = false;
+  // Dragging to the top edge offers to maximize, as later Windows does.
+  const canSnap = mode === 'move' && !win.opts.dialog && !win.maxBtn.disabled;
   const id = e.pointerId;
   try { target.setPointerCapture(id); } catch {}
   if (mode !== 'move') e.preventDefault();
@@ -294,6 +296,9 @@ function outlineDrag(win, e, mode) {
     if (mode === 'move') {
       box.x = clamp(r.left + dx, A.left - r.width + 40, A.right - 40);
       box.y = clamp(r.top + dy, A.top, A.bottom - 20);
+      const was = snap;
+      snap = canSnap && ev.clientY <= A.top + 2;
+      if (snap !== was) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
     } else {
       const minW = win.minW, minH = win.minH;
       let { left, top, right, bottom } = r;
@@ -309,6 +314,7 @@ function outlineDrag(win, e, mode) {
     draw();
   }
   function draw() {
+    if (snap) { Object.assign(outline.style, { left: A.left + 'px', top: A.top + 'px', width: A.width + 'px', height: A.height + 'px' }); return; }
     Object.assign(outline.style, { left: box.x + 'px', top: box.y + 'px', width: box.w + 'px', height: box.h + 'px' });
   }
   function end(ev, cancel) {
@@ -323,6 +329,7 @@ function outlineDrag(win, e, mode) {
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
     if (cancel) return;
+    if (snap) { maximize(win); return; }
     win.el.style.left = Math.round(box.x - A.left) + 'px';
     win.el.style.top = Math.round(box.y - A.top) + 'px';
     if (mode !== 'move') {

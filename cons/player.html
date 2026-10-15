@@ -14,6 +14,8 @@ video[hidden] { display: none; }
 #page-text[hidden], #sprite-text[hidden] { display: none; }
 #overlay div div { position: absolute; white-space: pre; line-height: 1; color: transparent; pointer-events: auto; cursor: default; }
 #overlay div div::selection { background: rgba(255, 220, 120, .35); }
+/* Debug > Show Text Overlay */
+body.show-text #overlay div div { color: rgba(255, 64, 64, .9); background: rgba(255, 255, 0, .18); outline: 1px solid rgba(255, 255, 0, .5); }
 </style>
 </head>
 <body>
@@ -39,7 +41,10 @@ let savedir = null;
 
 // ---- what the engine expects to find on the page ----
 
-var g_onsyuri_module = { canvas, print: s => console.log(s), printErr: s => console.warn(s) };
+// What the engine prints, for Debug > Engine Log.
+var engineLog = []; // var: the parent reads it
+function logLine(s) { engineLog.push(s); if (engineLog.length > 5000) engineLog.splice(0, 1000); }
+var g_onsyuri_module = { canvas, print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
 var g_onsyuri_index = {};
 var g_onsyuri_filemap = {};      // empty: no server lazyload, every file is already mounted
 function fetch_file() { return Promise.resolve(0); }
@@ -283,18 +288,40 @@ async function writeSaves(files) {
 
 // ---- the parent window drives these ----
 
-function key(type, keyCode, code) {
-  canvas.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, keyCode, which: keyCode, key: code === 'Escape' ? 'Escape' : 'Control', code }));
+function key(type, keyCode, code, name) {
+  canvas.dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, keyCode, which: keyCode, key: name, code }));
 }
-function pressEsc() { key('keydown', 27, 'Escape'); setTimeout(() => key('keyup', 27, 'Escape'), 50); }
-function setSkip(on) { key(on ? 'keydown' : 'keyup', 17, 'ControlLeft'); }
+function press(keyCode, code) { key('keydown', keyCode, code, code); setTimeout(() => key('keyup', keyCode, code, code), 50); }
+function pressEsc() { press(27, 'Escape'); }
+function setSkip(on) { key(on ? 'keydown' : 'keyup', 17, 'ControlLeft', 'Control'); }
+
+// ---- Debug menu ----
+
+function showText(on) { document.body.classList.toggle('show-text', on); }
+// --dump-vars writes here at F8.
+const VARS_FILE = '/tmp/vars.txt';
+async function dumpVars() {
+  const FS = g_onsyuri_module.FS;
+  try { FS.unlink(VARS_FILE); } catch {}
+  press(119, 'F8');
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 50));
+    try { return new TextDecoder().decode(FS.readFile(VARS_FILE)); } catch {}
+  }
+  return null;
+}
+async function clearSaves() {
+  const FS = g_onsyuri_module.FS;
+  for (const f of listSaves()) FS.unlink(savedir + '/' + f.path);
+  await flush_save();
+}
 
 // Drops on the running game go to the window around it.
 addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
 addEventListener('drop', e => { e.preventDefault(); if (window.onGameDrop) window.onGameDrop(e.dataTransfer); });
 addEventListener('pointerdown', () => canvas.focus());
 
-// game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), onExit(code), onError(msg) }
+// game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), args (more engine options), onExit(code), onError(msg) }
 async function start(game) {
   const M = g_onsyuri_module;
   M.onExit = code => game.onExit && game.onExit(code);
@@ -313,7 +340,8 @@ async function start(game) {
   FS.mount(M.IDBFS, {}, savedir);
   await new Promise(res => FS.syncfs(true, err => { if (err) console.warn(err); res(); }));
   canvas.focus();
-  M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding]);
+  M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding,
+    '--dump-vars', VARS_FILE, ...(game.args || [])]);
 }
 </script>
 </body>

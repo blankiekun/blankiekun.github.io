@@ -6,9 +6,26 @@
 import { h, icon, download, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
-import { msgbox, about } from '../dialogs.js';
+import { msgbox, inputbox, about } from '../dialogs.js';
+import { openSaveEditor } from './conssave.js';
 
 const NO_TIP = 'w95.cons.notip';
+const FLAGS = 'w95.cons.flags';
+
+// Debug > Engine Flags: engine options, used from the next start.
+const FLAG_LIST = [
+  { flag: '--edit', label: '&Edit Variables with Z' },
+  { flag: '--debug:1', label: '&Debug Output (Engine Log)' },
+  { flag: '--force-button-shortcut', label: 'Ignore &Key Locks' },
+  { flag: '--enable-wheeldown-advance', label: '&Wheel Down Advances Text' },
+  '-',
+  { flag: '--render-font-outline', label: 'Text &Outline Instead of Shadow' },
+  { flag: '--no-video', label: '&No Movies' },
+  { flag: '--disable-rescale', label: 'Don\'t &Rescale Images' },
+  '-',
+  { flag: '--fontcache', label: '&Cache Font' },
+  { flag: '--no-vsync', label: 'No &VSync' },
+];
 let tipShown = false;
 
 // The Setup picture: a little monitor with a visual novel on it.
@@ -172,6 +189,8 @@ function open() {
   let game = null;      // what's loaded: { files, font, title, size }
   let frame = null;     // the running player
   let skip = false;
+  let showText = false;
+  const flags = new Set(store.get(FLAGS, []));
 
   const player = () => frame && frame.contentWindow && frame.contentWindow.listSaves ? frame.contentWindow : null;
 
@@ -224,6 +243,108 @@ function open() {
   const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSaves);
   const say = t => { statusText.textContent = t; };
 
+  // Full screen takes the whole page, not just the game's frame, so the menus and
+  // message boxes can still show. The menu bar hides at the top until wanted.
+  const canFull = !!document.documentElement.requestFullscreen;
+  const isFull = () => win.el.classList.contains('cons-full');
+  function fullScreen() {
+    if (isFull()) { document.exitFullscreen().catch(() => {}); return; }
+    if (!frame || !canFull) return;
+    win.focus();
+    document.documentElement.requestFullscreen().then(() => {
+      win.el.classList.add('cons-full');
+      fsBtn.lastChild.textContent = 'Exit Full Screen';
+      frame && frame.focus();
+    }, () => {});
+  }
+  function leftFull() {
+    if (document.fullscreenElement || !isFull()) return;
+    win.el.classList.remove('cons-full');
+    root.classList.remove('reveal');
+    fsBtn.lastChild.textContent = 'Full Screen';
+  }
+  document.addEventListener('fullscreenchange', leftFull);
+
+  function setFlag(f) {
+    if (flags.has(f)) flags.delete(f); else flags.add(f);
+    store.set(FLAGS, [...flags]);
+    if (frame) say('Restart the game to use the new engine flags');
+  }
+
+  // The bits of the run that don't come from flags: --goto, --load.
+  async function restartAt() {
+    const label = await inputbox({ title: 'Restart at Label', parent: win, label: 'Start the game at this label (without the *):' });
+    if (label && label.trim()) boot(game, ['--goto', label.trim().replace(/^\*/, '')]);
+  }
+  async function restartSlot() {
+    const n = await inputbox({ title: 'Restart from Save Slot', parent: win, label: 'Load this save slot as the game starts:', value: '1' });
+    if (n == null) return;
+    if (!/^\d+$/.test(n.trim())) return msgbox({ title: 'Restart from Save Slot', icon: 'error', parent: win, text: 'Give a slot number, like 1.' });
+    boot(game, ['--load', n.trim()]);
+  }
+
+  async function saveEditor() {
+    const p = player();
+    if (!p) return;
+    await p.flush_save();
+    openSaveEditor({ parent: win, game, files: p.listSaves(), onSave: async (files, slot) => {
+      if (files.length && player()) await player().writeSaves(files);
+      boot(game, slot != null ? ['--load', String(slot)] : []);
+      say(files.length ? `Saved changes to ${files.length} file${files.length === 1 ? '' : 's'}` : 'Restarted');
+    } });
+  }
+
+  async function dumpVars() {
+    const p = player();
+    if (!p) return;
+    say('Dumping variables...');
+    const text = await p.dumpVars();
+    say('Playing ' + game.title);
+    if (text == null) return msgbox({ title: 'Dump Variables', icon: 'error', parent: win, text: 'The engine didn\'t write the variables. It only does between pages; click to the next line and try again.' });
+    launch('notepad', { name: game.title + ' variables.txt', text: text.replace(/\r?\n/g, '\n') });
+  }
+
+  function engineLog() {
+    const p = player();
+    if (!p) return;
+    const lines = p.engineLog;
+    launch('notepad', { name: game.title + ' log.txt', text: lines.length ? lines.join('\n') : '(The engine hasn\'t printed anything. Turn on Debug Output in Engine Flags for more.)' });
+  }
+
+  async function storageUsed() {
+    const s = navigator.storage;
+    if (!s || !s.estimate) return msgbox({ title: 'Storage Used', icon: 'info', parent: win, text: 'This browser doesn\'t say how much space the site uses.' });
+    const [{ usage, quota }, kept] = await Promise.all([s.estimate(), s.persisted ? s.persisted() : false]);
+    msgbox({ title: 'Storage Used', icon: 'info', parent: win,
+      text: `This site is using ${bytes(usage || 0)} of the ${bytes(quota || 0)} the browser allows it.\n\n` +
+        (kept ? 'The browser has agreed not to clear it on its own.' : 'The browser may clear it on its own if it runs low on space.') });
+  }
+
+  async function deleteSaves() {
+    const p = player();
+    if (!p) return;
+    const b = await msgbox({ title: 'Delete Saves', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
+      text: `Delete every save of ${game.title} in this browser, and its global data, then restart it?\n\nThis can't be undone. Export Saves first to keep a copy.` });
+    if (b !== 'Yes' || !player()) return;
+    await player().clearSaves();
+    boot(game);
+    say('Deleted the saves');
+  }
+
+  async function clearAll() {
+    const b = await msgbox({ title: 'Clear All Site Data', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
+      text: 'Erase everything this site keeps in this browser?\n\nThat is the saves of every game, and every setting: display, Minesweeper and Solitaire, tips. The page reloads after.\n\nThis can\'t be undone.' });
+    if (b !== 'Yes') return;
+    if (frame) { frame.remove(); frame = null; } // its open save database would hold up the delete
+    try { localStorage.clear(); sessionStorage.clear(); } catch {}
+    const dbs = indexedDB.databases ? await indexedDB.databases().catch(() => []) : [];
+    await Promise.all(dbs.map(d => new Promise(res => {
+      const r = indexedDB.deleteDatabase(d.name);
+      r.onsuccess = r.onerror = r.onblocked = res;
+    })));
+    location.reload();
+  }
+
   const bar = menubar([
     { label: '&File', items: () => [
       { label: 'Open &Folder...', key: 'Ctrl+O', action: openPicked },
@@ -239,7 +360,22 @@ function open() {
       { label: '&Skip Text', key: 'Ctrl', checked: skip, disabled: !player(), action: () => { skip = !skip; player().setSkip(skip); frame.focus(); } },
       '-',
       { label: '&Restart', disabled: !game, action: () => game && boot(game) },
-      { label: '&Full Screen', disabled: !frame, action: fullScreen },
+      { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
+    ] },
+    { label: '&Debug', items: () => [
+      { label: 'Engine &Flags', submenu: FLAG_LIST.map(f => f === '-' ? f : { label: f.label, checked: flags.has(f.flag), action: () => setFlag(f.flag) }) },
+      { label: 'Restart at &Label...', disabled: !game, action: restartAt },
+      { label: 'Restart from Save &Slot...', disabled: !game, action: restartSlot },
+      '-',
+      { label: 'Save &Editor...', disabled: !player(), action: saveEditor },
+      { label: 'Dump &Variables', disabled: !player(), action: dumpVars },
+      { label: 'Engine L&og', disabled: !player(), action: engineLog },
+      { label: 'Show &Text Overlay', checked: showText, disabled: !player(), action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
+      '-',
+      { label: 'Storage &Used...', action: storageUsed },
+      { label: '&Reset Tips', disabled: !store.get(NO_TIP, false), action: () => { store.set(NO_TIP, false); tipShown = false; say('Tips will show again'); } },
+      { label: '&Delete This Game\'s Saves...', disabled: !player(), action: deleteSaves },
+      { label: '&Clear All Site Data...', action: clearAll },
     ] },
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help', 'CONscripter') }, '-',
@@ -247,11 +383,19 @@ function open() {
     ] },
   ]);
 
-  function fullScreen() { if (frame && frame.requestFullscreen) frame.requestFullscreen().catch(() => {}); }
   const fsBtn = h('button', { class: 'cons-fs', type: 'button', title: 'Full Screen', disabled: true, onclick: fullScreen }, icon('i-max'), 'Full Screen');
   bar.append(fsBtn);
 
-  const root = h('div', { class: 'cons' }, bar, view, status);
+  // In full screen: point at (or click) the top edge for the menu bar.
+  const hot = h('div', { class: 'cons-hot', 'aria-hidden': 'true' });
+  let hideTimer = 0;
+  const reveal = () => { clearTimeout(hideTimer); root.classList.add('reveal'); };
+  hot.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') reveal(); });
+  hot.addEventListener('click', reveal);
+  bar.addEventListener('pointerenter', () => clearTimeout(hideTimer));
+  bar.addEventListener('pointerleave', () => { hideTimer = setTimeout(() => root.classList.remove('reveal'), 400); });
+
+  const root = h('div', { class: 'cons' }, hot, bar, view, status);
 
   // Ask the browser not to evict saves on its own. Clearing site data still erases them.
   function showKeep(kept, refused) {
@@ -273,6 +417,7 @@ function open() {
     frame = null; skip = false;
     view.classList.remove('playing');
     fsBtn.disabled = true;
+    if (isFull()) document.exitFullscreen().catch(() => {});
     hideTip();
     view.replaceChildren(welcome);
     win.setTitle('CONscripter');
@@ -280,7 +425,8 @@ function open() {
     say(msg);
   }
 
-  function boot(g) {
+  // args: engine options for this run only (--goto, --load).
+  function boot(g, args = []) {
     if (frame) frame.remove();
     game = g; skip = false;
     frame = h('iframe', { class: 'cons-frame', title: g.title, src: 'cons/player.html', allow: 'fullscreen; autoplay' });
@@ -288,15 +434,16 @@ function open() {
     frame.addEventListener('load', () => {
       const w = frame.contentWindow;
       w.onGameDrop = takeDrop;
+      w.showText(showText);
       w.start({
-        files: g.files, title: g.title, font: g.font, encoding: g.encoding,
+        files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags, ...args],
         onExit: code => { if (frame !== me) return; stop(code ? 'The game stopped (exit code ' + code + ')' : 'The game has ended'); },
         onError: msg => { if (frame !== me) return; stop('The game stopped'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'CONscripter has stopped.\n\n' + msg }); },
       }).catch(err => { stop('Ready'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The game could not be started.\n\n' + err }); });
       frame.focus();
     }, { once: true });
     view.classList.add('playing');
-    fsBtn.disabled = false;
+    fsBtn.disabled = !canFull;
     askKeep();
     view.replaceChildren(frame, tip);
     if (!tipShown && !store.get(NO_TIP, false)) showTip();
@@ -396,6 +543,7 @@ function open() {
     app: 'cons', title: 'CONscripter', icon: 'i-game', body: root,
     width: 660, height: 540, minW: 320, minH: 260, route: 'cons',
     onClose: confirmQuit,
+    onClosed: () => { document.removeEventListener('fullscreenchange', leftFull); if (isFull()) document.exitFullscreen().catch(() => {}); },
   });
   return win;
 }
