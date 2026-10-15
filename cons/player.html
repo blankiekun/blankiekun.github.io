@@ -233,16 +233,82 @@ let lineVoice = null, backlogVoice = null, backlogText = '', spriteLines = '';
 function consVoice(channel, file) { if (channel === 0) lineVoice = file; }
 
 // Without a voice file, the game's sound from the click that brought the line: whatever
-// the engine sends to the speakers is also sent to soundTap.
-let soundTap, lineRecorder, recordLines = false;
+// the engine sends to the speakers is also sent to soundTap, a worklet on the audio thread
+// that hands back 16-bit stereo blocks stamped with their first frame. The last minute of
+// them is kept here, and a line's sound is cut from it, so nothing starts or stops per
+// click (a new MediaRecorder at each click could make the game's sound pop).
+const TAP_SECONDS = 60;
+const TAP_WORKLET = `registerProcessor('cons-tap', class extends AudioWorkletProcessor {
+  constructor() { super(); this.pcm = new Int16Array(8192); this.n = 0; }
+  process([input]) {
+    const l = input[0], r = input[1] || l, len = l ? l.length : 128;
+    if (!this.n) this.start = currentFrame;
+    for (let i = 0; i < len; i++, this.n += 2) {
+      this.pcm[this.n] = l ? Math.max(-1, Math.min(1, l[i])) * 32767 : 0;
+      this.pcm[this.n + 1] = l ? Math.max(-1, Math.min(1, r[i])) * 32767 : 0;
+    }
+    if (this.n === this.pcm.length) {
+      this.port.postMessage({ start: this.start, pcm: this.pcm }, [this.pcm.buffer]);
+      this.pcm = new Int16Array(8192); this.n = 0;
+    }
+    return true;
+  }
+});`;
+let soundTap, tapReady = false, tapBlocks = [], tapEnd = 0, tapWaiting = [], recording = null, recordLines = false;
 const nativeConnect = AudioNode.prototype.connect;
 AudioNode.prototype.connect = function (target) {
   if (recordLines && target instanceof AudioDestinationNode) {
-    if (!soundTap) { soundTap = this.context.createMediaStreamDestination(); restartLineRecorder(); }
+    if (!soundTap) startSoundTap(this.context);
     if (soundTap.context === this.context) nativeConnect.call(this, soundTap);
   }
   return nativeConnect.apply(this, arguments);
 };
+
+function startSoundTap(ctx) {
+  soundTap = ctx.createGain(); // sources connect here at once; the worklet joins when loaded
+  const url = URL.createObjectURL(new Blob([TAP_WORKLET], { type: 'text/javascript' }));
+  ctx.audioWorklet.addModule(url).then(() => {
+    const node = new AudioWorkletNode(ctx, 'cons-tap', { numberOfOutputs: 1, outputChannelCount: [1] });
+    const mute = ctx.createGain();
+    mute.gain.value = 0; // the worklet must reach the speakers to be run, silently
+    nativeConnect.call(soundTap, node);
+    nativeConnect.call(node, mute);
+    nativeConnect.call(mute, ctx.destination);
+    node.port.onmessage = ({ data }) => {
+      tapBlocks.push(data);
+      tapEnd = data.start + data.pcm.length / 2;
+      while (tapBlocks.length && tapBlocks[0].start < tapEnd - TAP_SECONDS * ctx.sampleRate) tapBlocks.shift();
+      tapWaiting = tapWaiting.filter(w => (tapEnd >= w.end ? (w.done(), false) : true));
+    };
+    tapReady = true;
+    restartLineRecorder();
+  }).catch(err => console.warn('No sound recording for Anki', err)).finally(() => URL.revokeObjectURL(url));
+}
+
+const tapNow = () => Math.round(soundTap.context.currentTime * soundTap.context.sampleRate);
+
+// The kept sound from frame start to end, as a WAV, once the worklet has sent it (or after a
+// second, if the sound has stopped: a suspended context sends nothing).
+async function tapClip(start, end) {
+  await new Promise(done => {
+    if (tapEnd >= end) return done();
+    tapWaiting.push({ end, done });
+    setTimeout(done, 1000);
+  });
+  const frames = Math.max(0, end - start), pcm = new Int16Array(frames * 2);
+  for (const b of tapBlocks) {
+    const from = Math.max(start, b.start), to = Math.min(end, b.start + b.pcm.length / 2);
+    if (from < to) pcm.set(b.pcm.subarray((from - b.start) * 2, (to - b.start) * 2), (from - start) * 2);
+  }
+  const head = new DataView(new ArrayBuffer(44)), rate = soundTap.context.sampleRate;
+  [[0, 'RIFF'], [8, 'WAVE'], [12, 'fmt '], [36, 'data']].forEach(([o, s]) => [...s].forEach((c, i) => head.setUint8(o + i, c.charCodeAt(0))));
+  head.setUint32(4, 36 + pcm.byteLength, true);
+  head.setUint32(16, 16, true); head.setUint16(20, 1, true); head.setUint16(22, 2, true); // PCM, stereo
+  head.setUint32(24, rate, true); head.setUint32(28, rate * 4, true);
+  head.setUint16(32, 4, true); head.setUint16(34, 16, true);
+  head.setUint32(40, pcm.byteLength, true);
+  return new Blob([head, pcm], { type: 'audio/wav' });
+}
 
 // Keeps the last frame readable after it is shown, for screenshots.
 const nativeGetContext = HTMLCanvasElement.prototype.getContext;
@@ -256,7 +322,7 @@ function keepLine(lines) {
   if (!keepLines) return;
   const line = { text: lines.map(l => l.text).join(''), voice: lineVoice, picture: screenshot() };
   // The sound recorded since the click that brought this line is its sound.
-  if (lineRecorder && lineRecorder.state !== 'inactive') lineRecorder.line = line;
+  if (recording) recording.line = line;
   keptLines.push(line);
   if (keptLines.length > KEPT_LINES) keptLines.shift();
   const old = keptLines[keptLines.length - 1 - KEPT_MEDIA];
@@ -264,21 +330,16 @@ function keepLine(lines) {
 }
 
 function stopLineRecorder() {
-  if (!lineRecorder || lineRecorder.state === 'inactive') return;
-  lineRecorder.stop();
-  if (lineRecorder.line) lineRecorder.line.audio = lineRecorder.stopped;
+  if (!recording) return;
+  if (recording.line) recording.line.audio = tapClip(recording.start, tapNow());
+  recording = null;
 }
 
 function restartLineRecorder(e) {
   // Modifier keys are Yomitan's scan keys, not the game's.
   if (e && /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
   stopLineRecorder();
-  if (!soundTap) return;
-  const chunks = [], recorder = new MediaRecorder(soundTap.stream);
-  recorder.ondataavailable = e => chunks.push(e.data);
-  recorder.stopped = new Promise(res => { recorder.onstop = () => res(new Blob(chunks, { type: recorder.mimeType })); });
-  recorder.start();
-  lineRecorder = recorder;
+  if (tapReady) recording = { start: tapNow(), line: null };
 }
 for (const type of ['mousedown', 'touchstart', 'keydown']) addEventListener(type, restartLineRecorder, true);
 
@@ -308,7 +369,7 @@ function ankiShownTexts() { return shownPages().map(p => p.text); }
 // recorded from the click that brought it to the next, else the backlog page's voice file.
 async function ankiMedia(kept, shown, want) {
   const line = keptLines[kept] || {}, page = shownPages()[shown] || {};
-  if (lineRecorder && lineRecorder.line === line) stopLineRecorder(); // still recording: its sound ends now
+  if (recording && recording.line === line) stopLineRecorder(); // still recording: its sound ends now
   return {
     picture: want.picture ? (await line.picture) || (await screenshot()) : null,
     audio: want.audio ? voiceFile(line.voice) || (await line.audio) || voiceFile(page.voice) || null : null,
