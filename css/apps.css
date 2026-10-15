@@ -396,6 +396,9 @@
 .cons-keep > span { flex: 1 1 200px; }
 .cons-keep .btn { margin-left: auto; }
 .cons-keep svg { width: 16px; height: 16px; flex: none; }
+.cons-drive-btns { display: flex; gap: 6px; margin-left: auto; }
+.cons-drive-btns .btn { margin-left: 0; }
+.cons .statusbar .cons-saves.link { cursor: pointer; }
 /* a yellow tip laid over the top of the game for a few seconds */
 .cons-view.playing { position: relative; }
 .cons-tip {
