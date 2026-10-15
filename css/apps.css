@@ -382,6 +382,13 @@
 .cons-drop.over { background: var(--select); color: var(--select-ink); outline-color: var(--select-ink); }
 .cons-drop.over span { color: inherit; }
 .cons-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.cons-recent-list { display: flex; flex-direction: column; background: var(--paper); box-shadow: var(--sunken); padding: 2px; max-height: 120px; overflow: auto; }
+.cons-recent-item { display: flex; align-items: center; gap: 6px; padding: 1px 4px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; }
+.cons-recent-item svg { width: 16px; height: 16px; flex: none; }
+.cons-recent-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cons-recent-at { flex: none; color: var(--shadow); }
+.cons-recent-item:hover, .cons-recent-item:focus-visible { background: var(--select); color: var(--select-ink); outline: 0; }
+.cons-recent-item:hover .cons-recent-at, .cons-recent-item:focus-visible .cons-recent-at { color: inherit; }
 .cons-warn { display: flex; flex-direction: column; gap: 8px; }
 .cons-warn-row { display: flex; gap: 10px; align-items: flex-start; }
 .cons-warn-row svg { width: 32px; height: 32px; flex: none; }

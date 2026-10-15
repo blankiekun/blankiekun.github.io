@@ -5,12 +5,14 @@
 
 import { h, icon, download, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { menubar } from '../menu.js';
+import { menubar, openMenu } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
 import { openSaveEditor } from './conssave.js';
 
 const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
+const RECENT = 'w95.cons.recent';
+const MAX_RECENT = 6;
 
 // Debug > Engine Flags: engine options, used from the next start.
 const FLAG_LIST = [
@@ -43,10 +45,13 @@ const SCRIPTS = ['0.txt', '00.txt', 'nscript.dat', 'nscr_sec.dat', 'onscript.nt'
 // ---------- reading what the visitor gave us ----------
 
 // Call straight from the drop handler: the entries have to be taken before anything awaits.
+// Resolves to { list, handle }; handle is the dropped folder, where the browser can keep it.
 function fromDrop(dt) {
-  const entries = [...dt.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  const items = [...dt.items];
+  const handle = items.length === 1 && items[0].getAsFileSystemHandle ? items[0].getAsFileSystemHandle().catch(() => null) : null;
+  const entries = items.map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
   const loose = entries.length ? [] : [...dt.files].map(file => ({ path: file.name, file }));
-  return (async () => {
+  const list = (async () => {
     const out = loose;
     async function walk(entry, prefix) {
       if (entry.isFile) {
@@ -63,20 +68,83 @@ function fromDrop(dt) {
     for (const e of entries) await walk(e, '');
     return out;
   })();
+  return Promise.all([list, handle]).then(([list, handle]) => ({ list, handle: handle && handle.kind === 'directory' ? handle : null }));
 }
 
-function pickFolder() {
+// Resolves to { handle } where the browser hands out folders it can keep (Chrome, Edge),
+// otherwise to { list }.
+async function pickFolder() {
+  if (window.showDirectoryPicker) {
+    try {
+      return { handle: await showDirectoryPicker({ id: 'cons', mode: 'read' }) };
+    } catch (e) {
+      if (e.name === 'AbortError') return { list: [] };
+    }
+  }
   return new Promise(resolve => {
     const input = h('input', { type: 'file', multiple: true, hidden: true });
     input.webkitdirectory = true;
     input.addEventListener('change', () => {
-      resolve([...input.files].map(file => ({ path: file.webkitRelativePath || file.name, file })));
+      resolve({ list: [...input.files].map(file => ({ path: file.webkitRelativePath || file.name, file })) });
       input.remove();
     });
-    input.addEventListener('cancel', () => { resolve([]); input.remove(); });
+    input.addEventListener('cancel', () => { resolve({ list: [] }); input.remove(); });
     document.body.append(input);
     input.click();
   });
+}
+
+async function walkHandle(dir) {
+  const out = [];
+  async function walk(d, prefix) {
+    for await (const e of d.values()) {
+      if (e.kind === 'file') out.push({ path: prefix + e.name, file: await e.getFile() });
+      else await walk(e, prefix + e.name + '/');
+    }
+  }
+  await walk(dir, dir.name + '/');
+  return out;
+}
+
+// ---------- recent games ----------
+
+// The list is [{ title, at, folder }], newest first. folder: the browser kept the folder
+// itself (in IndexedDB, under the title), so the game opens again without picking it.
+const recentGames = () => store.get(RECENT, []);
+
+function folders(mode, fn) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('cons-folders', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('folders');
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result, tx = db.transaction('folders', mode), r = fn(tx.objectStore('folders'));
+      tx.oncomplete = () => { db.close(); resolve(r && r.result); };
+      tx.onerror = tx.onabort = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+
+function remember(title, handle) {
+  const list = [{ title, at: Date.now(), folder: !!handle }, ...recentGames().filter(r => r.title !== title)];
+  store.set(RECENT, list.slice(0, MAX_RECENT));
+  folders('readwrite', s => {
+    if (handle) s.put(handle, title); else s.delete(title);
+    for (const r of list.slice(MAX_RECENT)) s.delete(r.title);
+  }).catch(() => {});
+}
+
+function forget(title) {
+  store.set(RECENT, recentGames().filter(r => r.title !== title));
+  folders('readwrite', s => { s.delete(title); }).catch(() => {});
+}
+
+function when(t) {
+  const d = new Date(t), now = new Date(), day = 864e5;
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (t >= midnight) return 'Today ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  if (t >= midnight - day) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
 }
 
 // The shallowest folder with a script in it is the game.
@@ -89,6 +157,7 @@ async function findGame(list) {
     if (root == null || dir.split('/').length < root.split('/').length) { root = dir; script = f.file; }
   }
   if (root == null) return null;
+  const named = !!root.split('/').filter(Boolean).length;
   const files = list.filter(f => f.path.startsWith(root)).map(f => ({ path: f.path.slice(root.length), file: f.file }));
   const top = files.filter(f => !f.path.includes('/'));
   const font = (top.find(f => f.path.toLowerCase() === 'default.ttf') || top.find(f => /\.(ttf|otf|ttc)$/i.test(f.path)) || {}).path;
@@ -99,7 +168,7 @@ async function findGame(list) {
     title = 'game-' + [...sum.slice(0, 4)].map(b => b.toString(16).padStart(2, '0')).join('');
   }
   title = title.replace(/[\\/:*?"<>|]/g, '_');
-  return { files, font, title, encoding: await detectEncoding(top), size: files.reduce((n, f) => n + f.file.size, 0) };
+  return { files, font, title, named, encoding: await detectEncoding(top), size: files.reduce((n, f) => n + f.file.size, 0) };
 }
 
 // The engine assumes GBK unless told, so read the script: UTF-8 if it decodes as UTF-8,
@@ -201,6 +270,27 @@ function open() {
   const keepText = h('span');
   const keepBtn = h('button', { class: 'btn', type: 'button', hidden: true, onclick: () => askKeep(true) }, h('span', { html: '<u>K</u>eep Saves...' }));
   const keep = h('div', { class: 'cons-keep' }, icon('i-drive'), keepText, keepBtn);
+  const recentRows = h('div', { class: 'cons-recent-list' });
+  const recentBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Recent games'), recentRows);
+
+  function showRecent() {
+    const list = recentGames();
+    recentBox.hidden = !list.length;
+    recentRows.replaceChildren(...list.map(r => {
+      const row = h('button', { class: 'cons-recent-item', type: 'button', onclick: () => openRecent(r),
+        title: r.folder ? 'Open ' + r.title : 'Choose the ' + r.title + ' folder again to open it' },
+      icon('i-folder'), h('span', { class: 'cons-recent-name' }, r.title), h('span', { class: 'cons-recent-at' }, when(r.at)));
+      row.addEventListener('contextmenu', e => {
+        e.preventDefault(); e.stopPropagation();
+        openMenu([
+          { label: '&Open', action: () => openRecent(r) },
+          { label: '&Remove from List', action: () => { forget(r.title); showRecent(); } },
+        ], { x: e.clientX, y: e.clientY });
+      });
+      return row;
+    }));
+  }
+  showRecent();
   const welcome = h('div', { class: 'cons-welcome' },
     h('div', { class: 'cons-side', 'aria-hidden': 'true' },
       h('div', { class: 'cons-art', html: ART }),
@@ -212,6 +302,7 @@ function open() {
       h('div', { class: 'cons-btns' },
         h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
+      recentBox,
       h('fieldset', { class: 'group cons-warn' },
         h('legend', null, 'Your saves'),
         h('div', { class: 'cons-warn-row' }, icon('i-warn'),
@@ -353,6 +444,9 @@ function open() {
       { label: '&Import Saves...', disabled: !player(), action: importSaves },
       '-',
       { label: '&Close Game', disabled: !frame, action: () => confirmQuit().then(ok => ok && stop('Ready')) },
+      '-',
+      ...recentGames().map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
+      ...(recentGames().length ? ['-'] : []),
       { label: 'E&xit', action: () => win.close() },
     ] },
     { label: '&Game', items: () => [
@@ -419,6 +513,7 @@ function open() {
     fsBtn.disabled = true;
     if (isFull()) document.exitFullscreen().catch(() => {});
     hideTip();
+    showRecent();
     view.replaceChildren(welcome);
     win.setTitle('CONscripter');
     statusGame.textContent = '';
@@ -460,28 +555,59 @@ function open() {
     return false;
   }
 
-  async function load(list) {
-    if (!list.length) return;
+  const idle = () => say(frame ? 'Playing ' + game.title : 'Ready');
+
+  // From a folder handle, or a list of files already read.
+  async function load({ list, handle }) {
+    if (list && !list.length) return;
     say('Reading files...');
+    if (!list) {
+      try {
+        list = await walkHandle(handle);
+      } catch (e) {
+        idle();
+        return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: `The folder ${handle.name} could not be read.\n\n${e.message}` });
+      }
+    }
     const g = await findGame(list);
     if (!g) {
-      say(frame ? 'Playing ' + game.title : 'Ready');
+      idle();
       const zip = list.some(f => /\.(zip|7z|rar)$/i.test(f.path));
       return msgbox({ title: 'CONscripter', icon: 'error', parent: win,
         text: zip ? 'That looks like an archive. Extract it first, then open the folder.'
           : 'There is no NScripter game here.\n\nCONscripter looks for a folder with 0.txt, 00.txt or nscript.dat in it.' });
     }
     if (!g.font) {
-      say(frame ? 'Playing ' + game.title : 'Ready');
+      idle();
       return msgbox({ title: 'CONscripter', icon: 'error', parent: win,
         text: `${g.title} has no font.\n\nPut a default.ttf next to the game's script and open it again.` });
     }
     if (!(await confirmQuit())) { say('Playing ' + game.title); return; }
+    if (g.named) remember(g.title, handle);
     boot(g);
   }
 
   async function openPicked() { load(await pickFolder()); }
   function takeDrop(dt) { const p = fromDrop(dt); win.focus(); p.then(load); }
+
+  // Opening the folder again, or asking to read it again, needs the click that got us here,
+  // so nothing slow happens before.
+  async function openRecent(r) {
+    if (!r.folder) { say(`Choose the ${r.title} folder`); return openPicked(); }
+    let handle = null;
+    try { handle = await folders('readonly', s => s.get(r.title)); } catch {}
+    if (!handle) return openPicked();
+    let ok = await handle.queryPermission({ mode: 'read' }) === 'granted';
+    if (!ok) ok = await handle.requestPermission({ mode: 'read' }).then(p => p === 'granted', () => false);
+    if (!ok) return say('Ready');
+    if (await handle.values().next().then(() => false, e => e.name === 'NotFoundError')) {
+      const b = await msgbox({ title: 'CONscripter', icon: 'error', parent: win, buttons: ['&Yes', '&No'],
+        text: `The ${r.title} folder isn't there anymore. It may have been moved, renamed or deleted.\n\nRemove it from the recent games?` });
+      if (b === 'Yes') { forget(r.title); showRecent(); }
+      return;
+    }
+    load({ handle });
+  }
 
   async function exportSaves() {
     const p = player();
