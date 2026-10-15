@@ -451,8 +451,10 @@ function screenshot() { return new Promise(res => canvas.toBlob(res, 'image/webp
 
 // Emscripten's own lazy files need a web worker, so these nodes read 1 MB slices of
 // the File with a synchronous XHR on a blob: URL instead, and keep the most recent
-// chunks around. The engine's fread() never notices.
-const CHUNK = 1 << 20, CACHE_CHUNKS = 64;
+// 64 MB of chunks around. The engine's fread() never notices.
+// Firefox plays silence for an audio callback the main thread runs late, so a voice's
+// 1 MB read cut the BGM there: it reads 64 KB slices, a sixteenth of the stall.
+const CHUNK = /Firefox\//.test(navigator.userAgent) ? 1 << 16 : 1 << 20, CACHE_CHUNKS = (64 << 20) / CHUNK;
 const cache = new Map();
 let nextId = 0;
 
