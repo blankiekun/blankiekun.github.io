@@ -1,13 +1,15 @@
 // CONscripter: plays an NScripter visual novel from a folder the visitor drops in.
 // The engine runs in a frame (cons/player.html) that reads the files straight off
-// their disk, so nothing is uploaded. Saves stay in this browser, and can be
-// exported to a .zip and imported again.
+// their disk, so nothing is uploaded. Saves stay in this browser, can be exported to
+// a .zip and imported again, and with Google Drive sync on, are copied to the
+// visitor's Drive (consdrive.js) as the game saves them.
 
 import { h, icon, download, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
 import { openSaveEditor } from './conssave.js';
+import * as drive from './consdrive.js';
 
 const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
@@ -139,10 +141,12 @@ function forget(title) {
   folders('readwrite', s => { s.delete(title); }).catch(() => {});
 }
 
+const hhmm = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
 function when(t) {
   const d = new Date(t), now = new Date(), day = 864e5;
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  if (t >= midnight) return 'Today ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  if (t >= midnight) return 'Today ' + hhmm(t);
   if (t >= midnight - day) return 'Yesterday';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
 }
@@ -261,6 +265,15 @@ function open() {
   let showText = false;
   const flags = new Set(store.get(FLAGS, []));
 
+  // Google Drive sync (further down)
+  let syncState = '';   // '', 'busy', 'ok', 'signin' (waiting for a sign-in), 'error'
+  let syncMsg = '', syncAt = 0;
+  let syncTimer = 0;    // a sync waiting for the game to finish saving
+  let declined = null;  // the frame whose newer saves from Drive the visitor chose not to load
+  let own = 0;          // our own writes into the saves, which aren't new saves to copy
+  const quietly = async fn => { own++; try { return await fn(); } finally { own--; } };
+  let chain = Promise.resolve(), waiting = null;
+
   const player = () => frame && frame.contentWindow && frame.contentWindow.listSaves ? frame.contentWindow : null;
 
   // Welcome page, drawn like a 95 Setup wizard.
@@ -270,6 +283,12 @@ function open() {
   const keepText = h('span');
   const keepBtn = h('button', { class: 'btn', type: 'button', hidden: true, onclick: () => askKeep(true) }, h('span', { html: '<u>K</u>eep Saves...' }));
   const keep = h('div', { class: 'cons-keep' }, icon('i-drive'), keepText, keepBtn);
+  const warnRow = h('div', { class: 'cons-warn-row' });
+  const driveText = h('span');
+  const driveSignIn = h('button', { class: 'btn', type: 'button', onclick: () => signInAgain() }, h('span', { html: '<u>S</u>ign In' }));
+  const driveBtn = h('button', { class: 'btn', type: 'button', onclick: () => drive.enabled() ? driveOff() : driveOn() });
+  const driveRow = h('div', { class: 'cons-keep cons-drive', hidden: !drive.available }, icon('i-globe'), driveText,
+    h('div', { class: 'cons-drive-btns' }, driveSignIn, driveBtn));
   const recentRows = h('div', { class: 'cons-recent-list' });
   const recentBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Recent games'), recentRows);
 
@@ -305,32 +324,45 @@ function open() {
       recentBox,
       h('fieldset', { class: 'group cons-warn' },
         h('legend', null, 'Your saves'),
-        h('div', { class: 'cons-warn-row' }, icon('i-warn'),
-          h('p', null, 'Saves are kept only in this browser. ', h('b', null, 'Clearing browsing data, cookies or site data erases them'),
-            ', and so does closing a private window. Some browsers also clean up sites you haven\'t visited in a while. Use ',
-            h('b', null, 'File > Export Saves'), ' to keep a copy.')),
-        keep)));
+        warnRow, keep, driveRow)));
 
   // Laid over the top of the game when it starts, once per visit, and gone after a few seconds.
-  const tip = h('div', { class: 'cons-tip', role: 'status', hidden: true }, icon('i-warn'),
-    h('span', null, 'Saves live only in this browser, and clearing site data erases them. To keep a copy, choose ',
-      h('b', null, 'File > Export Saves'), '. ', h('b', null, 'Import Saves'), ' loads the .zip back in.'),
-    h('button', { class: 'cons-tip-never', type: 'button', onclick: () => { store.set(NO_TIP, true); hideTip(); frame && frame.focus(); } }, "Don't show again"),
+  // kind 'local': saves are only here, for a few seconds. 'signin': Drive sync is
+  // waiting for a sign-in, until it's done or closed.
+  const tipText = h('span');
+  const tipBtn = h('button', { class: 'cons-tip-never', type: 'button', onclick: () => {
+    if (tipKind === 'signin') syncSaves({ interactive: true }); else store.set(NO_TIP, true);
+    hideTip(); frame && frame.focus();
+  } });
+  const tip = h('div', { class: 'cons-tip', role: 'status', hidden: true }, icon('i-warn'), tipText, tipBtn,
     h('button', { class: 'cons-tip-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { hideTip(); frame && frame.focus(); } }, icon('i-x')));
-  let tipTimer = 0;
-  function hideTip() { clearTimeout(tipTimer); tip.hidden = true; tip.classList.remove('going'); }
-  function showTip() {
-    tipShown = true;
+  let tipTimer = 0, tipKind = '';
+  function hideTip() { clearTimeout(tipTimer); tip.hidden = true; tip.classList.remove('going'); tipKind = ''; }
+  function showTip(kind = 'local') {
+    tipKind = kind;
+    if (kind === 'signin') {
+      tipText.replaceChildren('Google Drive sync needs you to sign in again. Until then, saves stay only in this browser.');
+      tipBtn.textContent = 'Sign In';
+    } else {
+      tipShown = true;
+      tipText.replaceChildren('Saves live only in this browser, and clearing site data erases them. To keep a copy, choose ',
+        h('b', null, 'File > Export Saves'), '. ', h('b', null, 'Import Saves'), ' loads the .zip back in.',
+        ...(drive.available ? [' Or turn on ', h('b', null, 'File > Sync with Google Drive'), '.'] : []));
+      tipBtn.textContent = "Don't show again";
+    }
     tip.hidden = false;
     tip.classList.remove('going');
     clearTimeout(tipTimer);
-    tipTimer = setTimeout(() => { tip.classList.add('going'); tipTimer = setTimeout(hideTip, 300); }, 3000);
+    if (kind === 'local') tipTimer = setTimeout(() => { tip.classList.add('going'); tipTimer = setTimeout(hideTip, 300); }, drive.available ? 4500 : 3000);
   }
 
   const view = h('div', { class: 'cons-view' }, welcome);
   const statusText = h('span', null, 'Ready');
   const statusGame = h('span', { class: 'cons-size' }, '');
-  const statusSaves = h('span', { class: 'cons-saves' }, icon('i-floppy'), 'Saves: this browser');
+  const statusSaves = h('span', { class: 'cons-saves', onclick: () => {
+    if (!drive.enabled()) return;
+    if (player()) syncSaves({ interactive: true, report: true }); else if (!drive.signedIn()) signInAgain();
+  } });
   const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSaves);
   const say = t => { statusText.textContent = t; };
 
@@ -414,17 +446,30 @@ function open() {
   async function deleteSaves() {
     const p = player();
     if (!p) return;
+    const synced = drive.enabled();
     const b = await msgbox({ title: 'Delete Saves', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
-      text: `Delete every save of ${game.title} in this browser, and its global data, then restart it?\n\nThis can't be undone. Export Saves first to keep a copy.` });
+      text: `Delete every save of ${game.title} in this browser${synced ? ' and in your Google Drive' : ''}, and its global data, then restart it?\n\nThis can't be undone. Export Saves first to keep a copy.` });
     if (b !== 'Yes' || !player()) return;
-    await player().clearSaves();
+    if (synced) {
+      say('Deleting the saves from Google Drive...');
+      try {
+        await chain;
+        await drive.remove(game.title, true);
+      } catch (e) {
+        idle();
+        return msgbox({ title: 'Delete Saves', icon: 'error', parent: win,
+          text: `The saves of ${game.title} could not be deleted from Google Drive, so the ones in this browser were kept too.\n\n${e.message}` });
+      }
+    }
+    await quietly(() => player().clearSaves());
     boot(game);
     say('Deleted the saves');
   }
 
   async function clearAll() {
     const b = await msgbox({ title: 'Clear All Site Data', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
-      text: 'Erase everything this site keeps in this browser?\n\nThat is the saves of every game, and every setting: display, Minesweeper and Solitaire, tips. The page reloads after.\n\nThis can\'t be undone.' });
+      text: 'Erase everything this site keeps in this browser?\n\nThat is the saves of every game, and every setting: display, Minesweeper and Solitaire, tips. The page reloads after.' +
+        (drive.enabled() ? ' Google Drive sync is turned off, and the copies in your Google Drive are kept.' : '') + '\n\nThis can\'t be undone.' });
     if (b !== 'Yes') return;
     if (frame) { frame.remove(); frame = null; } // its open save database would hold up the delete
     try { localStorage.clear(); sessionStorage.clear(); } catch {}
@@ -442,6 +487,9 @@ function open() {
       '-',
       { label: '&Export Saves...', disabled: !player(), action: exportSaves },
       { label: '&Import Saves...', disabled: !player(), action: importSaves },
+      ...(drive.available ? ['-',
+        { label: drive.enabled() ? 'Turn Off &Google Drive Sync...' : 'Sync with &Google Drive...', action: () => drive.enabled() ? driveOff() : driveOn() },
+        { label: '&Sync Now', disabled: !player() || !drive.enabled(), action: () => syncSaves({ interactive: true, report: true }) }] : []),
       '-',
       { label: '&Close Game', disabled: !frame, action: () => confirmQuit().then(ok => ok && stop('Ready')) },
       '-',
@@ -498,8 +546,10 @@ function open() {
     keepText.textContent = kept ? 'This browser has agreed not to clear saves on its own.'
       : refused ? 'The browser said no. Bookmarking this site makes it more likely to agree.'
       : 'This browser may also clear saves on its own when it runs low on space. Ask it to keep them.';
-    statusSaves.title = kept ? 'Saves are in this browser, protected from automatic cleanup' : 'Saves are in this browser and may be cleared automatically';
+    keepTitle = kept ? 'Saves are in this browser, protected from automatic cleanup' : 'Saves are in this browser and may be cleared automatically';
+    showSaves();
   }
+  let keepTitle = '';
   const storage = navigator.storage;
   if (storage && storage.persisted) storage.persisted().then(showKeep, () => showKeep(null)); else showKeep(null);
   function askKeep(asked) {
@@ -517,6 +567,7 @@ function open() {
     view.replaceChildren(welcome);
     win.setTitle('CONscripter');
     statusGame.textContent = '';
+    showSaves();
     say(msg);
   }
 
@@ -529,9 +580,11 @@ function open() {
     frame.addEventListener('load', () => {
       const w = frame.contentWindow;
       w.onGameDrop = takeDrop;
+      w.onSaved = () => { if (frame === me) savedSoon(); };
       w.showText(showText);
       w.start({
         files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags, ...args],
+        beforeRun: () => frame === me && syncSaves({ w, starting: true }),
         onExit: code => { if (frame !== me) return; stop(code ? 'The game stopped (exit code ' + code + ')' : 'The game has ended'); },
         onError: msg => { if (frame !== me) return; stop('The game stopped'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'CONscripter has stopped.\n\n' + msg }); },
       }).catch(err => { stop('Ready'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The game could not be started.\n\n' + err }); });
@@ -541,7 +594,9 @@ function open() {
     fsBtn.disabled = !canFull;
     askKeep();
     view.replaceChildren(frame, tip);
-    if (!tipShown && !store.get(NO_TIP, false)) showTip();
+    if (drive.enabled()) {
+      if (syncState === 'signin' && !drive.signedIn()) showTip('signin');
+    } else if (!tipShown && !store.get(NO_TIP, false)) showTip();
     win.setTitle(g.title + ' - CONscripter');
     statusGame.textContent = g.files.length.toLocaleString('en-US') + ' files, ' + bytes(g.size);
     say('Playing ' + g.title);
@@ -551,8 +606,14 @@ function open() {
     if (!frame) return true;
     const b = await msgbox({ title: 'CONscripter', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
       text: `Quit ${game.title}?\n\nAnything you haven't saved in the game will be lost.` });
-    if (b === 'Yes') { const p = player(); if (p) await p.flush_save(); return true; }
-    return false;
+    if (b !== 'Yes') return false;
+    const p = player();
+    if (p) await p.flush_save();
+    if (p && drive.enabled()) {
+      say('Copying saves to Google Drive...');
+      await syncSaves({ leaving: true });
+    }
+    return true;
   }
 
   const idle = () => say(frame ? 'Playing ' + game.title : 'Ready');
@@ -648,6 +709,162 @@ function open() {
     say(`Imported ${files.length} save file${files.length === 1 ? '' : 's'}`);
   }
 
+  // ---------- Google Drive sync ----------
+
+  // The saves box on the welcome page, and the saves panel of the status bar.
+  function showSaves() {
+    const on = drive.enabled(), a = drive.account(), who = a && a.email ? ` (${a.email})` : '';
+    warnRow.replaceChildren(...(on
+      ? [icon('i-info'), h('p', null, 'Saves are kept in this browser and copied to your Google Drive' + who + ' as you play. Open a game on any computer with sync on, and its saves come with it.')]
+      : [icon('i-warn'), h('p', null, 'Saves are kept only in this browser. ', h('b', null, 'Clearing browsing data, cookies or site data erases them'),
+        ', and so does closing a private window. Some browsers also clean up sites you haven\'t visited in a while. Use ',
+        h('b', null, 'File > Export Saves'), ' to keep a copy' + (drive.available ? ', or sync them with Google Drive.' : '.'))]));
+    const out = on && !drive.signedIn();
+    driveText.textContent = !on ? 'Copy saves to your Google Drive, to keep them safe and carry on playing on another computer.'
+      : out ? 'Google Drive sync is on. Sign in so games sync as they start.'
+      : syncState === 'error' ? 'Google Drive sync is on, but the last sync failed: ' + syncMsg
+      : 'Google Drive sync is on.' + (syncAt ? ' Last synced at ' + hhmm(syncAt) + '.' : '');
+    driveSignIn.hidden = !out;
+    driveBtn.replaceChildren(h('span', { html: on ? 'Turn <u>O</u>ff' : 'Sync with <u>G</u>oogle Drive...' }));
+
+    const [text, title] = !on ? ['Saves: this browser', keepTitle]
+      : syncState === 'busy' ? ['Saves: syncing...', 'Copying saves to and from Google Drive']
+      : syncState === 'signin' ? ['Saves: sign in to Drive', 'Google Drive sync needs you to sign in again. Click to sign in.']
+      : syncState === 'error' ? ['Saves: not synced', syncMsg + ' Click to try again.']
+      : ['Saves: Google Drive', 'Saves are in this browser and synced with Google Drive' + who + (syncAt ? ', last at ' + hhmm(syncAt) : '') + '. Click to sync now.'];
+    statusSaves.replaceChildren(icon(on ? 'i-globe' : 'i-floppy'), text);
+    statusSaves.title = title;
+    statusSaves.classList.toggle('link', on);
+  }
+
+  function setSync(state, msg = '') {
+    const was = syncState;
+    syncState = state; syncMsg = msg;
+    if (state === 'ok') syncAt = Date.now();
+    showSaves();
+    if (state === 'signin' && was !== 'signin' && frame) showTip('signin');
+    if (state !== 'signin' && tipKind === 'signin') hideTip();
+  }
+
+  // One sync at a time; asking while one waits to run joins it.
+  // starting: w is a frame whose engine hasn't started, so newer saves from Drive go
+  //   straight in. Otherwise loading them means restarting the game, so it asks first.
+  // leaving: the game is being closed: only copy to Drive.
+  // interactive: from a click, so it may open Google's sign-in window, and errors are shown.
+  function syncSaves(opts = {}) {
+    if (!drive.enabled() || !game) return Promise.resolve();
+    if (waiting && waiting.w === opts.w && !opts.leaving) {
+      waiting.interactive = waiting.interactive || opts.interactive;
+      waiting.report = waiting.report || opts.report;
+      return waiting.p;
+    }
+    const job = waiting = { ...opts, title: game.title };
+    job.p = chain = chain.then(() => { if (waiting === job) waiting = null; return runSync(job); });
+    return job.p;
+  }
+
+  async function runSync({ w, title, starting, leaving, interactive, report }) {
+    const p = w || player();
+    if (!p || !drive.enabled() || (!w && game.title !== title)) return;
+    clearTimeout(syncTimer); syncTimer = 0;
+    setSync('busy');
+    try {
+      let job = drive.sync(title, p.listSaves(), interactive);
+      // Don't hold the game back long if Drive is slow; newer saves come next sync.
+      if (starting) job = Promise.race([job, new Promise((_, no) => setTimeout(() => no(new drive.DriveError('Google Drive took too long to answer.', 'net')), 15000))]);
+      const newer = await job;
+      if (newer.length && starting) {
+        await quietly(() => p.writeSaves(newer));
+        say(`Loaded ${newer.length} newer save file${newer.length === 1 ? '' : 's'} from Google Drive`);
+      } else if (newer.length && !leaving && declined !== frame && player() === p) {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+          text: `Your Google Drive has newer saves of ${title}, from playing somewhere else.\n\nLoad them and restart the game? Anything you haven't saved here will be lost. If you don't, each save file keeps whichever copy was saved last.` });
+        if (b === 'Yes' && player() === p) {
+          await quietly(() => p.writeSaves(newer));
+          boot(game);
+        } else declined = frame;
+      }
+      setSync('ok');
+      if (report) say('Synced with Google Drive');
+    } catch (e) {
+      const signin = e.kind === 'signin' || e.kind === 'popup';
+      setSync(signin || e.kind === 'closed' || e.kind === 'denied' ? 'signin' : 'error', e.message);
+      if (leaving) {
+        msgbox({ title: 'Google Drive Sync', icon: 'warn',
+          text: `Your latest saves of ${title} weren't copied to Google Drive.\n\n${e.message}\n\nThey're safe in this browser, and are copied the next time you play ${title} here.` });
+      } else if (interactive && e.kind === 'popup') {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'warn', parent: win, buttons: ['OK', 'Cancel'],
+          text: 'The browser blocked the Google sign-in window. Click OK to open it.' });
+        if (b === 'OK') return runSync({ w, title, starting, interactive, report });
+      } else if (interactive && e.kind !== 'closed') {
+        msgbox({ title: 'Google Drive Sync', icon: 'error', parent: win, text: `${title} could not be synced with Google Drive.\n\n${e.message}` });
+      }
+    }
+  }
+
+  // The game saved. Copy it a few seconds later, once it's done saving; but if sync
+  // needs a sign-in, do it now, while the click that saved still lets the window open.
+  function savedSoon() {
+    if (own || !drive.enabled()) return;
+    clearTimeout(syncTimer);
+    if (!drive.signedIn() && navigator.userActivation && navigator.userActivation.isActive) { syncTimer = 0; syncSaves(); return; }
+    syncTimer = setTimeout(() => syncSaves(), 4000);
+  }
+  // Leaving the tab (or closing it) copies a save that's waiting, while there's time.
+  function onHide() { if (document.hidden && syncTimer) syncSaves(); }
+  document.addEventListener('visibilitychange', onHide);
+
+  async function driveOn() {
+    say('Signing in to Google...');
+    try {
+      await drive.connect();
+    } catch (e) {
+      idle();
+      if (e.kind === 'popup') {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'warn', parent: win, buttons: ['OK', 'Cancel'],
+          text: 'The browser blocked the Google sign-in window. Click OK to open it.' });
+        return b === 'OK' && driveOn();
+      }
+      if (e.kind !== 'closed') msgbox({ title: 'Google Drive Sync', icon: 'error', parent: win, text: 'Google Drive sync could not be turned on.\n\n' + e.message });
+      return;
+    }
+    syncState = ''; syncAt = 0;
+    hideTip();
+    showSaves();
+    say('Google Drive sync is on');
+    if (player()) syncSaves({ interactive: true, report: true });
+  }
+
+  async function signInAgain() {
+    try {
+      await drive.signInAgain();
+      setSync(syncState === 'signin' ? '' : syncState);
+    } catch (e) {
+      if (e.kind === 'popup') {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'warn', parent: win, buttons: ['OK', 'Cancel'],
+          text: 'The browser blocked the Google sign-in window. Click OK to open it.' });
+        if (b === 'OK') return signInAgain();
+      } else if (e.kind !== 'closed') msgbox({ title: 'Google Drive Sync', icon: 'error', parent: win, text: 'Could not sign in to Google.\n\n' + e.message });
+    }
+  }
+
+  async function driveOff() {
+    const b = await msgbox({ title: 'Google Drive Sync', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+      text: 'Turn off Google Drive sync?\n\nSaves stay in this browser. The copies in your Google Drive stay there too, and turning sync on again brings them back.\n\n' +
+        'To delete a game\'s copies, use Debug > Delete This Game\'s Saves before turning sync off. To delete them all, in Google Drive open Settings > Manage Apps, and choose Delete hidden app data for this site.' });
+    if (b !== 'Yes') return;
+    await chain;
+    clearTimeout(syncTimer); syncTimer = 0;
+    await drive.disconnect();
+    syncState = ''; syncAt = 0;
+    if (tipKind === 'signin') hideTip();
+    showSaves();
+    say('Google Drive sync is off');
+  }
+
+  showSaves();
+  drive.preload();
+
   root.addEventListener('dragover', e => {
     if (![...e.dataTransfer.types].includes('Files')) return;
     e.preventDefault();
@@ -669,7 +886,12 @@ function open() {
     app: 'cons', title: 'CONscripter', icon: 'i-game', body: root,
     width: 660, height: 540, minW: 320, minH: 260, route: 'cons',
     onClose: confirmQuit,
-    onClosed: () => { document.removeEventListener('fullscreenchange', leftFull); if (isFull()) document.exitFullscreen().catch(() => {}); },
+    onClosed: () => {
+      document.removeEventListener('fullscreenchange', leftFull);
+      document.removeEventListener('visibilitychange', onHide);
+      clearTimeout(syncTimer);
+      if (isFull()) document.exitFullscreen().catch(() => {});
+    },
   });
   return win;
 }

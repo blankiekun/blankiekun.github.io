@@ -28,7 +28,8 @@ body.show-text #overlay div div { color: rgba(255, 64, 64, .9); background: rgba
 // The Program window in js/apps/conscripter.js makes one of these per game and calls
 // start() with the visitor's own files. Nothing is uploaded: game files are read
 // straight off their disk as the engine asks for them, so one big .nsa never has to
-// fit in memory, and saves live in this browser's IndexedDB.
+// fit in memory, and saves live in this browser's IndexedDB (and, with sync on, the
+// window around this copies them to the visitor's Google Drive).
 
 const canvas = document.getElementById('canvas');
 const video = document.getElementById('video');
@@ -64,7 +65,8 @@ let flushing = null;
 function flush_save() {
   if (!savedir) return Promise.resolve();
   const run = () => new Promise(res => g_onsyuri_module.FS.syncfs(false, err => { if (err) console.warn(err); res(); }));
-  flushing = (flushing || Promise.resolve()).then(run);
+  // The engine calls this after every save; the window around it copies them to Google Drive.
+  flushing = (flushing || Promise.resolve()).then(run).then(() => { if (window.onSaved) window.onSaved(); });
   return flushing;
 }
 
@@ -284,12 +286,15 @@ function listSaves() {
   return out;
 }
 
+// files: [{ path, data, mtime }]; mtime (ms) keeps a synced file's own time, so the
+// newer copy still wins next time. Without it, the file is new as of now.
 async function writeSaves(files) {
   const FS = g_onsyuri_module.FS;
   for (const f of files) {
     const p = savedir + '/' + f.path;
     mkdirs(FS, p.slice(0, p.lastIndexOf('/')));
     FS.writeFile(p, f.data);
+    if (f.mtime) FS.utime(p, +f.mtime, +f.mtime);
   }
   await flush_save();
 }
@@ -329,7 +334,8 @@ addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffec
 addEventListener('drop', e => { e.preventDefault(); if (window.onGameDrop) window.onGameDrop(e.dataTransfer); });
 addEventListener('pointerdown', () => canvas.focus());
 
-// game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), args (more engine options), onExit(code), onError(msg) }
+// game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), args (more engine options), onExit(code), onError(msg),
+//   beforeRun() (once the saves are read, before the engine starts: Google Drive sync brings newer ones in) }
 async function start(game) {
   const M = g_onsyuri_module;
   M.onExit = code => game.onExit && game.onExit(code);
@@ -347,6 +353,7 @@ async function start(game) {
   mkdirs(FS, savedir);
   FS.mount(M.IDBFS, {}, savedir);
   await new Promise(res => FS.syncfs(true, err => { if (err) console.warn(err); res(); }));
+  if (game.beforeRun) await game.beforeRun();
   canvas.focus();
   M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding,
     '--dump-vars', VARS_FILE, ...(game.args || [])]);

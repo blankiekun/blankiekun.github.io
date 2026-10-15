@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy - blankiekun 95</title>
+<style>
+:root { color-scheme: light; }
+body { margin: 0; padding: 24px 16px; background: #008080; font: 15px/1.55 Arial, Helvetica, sans-serif; color: #000; }
+main { max-width: 680px; margin: 0 auto; background: #c0c0c0; padding: 4px; border: 2px solid; border-color: #fff #000 #000 #fff; }
+h1 { margin: 0; padding: 3px 6px; background: #000080; color: #fff; font-size: 15px; }
+.body { padding: 8px 14px 14px; }
+h2 { font-size: 16px; margin: 18px 0 4px; }
+p, li { margin: 0 0 8px; }
+code { font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy</h1>
+<div class="body">
+<p>This is the privacy policy for <a href="https://blankiekun.github.io/">blankiekun.github.io</a>, including CONscripter's Google Drive sync. Last updated October 15, 2026.</p>
+
+<h2>Games and saves</h2>
+<p>CONscripter plays games from your own computer. Game files are read straight from your disk and are never uploaded. Saves are kept in your browser's storage on your device.</p>
+
+<h2>Google Drive sync</h2>
+<p>If you turn on <b>File &gt; Sync with Google Drive</b> in CONscripter, you sign in with Google and allow the site to use the <code>drive.appdata</code> permission. With it:</p>
+<ul>
+<li>The site keeps one file per game in a hidden app folder in your Google Drive, holding that game's save files. It can't see or change anything else in your Drive.</li>
+<li>Your browser talks to Google directly. Saves and the sign-in token never pass through any server of this site. The token is kept only for the browser tab's session.</li>
+<li>The site reads your Google account's email address once, to show which account sync is using. It's stored only in your browser.</li>
+<li>Nothing from your Google account is shared with anyone, used for ads, or used to train AI models.</li>
+</ul>
+<p>Use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+<p>To stop syncing, choose <b>File &gt; Turn Off Google Drive Sync</b>. To delete a game's copies, use <b>Debug &gt; Delete This Game's Saves</b> while sync is on. To delete all of them, open Google Drive, then <b>Settings &gt; Manage Apps</b>, find this site and choose <b>Delete hidden app data</b>. You can also remove the site's access at <a href="https://myaccount.google.com/connections">myaccount.google.com/connections</a>.</p>
+
+<h2>Sending drawings and notes</h2>
+<p>If you use Send in Paint or Notepad, what you send goes to the site owner through a Cloudflare Worker and Cloudflare Turnstile, which checks you aren't a bot.</p>
+
+<h2>Contact</h2>
+<p>Questions: <a href="https://github.com/blankiekun">github.com/blankiekun</a>.</p>
+</div>
+</main>
+</body>
+</html>
