@@ -155,7 +155,11 @@ function lineDiv(line) {
   return div;
 }
 
-function consText(bytes, skipped, boxes) { pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
+function consText(bytes, skipped, boxes) {
+  const lines = overlayLines(bytes, boxes);
+  pageText.replaceChildren(...lines.map(lineDiv));
+  if (!skipped) keepLine(lines); // skipped text goes by too fast to mine
+}
 
 // A choice or system menu item drawn by the engine.
 function consChoice(bytes, x, y, size, pitch) { choices.append(lineDiv({ text: decodeText(bytes), x, y, size, pitch })); }
@@ -192,8 +196,10 @@ function consOverlay(event) {
 
 // A page of the built-in backlog (between 'enter' and 'leave').
 function consBacklog(bytes, boxes, voice) {
+  const lines = overlayLines(bytes, boxes);
   backlogVoice = voice;
-  pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv));
+  backlogText = lines.map(l => l.text).join('');
+  pageText.replaceChildren(...lines.map(lineDiv));
   inBacklog = true;
   updateHidden();
 }
@@ -210,15 +216,20 @@ for (const type of ['mousedown', 'mouseup', 'mousemove', 'click', 'contextmenu',
   });
 }
 
-// ---- Anki mining (js/apps/consanki.js): a screenshot, and the line's voice ----
+// ---- Anki mining (js/apps/consanki.js) ----
+
+// The recent lines, each with its screenshot and sound, so a card gets those of the line
+// it was mined from (lineFor in consanki.js), however late it is noticed.
+const KEPT_LINES = 30;
+let keptLines = [], keepLines = false; // [{ text, voice, picture: Promise<Blob>, audio?: Promise<Blob> }], oldest first
 
 // The voice (dwave channel 0) of the page being read, and of the backlog page shown.
-let lineVoice = null, backlogVoice = null;
+let lineVoice = null, backlogVoice = null, backlogText = '';
 function consVoice(channel, file) { if (channel === 0) lineVoice = file; }
 
-// Without a voice file, the game's sound since the last click or key: whatever the
-// engine sends to the speakers is also sent to soundTap.
-let soundTap, lineRecorder, lineAudio, recordLines = false;
+// Without a voice file, the game's sound from the click that brought the line: whatever
+// the engine sends to the speakers is also sent to soundTap.
+let soundTap, lineRecorder, recordLines = false;
 const nativeConnect = AudioNode.prototype.connect;
 AudioNode.prototype.connect = function (target) {
   if (recordLines && target instanceof AudioDestinationNode) {
@@ -235,11 +246,26 @@ HTMLCanvasElement.prototype.getContext = function (type, attributes) {
   return nativeGetContext.call(this, type, attributes);
 };
 
+// At each click wait while mining: the page so far, its voice, screen and (being recorded) sound.
+function keepLine(lines) {
+  if (!keepLines) return;
+  const line = { text: lines.map(l => l.text).join(''), voice: lineVoice, picture: screenshot() };
+  // The sound recorded since the click that brought this line is its sound.
+  if (lineRecorder && lineRecorder.state !== 'inactive') lineRecorder.line = line;
+  keptLines.push(line);
+  if (keptLines.length > KEPT_LINES) keptLines.shift();
+}
+
+function stopLineRecorder() {
+  if (!lineRecorder || lineRecorder.state === 'inactive') return;
+  lineRecorder.stop();
+  if (lineRecorder.line) lineRecorder.line.audio = lineRecorder.stopped;
+}
+
 function restartLineRecorder(e) {
   // Modifier keys are Yomitan's scan keys, not the game's.
   if (e && /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
-  if (lineRecorder && lineRecorder.state !== 'inactive') lineRecorder.stop();
-  lineAudio = undefined;
+  stopLineRecorder();
   if (!soundTap) return;
   const chunks = [], recorder = new MediaRecorder(soundTap.stream);
   recorder.ondataavailable = e => chunks.push(e.data);
@@ -257,17 +283,22 @@ function voiceFile(name) {
   return type ? file.slice(0, file.size, type) : null;
 }
 
-// The line's voice file, else the sound since the last click or key (null without sound),
-// the same until the next one.
-function lineSound() {
-  const voice = voiceFile(inSystem && inBacklog ? backlogVoice : lineVoice);
-  if (voice) return Promise.resolve(voice);
-  if (!lineAudio) {
-    if (!lineRecorder || lineRecorder.state === 'inactive') return Promise.resolve(null);
-    lineRecorder.stop();
-    lineAudio = lineRecorder.stopped;
-  }
-  return lineAudio;
+// The kept lines' text, with the backlog page shown (if any) last.
+function ankiTexts() {
+  const texts = keptLines.map(l => l.text);
+  return inSystem && inBacklog ? [...texts, backlogText] : texts;
+}
+
+// The screenshot and sound of ankiTexts()[index]: its voice file, else the sound recorded
+// from the click that brought it to the next (null without sound). The backlog page gets
+// the screen as it is and its voice file.
+async function ankiMedia(index, want) {
+  const line = keptLines[index] || { voice: backlogVoice, picture: screenshot() };
+  if (lineRecorder && lineRecorder.line === line) stopLineRecorder(); // still recording: its sound ends now
+  return {
+    picture: want.picture ? await line.picture : null,
+    audio: want.audio ? voiceFile(line.voice) || (await line.audio) || null : null,
+  };
 }
 
 function screenshot() { return new Promise(res => canvas.toBlob(res, 'image/webp', 0.9)); }
@@ -400,13 +431,14 @@ addEventListener('drop', e => { e.preventDefault(); if (window.onGameDrop) windo
 addEventListener('pointerdown', () => canvas.focus());
 
 // game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), args (more engine options), onExit(code), onError(msg),
-//   recordLines (keep the game's sound since the last click, for Anki), beforeRun() (once the saves are read, before the engine starts: Google Drive sync brings newer ones in) }
+//   keepLines (keep the recent lines with their screenshots, for Anki), recordLines (and their sound), beforeRun() (once the saves are read, before the engine starts: Google Drive sync brings newer ones in) }
 async function start(game) {
   const M = g_cons_module;
   M.onExit = code => game.onExit && game.onExit(code);
   M.onAbort = what => game.onError && game.onError(String(what));
   g_cons_index = { title: game.title };
   encoding = game.encoding === 'utf8' ? 'utf8' : 'sjis';
+  keepLines = !!game.keepLines;
   recordLines = !!game.recordLines;
   await cons(M);
   const FS = M.FS;

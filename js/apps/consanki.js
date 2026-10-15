@@ -1,11 +1,11 @@
 // Anki mining for CONscripter, ported from chimimouryou (lib/data/anki.ts): while a Japanese
-// game plays, notes added to Anki (e.g. by Yomitan) get a screenshot and the line's voice,
-// through AnkiConnect on the visitor's own computer. Settings per browser.
+// game plays, notes added to Anki (e.g. by Yomitan) get the screenshot and voice of the line
+// their sentence came from, through AnkiConnect on the visitor's own computer. Settings per browser.
 
 import { store } from '../util.js';
 
 const KEY = 'w95.cons.anki';
-const DEFAULTS = { on: false, url: 'http://127.0.0.1:8765', audioField: 'SentenceAudio', pictureField: 'Picture', screenshot: true, audio: true, tipped: false };
+const DEFAULTS = { on: false, url: 'http://127.0.0.1:8765', sentenceField: 'Sentence', audioField: 'SentenceAudio', pictureField: 'Picture', screenshot: true, audio: true, tipped: false };
 
 export const settings = () => ({ ...DEFAULTS, ...store.get(KEY, {}) });
 export const set = changes => store.set(KEY, { ...settings(), ...changes });
@@ -42,6 +42,27 @@ export function watch(onNote, onError, interval = 2000) {
   }
   check();
   return () => { stopped = true; clearTimeout(timer); };
+}
+
+// Letters and digits only, katakana as hiragana, full width as ASCII: Yomitan's sentence and
+// the game's text differ in spaces, punctuation and little else.
+const matchable = s => s.normalize('NFKC').replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)).replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+
+// The note's sentence field as plain text.
+export function noteSentence(note) {
+  const field = note.fields[settings().sentenceField.trim()];
+  return field ? new DOMParser().parseFromString(field.value, 'text/html').body.textContent : '';
+}
+
+// Which of the game's recent lines (oldest first) the sentence was mined from, or -1 if none
+// has it. Lines grow click by click within a page, so of the newest run of lines that have
+// it, the first: the moment the sentence appeared.
+export function lineFor(sentence, lines) {
+  const target = matchable(sentence), has = i => !!target && matchable(lines[i]).includes(target);
+  let i = lines.length - 1;
+  while (i >= 0 && !has(i)) i--;
+  while (i > 0 && has(i - 1)) i--;
+  return i;
 }
 
 const extension = blob => { const t = (blob.type.split('/')[1] || 'bin').split(';')[0]; return { mpeg: 'mp3', jpeg: 'jpg' }[t] || t; };

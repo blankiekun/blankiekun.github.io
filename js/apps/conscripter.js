@@ -617,6 +617,7 @@ function open() {
       w.showText(showText);
       w.start({
         files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags, ...args],
+        keepLines: g.jp && anki.settings().on,
         recordLines: g.jp && anki.settings().on && anki.settings().audio,
         beforeRun: () => frame === me && syncSaves({ w, starting: true }),
         onExit: code => { if (frame !== me) return; stop(code ? 'The game stopped (exit code ' + code + ')' : 'The game has ended'); },
@@ -936,13 +937,16 @@ function open() {
     showAnki();
   }
 
+  // The card gets the screen and sound of the line its sentence was mined from, kept by the
+  // player as it was shown. Cards from elsewhere are left alone.
   async function ankiNote(note) {
     const p = player(), s = anki.settings();
     if (!p) return;
+    const line = anki.lineFor(anki.noteSentence(note), p.ankiTexts());
+    if (line < 0) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't a recent line of ${game.title}`);
     try {
       say('Adding media to the Anki card...');
-      const media = { picture: s.screenshot ? await p.screenshot() : null, audio: s.audio ? await p.lineSound() : null };
-      const filled = await anki.addMedia(note, media);
+      const filled = await anki.addMedia(note, await p.ankiMedia(line, { picture: s.screenshot, audio: s.audio }));
       say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : 'Nothing added to the Anki card (fields missing or already filled)');
     } catch (e) {
       say('Anki: ' + e.message);
@@ -965,14 +969,13 @@ function open() {
 
   function ankiToggle(key) {
     anki.set({ [key]: !anki.settings()[key] });
-    if (key === 'audio' && frame) say('Restart the game to record its sound for Anki');
+    if ((key === 'audio' || key === 'on') && frame) say('Restart the game for Anki mining to keep its lines and sound');
     ankiWatch();
   }
 
   function ankiOn() {
     if (!anki.settings().tipped) { anki.set({ tipped: true }); ankiHelp(); }
     ankiToggle('on');
-    if (anki.settings().audio && frame) say('Anki mining is on. Restart the game to also record its sound');
   }
 
   function ankiHelp() {
@@ -984,7 +987,8 @@ function open() {
       '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>:<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
       '<li>Restart Anki and leave it open while you play.</li>' +
       '<li>If the browser asks to let this site reach apps on your device (or local network), choose <b>Allow</b>.</li>' +
-      '<li>Your note type needs the fields named in the Anki menu (<b>Picture</b> and <b>SentenceAudio</b> unless you change them). Filled fields are left alone.</li></ol>' +
+      '<li>Your note type needs the fields named in the Anki menu (<b>Sentence</b>, <b>Picture</b> and <b>SentenceAudio</b> unless you change them). Filled fields are left alone.</li></ol>' +
+      '<p>The card gets the screenshot and voice of the line its <b>Sentence</b> came from, among the last 30, even if you have clicked on since. Cards mined from anywhere else are left alone.</p>' +
       '<p>Hover the text with Yomitan to look words up, and add cards from its popup as usual.</p>' });
   }
 
@@ -996,6 +1000,7 @@ function open() {
       { label: 'Add &Screenshot', checked: s.screenshot, action: () => ankiToggle('screenshot') },
       { label: 'Add Line &Voice', checked: s.audio, action: () => ankiToggle('audio') },
       '-',
+      { label: 'Se&ntence Field...', action: () => ankiField('sentenceField', 'The note field with the mined sentence (picks the line):') },
       { label: '&Picture Field...', action: () => ankiField('pictureField', 'The note field for the screenshot:') },
       { label: 'A&udio Field...', action: () => ankiField('audioField', 'The note field for the line\'s voice:') },
       { label: 'AnkiConnect A&ddress...', action: () => ankiField('url', 'Where AnkiConnect listens:') },
