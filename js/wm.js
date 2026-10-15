@@ -287,6 +287,7 @@ function outlineDrag(win, e, mode) {
         win.el.style.left = Math.round(sx - A.left - at * win.el.offsetWidth) + 'px';
         win.el.style.top = Math.round(sy - A.top - below) + 'px';
         r = win.el.getBoundingClientRect();
+        box.w = r.width; box.h = r.height;
       }
       outline = h('div', { class: 'drag-outline' });
       document.body.append(outline);
