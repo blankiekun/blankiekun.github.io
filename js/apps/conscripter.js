@@ -239,13 +239,17 @@ function open() {
       { label: '&Skip Text', key: 'Ctrl', checked: skip, disabled: !player(), action: () => { skip = !skip; player().setSkip(skip); frame.focus(); } },
       '-',
       { label: '&Restart', disabled: !game, action: () => game && boot(game) },
-      { label: '&Full Screen', disabled: !frame, action: () => frame && frame.requestFullscreen && frame.requestFullscreen().catch(() => {}) },
+      { label: '&Full Screen', disabled: !frame, action: fullScreen },
     ] },
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help', 'CONscripter') }, '-',
       { label: '&About CONscripter', action: () => about('CONscripter', 'i-game', win) },
     ] },
   ]);
+
+  function fullScreen() { if (frame && frame.requestFullscreen) frame.requestFullscreen().catch(() => {}); }
+  const fsBtn = h('button', { class: 'cons-fs', type: 'button', title: 'Full Screen', disabled: true, onclick: fullScreen }, icon('i-max'), 'Full Screen');
+  bar.append(fsBtn);
 
   const root = h('div', { class: 'cons' }, bar, view, status);
 
@@ -268,6 +272,7 @@ function open() {
     if (frame) frame.remove();
     frame = null; skip = false;
     view.classList.remove('playing');
+    fsBtn.disabled = true;
     hideTip();
     view.replaceChildren(welcome);
     win.setTitle('CONscripter');
@@ -291,6 +296,7 @@ function open() {
       frame.focus();
     }, { once: true });
     view.classList.add('playing');
+    fsBtn.disabled = false;
     askKeep();
     view.replaceChildren(frame, tip);
     if (!tipShown && !store.get(NO_TIP, false)) showTip();

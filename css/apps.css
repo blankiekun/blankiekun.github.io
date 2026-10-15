@@ -408,6 +408,13 @@
 .cons-tip-x:active { box-shadow: var(--sunken); }
 .cons-tip-never { flex: none; padding: 1px 6px; border: 0; background: var(--face); color: #000; font: inherit; font-size: 11px; box-shadow: var(--raised-btn); white-space: nowrap; }
 .cons-tip-never:active { box-shadow: var(--sunken); }
+.menubar > .cons-fs {
+  margin: 0 2px 0 auto; padding: 1px 6px; display: flex; align-items: center; gap: 4px;
+  background: var(--face); box-shadow: var(--raised-btn);
+}
+.menubar > .cons-fs svg { width: 8px; height: 7px; }
+.menubar > .cons-fs:active:not(:disabled) { box-shadow: var(--sunken); }
+.menubar > .cons-fs:disabled { color: var(--shadow); text-shadow: 1px 1px var(--hilite); }
 .cons .statusbar .cons-size:empty { display: none; }
 .cons .statusbar .cons-size, .cons .statusbar .cons-saves { flex: none; }
 @container (max-width: 480px) {

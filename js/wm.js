@@ -256,11 +256,14 @@ function center(win) {
 // Moving and resizing draw a dithered outline that follows the pointer;
 // the window itself only jumps there when the button is released.
 function outlineDrag(win, e, mode) {
-  if (e.button !== 0 || (mode === 'move' && win.state === 'max') || (small.matches && !win.opts.dialog)) return;
+  if (e.button !== 0 || (small.matches && !win.opts.dialog)) return;
+  if (mode !== 'move' && win.state === 'max') return;
   closeMenus('drag');
   const target = e.currentTarget;
   const A = area();
-  const r = win.el.getBoundingClientRect();
+  let r = win.el.getBoundingClientRect();
+  // Dragging a maximized window by its title bar restores it under the pointer first.
+  let unmax = mode === 'move' && win.state === 'max';
   const sx = e.clientX, sy = e.clientY;
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
   let outline = null, drawn = -Infinity;
@@ -275,6 +278,14 @@ function outlineDrag(win, e, mode) {
     const dx = ev.clientX - sx, dy = ev.clientY - sy;
     if (!outline) {
       if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      if (unmax) {
+        unmax = false;
+        const at = (sx - r.left) / r.width, below = sy - r.top;
+        restore(win);
+        win.el.style.left = Math.round(sx - A.left - at * win.el.offsetWidth) + 'px';
+        win.el.style.top = Math.round(sy - A.top - below) + 'px';
+        r = win.el.getBoundingClientRect();
+      }
       outline = h('div', { class: 'drag-outline' });
       document.body.append(outline);
       document.body.classList.add('dragging');
