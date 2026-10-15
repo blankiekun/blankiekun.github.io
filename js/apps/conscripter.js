@@ -10,6 +10,7 @@ import { menubar, openMenu } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
 import { openSaveEditor } from './conssave.js';
 import * as drive from './consdrive.js';
+import * as anki from './consanki.js';
 
 const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
@@ -176,7 +177,8 @@ async function findGame(list) {
     title = 'game-' + [...sum.slice(0, 4)].map(b => b.toString(16).padStart(2, '0')).join('');
   }
   title = title.replace(/[\\/:*?"<>|]/g, '_');
-  return { files, font, title, named, encoding: await detectEncoding(top), size: files.reduce((n, f) => n + f.file.size, 0) };
+  const encoding = await detectEncoding(top);
+  return { files, font, title, named, encoding, jp: await isJapanese(top, encoding), size: files.reduce((n, f) => n + f.file.size, 0) };
 }
 
 // The engine assumes GBK unless told, so read the script: UTF-8 if it decodes as UTF-8,
@@ -195,6 +197,18 @@ async function detectEncoding(top) {
   } catch {
     return 'sjis';
   }
+}
+
+// Japanese if kana make up a good share of the script's non-ASCII text: Chinese GBK scripts
+// read as Shift JIS give some kana too, but far fewer.
+async function isJapanese(top, encoding) {
+  const f = top.find(f => /^0?0\.txt$/i.test(f.path) || f.path.toLowerCase() === 'nscript.dat');
+  if (!f) return false;
+  let b = new Uint8Array(await f.file.slice(0, 1 << 18).arrayBuffer());
+  if (f.path.toLowerCase() === 'nscript.dat') b = b.map(x => x ^ 0x84);
+  const text = new TextDecoder(encoding === 'utf8' ? 'utf-8' : 'shift_jis').decode(b);
+  const wide = (text.match(/[^\x00-\x7f]/g) || []).length, kana = (text.match(/[\u3041-\u30fa]/g) || []).length;
+  return wide > 50 && kana / wide > 0.2;
 }
 
 function bytes(n) {
@@ -540,6 +554,9 @@ function open() {
   const fsBtn = h('button', { class: 'cons-fs', type: 'button', title: 'Full Screen', disabled: true, onclick: fullScreen }, icon('i-max'), 'Full Screen');
   const syncLabel = h('span', { class: 'cons-sync-label' });
   const syncBtn = h('button', { class: 'cons-fs cons-sync', type: 'button', onclick: syncMenu }, driveLogo(), syncLabel);
+  const ankiLabel = h('span', { class: 'cons-sync-label' });
+  const ankiBtn = h('button', { class: 'cons-fs cons-sync cons-anki', type: 'button', hidden: true, onclick: ankiMenu }, h('b', { class: 'anki-logo', 'aria-hidden': 'true' }, '★'), ankiLabel);
+  bar.append(ankiBtn);
   if (drive.available) bar.append(syncBtn);
   bar.append(fsBtn);
 
@@ -574,6 +591,7 @@ function open() {
   function stop(msg) {
     if (frame) frame.remove();
     frame = null; skip = false;
+    ankiWatch();
     view.classList.remove('playing');
     fsBtn.disabled = true;
     if (isFull()) document.exitFullscreen().catch(() => {});
@@ -599,6 +617,7 @@ function open() {
       w.showText(showText);
       w.start({
         files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags, ...args],
+        recordLines: g.jp && anki.settings().on && anki.settings().audio,
         beforeRun: () => frame === me && syncSaves({ w, starting: true }),
         onExit: code => { if (frame !== me) return; stop(code ? 'The game stopped (exit code ' + code + ')' : 'The game has ended'); },
         onError: msg => { if (frame !== me) return; stop('The game stopped'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'CONscripter has stopped.\n\n' + msg }); },
@@ -609,6 +628,7 @@ function open() {
     fsBtn.disabled = !canFull;
     askKeep();
     view.replaceChildren(frame, tip);
+    ankiWatch();
     if (drive.enabled()) {
       if (syncState === 'signin' && !drive.signedIn()) showTip('signin');
     } else if (!tipShown && !store.get(NO_TIP, false)) showTip();
@@ -898,6 +918,92 @@ function open() {
     say('Google Drive sync is off');
   }
 
+  // ---------- Anki mining (Japanese games) ----------
+
+  let ankiStop = null, ankiError = '';
+
+  // Watches Anki while a Japanese game plays with mining on.
+  function ankiWatch() {
+    const on = !!(frame && game && game.jp && anki.settings().on);
+    if (on && !ankiStop) {
+      ankiStop = anki.watch(ankiNote, e => {
+        // Said once per kind of failure, not on every check.
+        if (e && e.message !== ankiError) say(e.message);
+        ankiError = e ? e.message : '';
+        showAnki();
+      });
+    } else if (!on && ankiStop) { ankiStop(); ankiStop = null; ankiError = ''; }
+    showAnki();
+  }
+
+  async function ankiNote(note) {
+    const p = player(), s = anki.settings();
+    if (!p) return;
+    try {
+      say('Adding media to the Anki card...');
+      const media = { picture: s.screenshot ? await p.screenshot() : null, audio: s.audio ? await p.lineSound() : null };
+      const filled = await anki.addMedia(note, media);
+      say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : 'Nothing added to the Anki card (fields missing or already filled)');
+    } catch (e) {
+      say('Anki: ' + e.message);
+    }
+  }
+
+  function showAnki() {
+    const s = anki.settings();
+    ankiBtn.hidden = !(frame && game && game.jp);
+    ankiLabel.textContent = !s.on ? 'Anki' : ankiError ? 'Anki: Not Connected' : 'Anki: On';
+    ankiBtn.title = !s.on ? 'Anki mining is off. Click to turn it on.' : ankiError || 'Cards added to Anki while playing get a screenshot and the line\'s voice.';
+    ankiBtn.classList.toggle('off', !s.on);
+    ankiBtn.classList.toggle('warn', s.on && !!ankiError);
+  }
+
+  async function ankiField(key, label) {
+    const v = await inputbox({ title: 'Anki Mining', parent: win, label, value: anki.settings()[key] });
+    if (v != null && v.trim()) anki.set({ [key]: v.trim() });
+  }
+
+  function ankiToggle(key) {
+    anki.set({ [key]: !anki.settings()[key] });
+    if (key === 'audio' && frame) say('Restart the game to record its sound for Anki');
+    ankiWatch();
+  }
+
+  function ankiOn() {
+    if (!anki.settings().tipped) { anki.set({ tipped: true }); ankiHelp(); }
+    ankiToggle('on');
+    if (anki.settings().audio && frame) say('Anki mining is on. Restart the game to also record its sound');
+  }
+
+  function ankiHelp() {
+    const origin = location.origin.replace(/[&<>]/g, '');
+    msgbox({ title: 'Connecting to AnkiConnect', icon: 'info', parent: win, html:
+      '<p>Cards you add to Anki while playing (with Yomitan, for example) get a screenshot of the game and the line\'s voice.</p>' +
+      '<ol style="margin:6px 0;padding-left:20px;line-height:1.5">' +
+      '<li>In Anki, choose <b>Tools &gt; Add-ons &gt; Get Add-ons</b> and enter the code <b>2055492159</b> (AnkiConnect).</li>' +
+      '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>:<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
+      '<li>Restart Anki and leave it open while you play.</li>' +
+      '<li>If the browser asks to let this site reach apps on your device (or local network), choose <b>Allow</b>.</li>' +
+      '<li>Your note type needs the fields named in the Anki menu (<b>Picture</b> and <b>SentenceAudio</b> unless you change them). Filled fields are left alone.</li></ol>' +
+      '<p>Hover the text with Yomitan to look words up, and add cards from its popup as usual.</p>' });
+  }
+
+  function ankiMenu() {
+    const s = anki.settings(), r = ankiBtn.getBoundingClientRect();
+    openMenu([
+      { label: '&Anki Mining', checked: s.on, action: () => s.on ? ankiToggle('on') : ankiOn() },
+      '-',
+      { label: 'Add &Screenshot', checked: s.screenshot, action: () => ankiToggle('screenshot') },
+      { label: 'Add Line &Voice', checked: s.audio, action: () => ankiToggle('audio') },
+      '-',
+      { label: '&Picture Field...', action: () => ankiField('pictureField', 'The note field for the screenshot:') },
+      { label: 'A&udio Field...', action: () => ankiField('audioField', 'The note field for the line\'s voice:') },
+      { label: 'AnkiConnect A&ddress...', action: () => ankiField('url', 'Where AnkiConnect listens:') },
+      '-',
+      { label: '&How to Connect AnkiConnect...', action: ankiHelp },
+    ], { x: r.left, y: r.bottom });
+  }
+
   showSaves();
   drive.preload();
 
@@ -926,6 +1032,7 @@ function open() {
       document.removeEventListener('fullscreenchange', leftFull);
       document.removeEventListener('visibilitychange', onHide);
       clearTimeout(syncTimer);
+      if (ankiStop) ankiStop();
       if (isFull()) document.exitFullscreen().catch(() => {});
     },
   });

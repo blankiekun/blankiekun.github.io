@@ -170,7 +170,7 @@ function updateHidden() {
 // hidden and back), 'choices' (buttons removed), 'enter'/'leave' (system menu or backlog over
 // the page and back), 'reset' (left the system menu elsewhere, e.g. a loaded game).
 function consOverlay(event) {
-  if (event === 'page') pageText.textContent = '';
+  if (event === 'page') { pageText.textContent = ''; lineVoice = null; }
   else if (event === 'choices') choices.textContent = '';
   else if (event === 'hide') windowHidden = true;
   else if (event === 'show') windowHidden = false;
@@ -191,7 +191,8 @@ function consOverlay(event) {
 }
 
 // A page of the built-in backlog (between 'enter' and 'leave').
-function consBacklog(bytes, boxes) {
+function consBacklog(bytes, boxes, voice) {
+  backlogVoice = voice;
   pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv));
   inBacklog = true;
   updateHidden();
@@ -208,6 +209,68 @@ for (const type of ['mousedown', 'mouseup', 'mousemove', 'click', 'contextmenu',
     try { canvas.dispatchEvent(new e.constructor(type, e)); } catch (err) { console.warn('Could not pass ' + type + ' to the game', err); }
   });
 }
+
+// ---- Anki mining (js/apps/consanki.js): a screenshot, and the line's voice ----
+
+// The voice (dwave channel 0) of the page being read, and of the backlog page shown.
+let lineVoice = null, backlogVoice = null;
+function consVoice(channel, file) { if (channel === 0) lineVoice = file; }
+
+// Without a voice file, the game's sound since the last click or key: whatever the
+// engine sends to the speakers is also sent to soundTap.
+let soundTap, lineRecorder, lineAudio, recordLines = false;
+const nativeConnect = AudioNode.prototype.connect;
+AudioNode.prototype.connect = function (target) {
+  if (recordLines && target instanceof AudioDestinationNode) {
+    if (!soundTap) { soundTap = this.context.createMediaStreamDestination(); restartLineRecorder(); }
+    if (soundTap.context === this.context) nativeConnect.call(this, soundTap);
+  }
+  return nativeConnect.apply(this, arguments);
+};
+
+// Keeps the last frame readable after it is shown, for screenshots.
+const nativeGetContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+  if (type === 'webgl' || type === 'webgl2') attributes = { ...attributes, preserveDrawingBuffer: true };
+  return nativeGetContext.call(this, type, attributes);
+};
+
+function restartLineRecorder(e) {
+  // Modifier keys are Yomitan's scan keys, not the game's.
+  if (e && /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
+  if (lineRecorder && lineRecorder.state !== 'inactive') lineRecorder.stop();
+  lineAudio = undefined;
+  if (!soundTap) return;
+  const chunks = [], recorder = new MediaRecorder(soundTap.stream);
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.stopped = new Promise(res => { recorder.onstop = () => res(new Blob(chunks, { type: recorder.mimeType })); });
+  recorder.start();
+  lineRecorder = recorder;
+}
+for (const type of ['mousedown', 'touchstart', 'keydown']) addEventListener(type, restartLineRecorder, true);
+
+const voiceTypes = { ogg: 'audio/ogg', wav: 'audio/wav', mp3: 'audio/mpeg' };
+// A voice file named by the script, if it is a plain game file (not in an archive).
+function voiceFile(name) {
+  const file = name && gameFiles[name.replace(/\\/g, '/').toLowerCase()];
+  const type = file && voiceTypes[name.split('.').pop().toLowerCase()];
+  return type ? file.slice(0, file.size, type) : null;
+}
+
+// The line's voice file, else the sound since the last click or key (null without sound),
+// the same until the next one.
+function lineSound() {
+  const voice = voiceFile(inSystem && inBacklog ? backlogVoice : lineVoice);
+  if (voice) return Promise.resolve(voice);
+  if (!lineAudio) {
+    if (!lineRecorder || lineRecorder.state === 'inactive') return Promise.resolve(null);
+    lineRecorder.stop();
+    lineAudio = lineRecorder.stopped;
+  }
+  return lineAudio;
+}
+
+function screenshot() { return new Promise(res => canvas.toBlob(res, 'image/webp', 0.9)); }
 
 // ---- game files, read on demand ----
 
@@ -243,7 +306,9 @@ function chunk(file, id, n) {
   return c;
 }
 
+const gameFiles = {}; // lower-case path under the game folder: File, for voices
 function mountFile(FS, path, file) {
+  gameFiles[path.slice(GAMEDIR.length + 1).toLowerCase()] = file;
   const i = path.lastIndexOf('/');
   const node = FS.createFile(path.slice(0, i), path.slice(i + 1), {}, true, false);
   const id = nextId++;
@@ -335,13 +400,14 @@ addEventListener('drop', e => { e.preventDefault(); if (window.onGameDrop) windo
 addEventListener('pointerdown', () => canvas.focus());
 
 // game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), args (more engine options), onExit(code), onError(msg),
-//   beforeRun() (once the saves are read, before the engine starts: Google Drive sync brings newer ones in) }
+//   recordLines (keep the game's sound since the last click, for Anki), beforeRun() (once the saves are read, before the engine starts: Google Drive sync brings newer ones in) }
 async function start(game) {
   const M = g_cons_module;
   M.onExit = code => game.onExit && game.onExit(code);
   M.onAbort = what => game.onError && game.onError(String(what));
   g_cons_index = { title: game.title };
   encoding = game.encoding === 'utf8' ? 'utf8' : 'sjis';
+  recordLines = !!game.recordLines;
   await cons(M);
   const FS = M.FS;
   for (const f of game.files) {

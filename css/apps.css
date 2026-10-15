@@ -430,6 +430,8 @@
 .menubar > .cons-sync .drive-logo { width: 14px; height: 13px; }
 .menubar > .cons-sync .drive-logo svg { width: 100%; height: 100%; }
 .menubar > .cons-sync.warn .cons-sync-label { color: #800000; font-weight: bold; }
+.menubar > .cons-anki .anki-logo { color: #000080; font-size: 13px; line-height: 1; }
+.menubar > .cons-anki.off .anki-logo { color: var(--shadow); }
 .drive-logo { display: inline-block; flex: none; }
 .drive-logo svg { display: block; width: 100%; height: 100%; }
 /* the welcome page's offer of Drive sync: a big 95 button */
