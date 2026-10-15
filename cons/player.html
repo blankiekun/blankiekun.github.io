@@ -24,7 +24,7 @@ body.show-text #overlay div div { color: rgba(255, 64, 64, .9); background: rgba
 <video id="video" hidden playsinline></video>
 <script src="conscripter.js"></script>
 <script>
-// The host page for CONscripter (conscripter.js/.wasm are the v0.22.0 web release).
+// The host page for CONscripter (conscripter.js/.wasm are the web build of the engine after v0.22.0, with the cons names).
 // The Program window in js/apps/conscripter.js makes one of these per game and calls
 // start() with the visitor's own files. Nothing is uploaded: game files are read
 // straight off their disk as the engine asks for them, so one big .nsa never has to
@@ -37,7 +37,7 @@ const overlay = document.getElementById('overlay');
 const pageText = document.getElementById('page-text');
 const spriteText = document.getElementById('sprite-text');
 const choices = document.getElementById('choices');
-const GAMEDIR = '/onsyuri/game';
+const GAMEDIR = '/cons/game';
 let savedir = null;
 
 // ---- what the engine expects to find on the page ----
@@ -45,9 +45,9 @@ let savedir = null;
 // What the engine prints, for Debug > Engine Log.
 var engineLog = []; // var: the parent reads it
 function logLine(s) { engineLog.push(s); if (engineLog.length > 5000) engineLog.splice(0, 1000); }
-var g_onsyuri_module = { canvas, print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
-var g_onsyuri_index = {};
-var g_onsyuri_filemap = {};      // empty: no server lazyload, every file is already mounted
+var g_cons_module = { canvas, print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
+var g_cons_index = {};
+var g_cons_filemap = {};      // empty: no server lazyload, every file is already mounted
 function fetch_file() { return Promise.resolve(0); }
 
 var g_screen_width = 640, g_screen_height = 480;
@@ -64,7 +64,7 @@ addEventListener('resize', () => scale_full(canvas, g_screen_width / g_screen_he
 let flushing = null;
 function flush_save() {
   if (!savedir) return Promise.resolve();
-  const run = () => new Promise(res => g_onsyuri_module.FS.syncfs(false, err => { if (err) console.warn(err); res(); }));
+  const run = () => new Promise(res => g_cons_module.FS.syncfs(false, err => { if (err) console.warn(err); res(); }));
   // The engine calls this after every save; the window around it copies them to Google Drive.
   flushing = (flushing || Promise.resolve()).then(run).then(() => { if (window.onSaved) window.onSaved(); });
   return flushing;
@@ -82,15 +82,15 @@ function videoEnded() {
   if (video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
   video.removeAttribute('src');
   video.load();
-  g_onsyuri_module.wait_video = false;
+  g_cons_module.wait_video = false;
 }
 // Enter, Space and Escape skip it, as in the native player.
 window.addEventListener('keyup', e => {
   if (videoSkippable && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) videoEnded();
 });
 function playVideo(path, click, loop) {
-  g_onsyuri_module.wait_video = true;
-  const data = g_onsyuri_module.FS.readFile(path);
+  g_cons_module.wait_video = true;
+  const data = g_cons_module.FS.readFile(path);
   video.src = URL.createObjectURL(new Blob([data], { type: 'video/mp4' }));
   video.style.width = canvas.style.width;
   video.style.height = canvas.style.height;
@@ -155,10 +155,10 @@ function lineDiv(line) {
   return div;
 }
 
-function onsyuriText(bytes, skipped, boxes) { pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
+function consText(bytes, skipped, boxes) { pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
 
 // A choice or system menu item drawn by the engine.
-function onsyuriChoice(bytes, x, y, size, pitch) { choices.append(lineDiv({ text: decodeText(bytes), x, y, size, pitch })); }
+function consChoice(bytes, x, y, size, pitch) { choices.append(lineDiv({ text: decodeText(bytes), x, y, size, pitch })); }
 
 let stashedChoices = [], stashedPage = [], inSystem = false, inBacklog = false, windowHidden = false;
 function updateHidden() {
@@ -169,7 +169,7 @@ function updateHidden() {
 // The engine says when text leaves the screen: 'page' (new page), 'hide'/'show' (text window
 // hidden and back), 'choices' (buttons removed), 'enter'/'leave' (system menu or backlog over
 // the page and back), 'reset' (left the system menu elsewhere, e.g. a loaded game).
-function onsyuriOverlay(event) {
+function consOverlay(event) {
   if (event === 'page') pageText.textContent = '';
   else if (event === 'choices') choices.textContent = '';
   else if (event === 'hide') windowHidden = true;
@@ -191,14 +191,14 @@ function onsyuriOverlay(event) {
 }
 
 // A page of the built-in backlog (between 'enter' and 'leave').
-function onsyuriBacklog(bytes, boxes) {
+function consBacklog(bytes, boxes) {
   pageText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv));
   inBacklog = true;
   updateHidden();
 }
 
 // The visible string sprites (strsp: script-drawn menus and backlogs) at each wait for input.
-function onsyuriSprites(bytes, boxes) { spriteText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
+function consSprites(bytes, boxes) { spriteText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
 
 // Clicks on the text go to the game, as if it weren't there. Hover stays with the page,
 // since Yomitan scans on mousemove.
@@ -273,8 +273,8 @@ function mkdirs(FS, path) {
 
 // ---- saves ----
 
-function listSaves() {
-  const FS = g_onsyuri_module.FS, out = [];
+function listSaves(dir = savedir) {
+  const FS = g_cons_module.FS, out = [];
   (function walk(dir, rel) {
     for (const name of FS.readdir(dir)) {
       if (name === '.' || name === '..') continue;
@@ -282,14 +282,14 @@ function listSaves() {
       if (FS.isDir(st.mode)) walk(p, rel + name + '/');
       else if (FS.isFile(st.mode)) out.push({ path: rel + name, data: FS.readFile(p), mtime: st.mtime });
     }
-  })(savedir, '');
+  })(dir, '');
   return out;
 }
 
 // files: [{ path, data, mtime }]; mtime (ms) keeps a synced file's own time, so the
 // newer copy still wins next time. Without it, the file is new as of now.
 async function writeSaves(files) {
-  const FS = g_onsyuri_module.FS;
+  const FS = g_cons_module.FS;
   for (const f of files) {
     const p = savedir + '/' + f.path;
     mkdirs(FS, p.slice(0, p.lastIndexOf('/')));
@@ -314,7 +314,7 @@ function showText(on) { document.body.classList.toggle('show-text', on); }
 // --dump-vars writes here at F8.
 const VARS_FILE = '/tmp/vars.txt';
 async function dumpVars() {
-  const FS = g_onsyuri_module.FS;
+  const FS = g_cons_module.FS;
   try { FS.unlink(VARS_FILE); } catch {}
   press(119, 'F8');
   for (let i = 0; i < 40; i++) {
@@ -324,7 +324,7 @@ async function dumpVars() {
   return null;
 }
 async function clearSaves() {
-  const FS = g_onsyuri_module.FS;
+  const FS = g_cons_module.FS;
   for (const f of listSaves()) FS.unlink(savedir + '/' + f.path);
   await flush_save();
 }
@@ -337,22 +337,46 @@ addEventListener('pointerdown', () => canvas.focus());
 // game: { files: [{ path, file }], title, font, encoding ('sjis' | 'utf8'), args (more engine options), onExit(code), onError(msg),
 //   beforeRun() (once the saves are read, before the engine starts: Google Drive sync brings newer ones in) }
 async function start(game) {
-  const M = g_onsyuri_module;
+  const M = g_cons_module;
   M.onExit = code => game.onExit && game.onExit(code);
   M.onAbort = what => game.onError && game.onError(String(what));
-  g_onsyuri_index = { title: game.title };
+  g_cons_index = { title: game.title };
   encoding = game.encoding === 'utf8' ? 'utf8' : 'sjis';
-  await onsyuri(M);
+  await cons(M);
   const FS = M.FS;
   for (const f of game.files) {
     const p = GAMEDIR + '/' + f.path;
     mkdirs(FS, p.slice(0, p.lastIndexOf('/')));
     mountFile(FS, p, f.file);
   }
-  savedir = '/onsyuri_save/' + game.title;
+  savedir = '/cons_save/' + game.title;
   mkdirs(FS, savedir);
   FS.mount(M.IDBFS, {}, savedir);
+  // Saves from before the engine rename sit in /onsyuri_save/<title>: move them over once.
+  const oldSavedir = '/onsyuri_save/' + game.title;
+  mkdirs(FS, oldSavedir);
+  FS.mount(M.IDBFS, {}, oldSavedir);
   await new Promise(res => FS.syncfs(true, err => { if (err) console.warn(err); res(); }));
+  const oldSaves = listSaves(oldSavedir);
+  FS.unmount(oldSavedir);
+  let oldDone = !oldSaves.length; // checking it made an empty one
+  if (oldSaves.length && !listSaves().length) {
+    for (const f of oldSaves) {
+      const p = savedir + '/' + f.path;
+      mkdirs(FS, p.slice(0, p.lastIndexOf('/')));
+      FS.writeFile(p, f.data);
+      FS.utime(p, +f.mtime, +f.mtime);
+    }
+    // The old database goes only once the copies are safely stored.
+    const err = await new Promise(res => FS.syncfs(false, res));
+    if (err) console.warn(err);
+    oldDone = !err;
+  } else if (oldSaves.length) console.warn('saves in both', oldSavedir, 'and', savedir, '; keeping', savedir);
+  if (oldDone) {
+    const db = M.IDBFS.dbs[oldSavedir]; // IDBFS keeps it open, which would hold up the delete
+    if (db) { db.close(); delete M.IDBFS.dbs[oldSavedir]; }
+    indexedDB.deleteDatabase(oldSavedir);
+  }
   if (game.beforeRun) await game.beforeRun();
   canvas.focus();
   M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding,

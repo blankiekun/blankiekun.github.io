@@ -707,9 +707,9 @@ function open() {
     if (!picked) return;
     let files;
     try {
-      // Zips from CONscripter's own web page keep the full /onsyuri_save/<game>/ path.
+      // Zips from CONscripter's own web page keep the full /cons_save/<game>/ path (/onsyuri_save/ before the rename).
       files = (await readZip(await picked.arrayBuffer())).map(f => {
-        const m = f.path.match(/(?:^|\/)onsyuri_save\/[^/]+\/(.+)$/);
+        const m = f.path.match(/(?:^|\/)(?:cons|onsyuri)_save\/[^/]+\/(.+)$/);
         return { ...f, path: (m ? m[1] : f.path).replace(/^\/+/, '') };
       }).filter(f => f.path && !f.path.split('/').includes('..'));
     } catch {
