@@ -205,7 +205,11 @@ function consBacklog(bytes, boxes, voice) {
 }
 
 // The visible string sprites (strsp: script-drawn menus and backlogs) at each wait for input.
-function consSprites(bytes, boxes) { spriteText.replaceChildren(...overlayLines(bytes, boxes).map(lineDiv)); }
+function consSprites(bytes, boxes) {
+  const lines = overlayLines(bytes, boxes);
+  spriteLines = lines.map(l => l.text).join('');
+  spriteText.replaceChildren(...lines.map(lineDiv));
+}
 
 // Clicks on the text go to the game, as if it weren't there. Hover stays with the page,
 // since Yomitan scans on mousemove.
@@ -218,13 +222,14 @@ for (const type of ['mousedown', 'mouseup', 'mousemove', 'click', 'contextmenu',
 
 // ---- Anki mining (js/apps/consanki.js) ----
 
-// The recent lines, each with its screenshot and sound, so a card gets those of the line
-// it was mined from (lineFor in consanki.js), however late it is noticed.
-const KEPT_LINES = 30;
-let keptLines = [], keepLines = false; // [{ text, voice, picture: Promise<Blob>, audio?: Promise<Blob> }], oldest first
+// The recent lines with their voice files, and for the newest their screenshot and sound, so
+// a card gets those of the line it was mined from (lineFor in consanki.js), however late it
+// is noticed or from however far back in a backlog.
+const KEPT_LINES = 500, KEPT_MEDIA = 30;
+let keptLines = [], keepLines = false; // [{ text, voice, picture?: Promise<Blob>, audio?: Promise<Blob> }], oldest first
 
 // The voice (dwave channel 0) of the page being read, and of the backlog page shown.
-let lineVoice = null, backlogVoice = null, backlogText = '';
+let lineVoice = null, backlogVoice = null, backlogText = '', spriteLines = '';
 function consVoice(channel, file) { if (channel === 0) lineVoice = file; }
 
 // Without a voice file, the game's sound from the click that brought the line: whatever
@@ -254,6 +259,8 @@ function keepLine(lines) {
   if (lineRecorder && lineRecorder.state !== 'inactive') lineRecorder.line = line;
   keptLines.push(line);
   if (keptLines.length > KEPT_LINES) keptLines.shift();
+  const old = keptLines[keptLines.length - 1 - KEPT_MEDIA];
+  if (old) old.picture = old.audio = undefined;
 }
 
 function stopLineRecorder() {
@@ -283,21 +290,28 @@ function voiceFile(name) {
   return type ? file.slice(0, file.size, type) : null;
 }
 
-// The kept lines' text, with the backlog page shown (if any) last.
-function ankiTexts() {
-  const texts = keptLines.map(l => l.text);
-  return inSystem && inBacklog ? [...texts, backlogText] : texts;
-}
+// The kept lines' text, oldest first.
+function ankiTexts() { return keptLines.map(l => l.text); }
 
-// The screenshot and sound of ankiTexts()[index]: its voice file, else the sound recorded
-// from the click that brought it to the next (null without sound). The backlog page gets
-// the screen as it is and its voice file.
-async function ankiMedia(index, want) {
-  const line = keptLines[index] || { voice: backlogVoice, picture: screenshot() };
+// Backlog text on screen now: the built-in backlog's page, and script-drawn (strsp) text.
+function shownPages() {
+  const pages = [];
+  if (inSystem && inBacklog) pages.push({ text: backlogText, voice: backlogVoice });
+  if (!inSystem && spriteLines) pages.push({ text: spriteLines, voice: null });
+  return pages;
+}
+function ankiShownTexts() { return shownPages().map(p => p.text); }
+
+// Media for a mined line: kept line ankiTexts()[kept] and/or backlog page ankiShownTexts()[shown]
+// (-1 for none). The picture is the screen when the line was shown, if still kept, else the
+// screen as it is now (the backlog). The sound is the line's voice file, else the sound
+// recorded from the click that brought it to the next, else the backlog page's voice file.
+async function ankiMedia(kept, shown, want) {
+  const line = keptLines[kept] || {}, page = shownPages()[shown] || {};
   if (lineRecorder && lineRecorder.line === line) stopLineRecorder(); // still recording: its sound ends now
   return {
-    picture: want.picture ? await line.picture : null,
-    audio: want.audio ? voiceFile(line.voice) || (await line.audio) || null : null,
+    picture: want.picture ? (await line.picture) || (await screenshot()) : null,
+    audio: want.audio ? voiceFile(line.voice) || (await line.audio) || voiceFile(page.voice) || null : null,
   };
 }
 

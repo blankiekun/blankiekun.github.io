@@ -938,15 +938,16 @@ function open() {
   }
 
   // The card gets the screen and sound of the line its sentence was mined from, kept by the
-  // player as it was shown. Cards from elsewhere are left alone.
+  // player as it was shown, or of the backlog it was mined from. Cards from elsewhere are left alone.
   async function ankiNote(note) {
     const p = player(), s = anki.settings();
     if (!p) return;
-    const line = anki.lineFor(anki.noteSentence(note), p.ankiTexts());
-    if (line < 0) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't a recent line of ${game.title}`);
+    const sentence = anki.noteSentence(note);
+    const kept = anki.lineFor(sentence, p.ankiTexts()), shown = anki.lineFor(sentence, p.ankiShownTexts());
+    if (kept < 0 && shown < 0) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text or backlog`);
     try {
       say('Adding media to the Anki card...');
-      const filled = await anki.addMedia(note, await p.ankiMedia(line, { picture: s.screenshot, audio: s.audio }));
+      const filled = await anki.addMedia(note, await p.ankiMedia(kept, shown, { picture: s.screenshot, audio: s.audio }));
       say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : 'Nothing added to the Anki card (fields missing or already filled)');
     } catch (e) {
       say('Anki: ' + e.message);
@@ -988,7 +989,7 @@ function open() {
       '<li>Restart Anki and leave it open while you play.</li>' +
       '<li>If the browser asks to let this site reach apps on your device (or local network), choose <b>Allow</b>.</li>' +
       '<li>Your note type needs the fields named in the Anki menu (<b>Sentence</b>, <b>Picture</b> and <b>SentenceAudio</b> unless you change them). Filled fields are left alone.</li></ol>' +
-      '<p>The card gets the screenshot and voice of the line its <b>Sentence</b> came from, among the last 30, even if you have clicked on since. Cards mined from anywhere else are left alone.</p>' +
+      '<p>The card gets the voice of the line its <b>Sentence</b> came from, and its screenshot from when it was shown (the last 30 lines; older ones get the backlog\'s screen), even if you have clicked on since. Lines can be mined from backlogs too. Cards mined from anywhere else are left alone.</p>' +
       '<p>Hover the text with Yomitan to look words up, and add cards from its popup as usual.</p>' });
   }
 
