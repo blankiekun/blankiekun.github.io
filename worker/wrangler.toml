@@ -13,3 +13,8 @@ ALLOWED_ORIGINS = "https://blankiekun.github.io"
 name = "LIMITER"
 namespace_id = "1995"
 simple = { limit = 3, period = 60 }
+
+# Banned IPs and the sender ids behind each message's Ban/Unban links.
+[[kv_namespaces]]
+binding = "BANS"
+id = "44434cf81ba5461ca3c6e8e62ca81978"

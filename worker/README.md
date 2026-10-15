@@ -22,6 +22,12 @@ Discord channel. Turnstile blocks bots, and each visitor can send 3 messages a m
 4. **Turn on the Send buttons.** In `js/config.js`, set `SEND_ENDPOINT` to that
    address plus `/send`, and `TURNSTILE_SITE_KEY` to the site key. Commit and push.
 
+## Banning a sender
+
+Every message in Discord has **Ban sender** and **Unban** buttons. Each one opens a
+page with a confirm button. A ban blocks that IP from sending for 30 days, and the
+links stop working after 30 days. Bans are stored in the `BANS` KV namespace.
+
 ## Testing locally
 
 Cloudflare's test keys always pass: site key `1x00000000000000000000AA`, secret

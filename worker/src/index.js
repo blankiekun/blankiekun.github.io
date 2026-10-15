@@ -2,14 +2,19 @@
 // them to a private Discord channel. Turnstile keeps bots out; a rate limit per IP
 // keeps people from flooding it.
 //
+// Each message gets Ban/Unban link buttons. The links carry a random id that maps
+// to the sender's IP in KV, so the IP itself never shows up in Discord.
+//
 // Secrets (wrangler secret put ...): TURNSTILE_SECRET, DISCORD_WEBHOOK_URL
 // Vars (wrangler.toml): ALLOWED_ORIGINS, comma-separated
+// KV (wrangler.toml): BANS
 
 const MAX_BODY = 2_000_000;
 const MAX_PNG = 1_500_000;
 const MAX_NOTE = 2000;
 const MAX_CAPTION = 200;
 const MAX_NAME = 40;
+const BAN_TTL = 30 * 86400; // bans and ban links both last 30 days
 
 export default {
   async fetch(req, env) {
@@ -21,11 +26,14 @@ export default {
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: { ...cors, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' } });
     }
-    if (req.method !== 'POST' || new URL(req.url).pathname !== '/send') return json(404, { error: 'Not found.' });
+    const url = new URL(req.url);
+    if (url.pathname === '/ban' || url.pathname === '/unban') return banPage(req, url, env);
+    if (req.method !== 'POST' || url.pathname !== '/send') return json(404, { error: 'Not found.' });
     if (!cors['Access-Control-Allow-Origin']) return json(403, { error: 'This address only accepts messages from blankiekun 95.' });
     if (+(req.headers.get('Content-Length') || 0) > MAX_BODY) return json(413, { error: 'That is too big to send. Try a smaller picture.' });
 
     const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+    if (env.BANS && await env.BANS.get('ban:' + ip)) return json(403, { error: 'You can no longer send messages here.' });
     if (env.LIMITER) {
       const { success } = await env.LIMITER.limit({ key: ip });
       if (!success) return json(429, { error: 'Too many messages from you right now. Try again in a minute.' });
@@ -65,12 +73,34 @@ export default {
     }
 
     payload.allowed_mentions = { parse: [] }; // nobody gets to @everyone your channel
+    if (env.BANS) {
+      const id = crypto.randomUUID();
+      await env.BANS.put('sender:' + id, ip, { expirationTtl: BAN_TTL });
+      payload.components = [{ type: 1, components: [
+        { type: 2, style: 5, label: 'Ban sender', url: `${url.origin}/ban?id=${id}` },
+        { type: 2, style: 5, label: 'Unban', url: `${url.origin}/unban?id=${id}` },
+      ] }];
+    }
     fd.append('payload_json', JSON.stringify(payload));
-    const res = await fetch(env.DISCORD_WEBHOOK_URL + (env.DISCORD_WEBHOOK_URL.includes('?') ? '&' : '?') + 'wait=true', { method: 'POST', body: fd });
+    // with_components lets a plain webhook show link buttons
+    const res = await fetch(env.DISCORD_WEBHOOK_URL + (env.DISCORD_WEBHOOK_URL.includes('?') ? '&' : '?') + 'wait=true&with_components=true', { method: 'POST', body: fd });
     if (!res.ok) return json(502, { error: 'The message could not be delivered. Try again later.' });
     return json(200, { ok: true });
   },
 };
+
+async function banPage(req, url, env) {
+  const page = body => new Response(`<!doctype html><meta name="viewport" content="width=device-width"><title>blankiekun 95</title><body style="font:16px sans-serif;margin:2em">${body}`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  const id = url.searchParams.get('id') || '';
+  const ip = env.BANS && /^[0-9a-f-]{36}$/.test(id) ? await env.BANS.get('sender:' + id) : null;
+  if (!ip) return page('That link is invalid or has expired.');
+  const ban = url.pathname === '/ban';
+  // Opening the link only shows a button, so link scanners and previews can't ban anyone.
+  if (req.method !== 'POST') return page(`<form method="post"><button style="font-size:1.2em;padding:.4em 1em">${ban ? 'Ban this sender for 30 days' : 'Unban this sender'}</button></form>`);
+  if (ban) await env.BANS.put('ban:' + ip, '1', { expirationTtl: BAN_TTL });
+  else await env.BANS.delete('ban:' + ip);
+  return page(ban ? 'Banned. They can\'t send you anything for 30 days.' : 'Unbanned.');
+}
 
 async function turnstileOk(token, ip, secret) {
   const body = new FormData();
