@@ -3,11 +3,12 @@
 // their disk, so nothing is uploaded. Saves stay in this browser, and can be
 // exported to a .zip and imported again.
 
-import { h, icon, download } from '../util.js';
+import { h, icon, download, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 
+const NO_TIP = 'w95.cons.notip';
 let tipShown = false;
 
 // The Setup picture: a little monitor with a visual novel on it.
@@ -204,6 +205,7 @@ function open() {
   const tip = h('div', { class: 'cons-tip', role: 'status', hidden: true }, icon('i-warn'),
     h('span', null, 'Saves live only in this browser, and clearing site data erases them. To keep a copy, choose ',
       h('b', null, 'File > Export Saves'), '. ', h('b', null, 'Import Saves'), ' loads the .zip back in.'),
+    h('button', { class: 'cons-tip-never', type: 'button', onclick: () => { store.set(NO_TIP, true); hideTip(); frame && frame.focus(); } }, "Don't show again"),
     h('button', { class: 'cons-tip-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { hideTip(); frame && frame.focus(); } }, icon('i-x')));
   let tipTimer = 0;
   function hideTip() { clearTimeout(tipTimer); tip.hidden = true; tip.classList.remove('going'); }
@@ -291,7 +293,7 @@ function open() {
     view.classList.add('playing');
     askKeep();
     view.replaceChildren(frame, tip);
-    if (!tipShown) showTip();
+    if (!tipShown && !store.get(NO_TIP, false)) showTip();
     win.setTitle(g.title + ' - CONscripter');
     statusGame.textContent = g.files.length.toLocaleString('en-US') + ' files, ' + bytes(g.size);
     say('Playing ' + g.title);
