@@ -42,6 +42,10 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 <path fill="#000040" d="M9 29h47v9H9z"/><path fill="#8080ff" d="M9 29h47v1H9z"/><path fill="#fff" d="M11 31h30v1H11zM11 34h22v1H11z"/><path class="cons-blink" fill="#ff0" d="M50 34h3v1h-1v1h-1v-1h-1z"/>
 <path fill="#808080" d="M26 45h13v4H26z"/><path fill="#c0c0c0" d="M16 49h33v4H16z"/><path fill="#fff" d="M16 49h33v1H16z"/><path fill="#000" d="M16 53h33v1H16z"/></svg>`;
 
+// Google Drive's logo, for the sync button and the offer on the welcome page.
+const DRIVE_LOGO = `<svg viewBox="0 0 87.3 78" aria-hidden="true"><path fill="#0066da" d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z"/><path fill="#00ac47" d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z"/><path fill="#ea4335" d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z"/><path fill="#00832d" d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z"/><path fill="#2684fc" d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"/><path fill="#ffba00" d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z"/></svg>`;
+const driveLogo = cls => h('span', { class: 'drive-logo ' + (cls || ''), html: DRIVE_LOGO });
+
 const SCRIPTS = ['0.txt', '00.txt', 'nscript.dat', 'nscr_sec.dat', 'onscript.nt', 'onscript.nt2', 'onscript.nt3', 'nscript.___'];
 
 // ---------- reading what the visitor gave us ----------
@@ -289,6 +293,12 @@ function open() {
   const driveBtn = h('button', { class: 'btn', type: 'button', onclick: () => drive.enabled() ? driveOff() : driveOn() });
   const driveRow = h('div', { class: 'cons-keep cons-drive', hidden: !drive.available }, icon('i-globe'), driveText,
     h('div', { class: 'cons-drive-btns' }, driveSignIn, driveBtn));
+  // While sync is off: an offer to turn it on, under the Open Folder button.
+  const promo = h('button', { class: 'cons-promo', type: 'button', hidden: true, onclick: () => driveOn() },
+    driveLogo(),
+    h('span', { class: 'cons-promo-text' },
+      h('b', null, 'Now offering Google Drive sync!'),
+      h('span', null, 'Keep your saves safe, and carry on playing on any computer. Click to turn it on.')));
   const recentRows = h('div', { class: 'cons-recent-list' });
   const recentBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Recent games'), recentRows);
 
@@ -321,6 +331,7 @@ function open() {
       h('div', { class: 'cons-btns' },
         h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
+      promo,
       recentBox,
       h('fieldset', { class: 'group cons-warn' },
         h('legend', null, 'Your saves'),
@@ -363,7 +374,8 @@ function open() {
     if (!drive.enabled()) return;
     if (player()) syncSaves({ interactive: true, report: true }); else if (!drive.signedIn()) signInAgain();
   } });
-  const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSaves);
+  // With Drive sync on offer, its button on the menu bar says where saves are instead.
+  const status = h('div', { class: 'statusbar' }, statusText, statusGame, drive.available ? null : statusSaves);
   const say = t => { statusText.textContent = t; };
 
   // Full screen takes the whole page, not just the game's frame, so the menus and
@@ -526,6 +538,9 @@ function open() {
   ]);
 
   const fsBtn = h('button', { class: 'cons-fs', type: 'button', title: 'Full Screen', disabled: true, onclick: fullScreen }, icon('i-max'), 'Full Screen');
+  const syncLabel = h('span', { class: 'cons-sync-label' });
+  const syncBtn = h('button', { class: 'cons-fs cons-sync', type: 'button', onclick: syncMenu }, driveLogo(), syncLabel);
+  if (drive.available) bar.append(syncBtn);
   bar.append(fsBtn);
 
   // In full screen: point at (or click) the top edge for the menu bar.
@@ -725,6 +740,8 @@ function open() {
       : syncState === 'error' ? 'Google Drive sync is on, but the last sync failed: ' + syncMsg
       : 'Google Drive sync is on.' + (syncAt ? ' Last synced at ' + hhmm(syncAt) + '.' : '');
     driveSignIn.hidden = !out;
+    driveRow.hidden = !on;
+    promo.hidden = !drive.available || on;
     driveBtn.replaceChildren(h('span', { html: on ? 'Turn <u>O</u>ff' : 'Sync with <u>G</u>oogle Drive...' }));
 
     const [text, title] = !on ? ['Saves: this browser', keepTitle]
@@ -735,6 +752,25 @@ function open() {
     statusSaves.replaceChildren(icon(on ? 'i-globe' : 'i-floppy'), text);
     statusSaves.title = title;
     statusSaves.classList.toggle('link', on);
+
+    syncLabel.textContent = !on ? 'Drive Sync' : syncState === 'busy' ? 'Syncing...' : syncState === 'signin' || out ? 'Sign In'
+      : syncState === 'error' ? 'Not Synced' : 'Synced';
+    syncBtn.title = !on ? 'Google Drive sync is off. Click to turn it on.' : title.replace(/ Click to.*$/, '');
+    syncBtn.classList.toggle('off', !on);
+    syncBtn.classList.toggle('warn', on && (syncState === 'signin' || syncState === 'error' || out));
+  }
+
+  // The menu bar's sync button: turns sync on, or drops down what it can do.
+  function syncMenu() {
+    if (!drive.enabled()) return driveOn();
+    const a = drive.account(), r = syncBtn.getBoundingClientRect(), out = !drive.signedIn();
+    openMenu([
+      { label: a && a.email ? 'Syncing as ' + a.email : 'Google Drive sync is on', disabled: true },
+      '-',
+      { label: '&Sync Now', disabled: !player(), action: () => syncSaves({ interactive: true, report: true }) },
+      ...(out ? [{ label: 'Sign &In...', action: signInAgain }] : []),
+      { label: 'Turn &Off Google Drive Sync...', action: driveOff },
+    ], { x: r.left, y: r.bottom });
   }
 
   function setSync(state, msg = '') {
