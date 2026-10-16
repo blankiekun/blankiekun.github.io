@@ -308,6 +308,19 @@ async function readZip(zip) {
   return out;
 }
 
+// A save made by a tool rather than the game's own menu has no "<date>|<play time>|<chapter>|<text>"* on the end
+// (savegame2 adds it; getsavestr reads it back), so the converted games' load menus show its slot blank. Give it one.
+function withSaveStr(f) {
+  const d = f.data, n = d.length;
+  if (!/(^|\/)save\d+\.dat$/i.test(f.path) || (n > 1 && d[n - 2] === 0x22 && d[n - 1] === 0x2a)) return f;
+  const p = v => String(v).padStart(2, '0'), t = new Date();
+  const s = `"${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}:${p(t.getSeconds())}|000:00:00||Imported"*`;
+  const out = new Uint8Array(n + s.length);
+  out.set(d);
+  out.set(new TextEncoder().encode(s), n); // ASCII only, so the same bytes in Shift JIS
+  return { ...f, data: out };
+}
+
 // A picked or dropped .zip becomes the files in it, under a folder named after the zip.
 async function unzipAll(list) {
   const out = [];
@@ -824,7 +837,7 @@ function open() {
         const m = f.path.match(/(?:^|\/)(?:cons|onsyuri)_save\/[^/]+\/(.+)$/);
         return { path: (m ? m[1] : f.path).replace(/^\/+/, ''), data: new Uint8Array(await f.file.arrayBuffer()) };
       }));
-      files = files.filter(f => f.path);
+      files = files.filter(f => f.path).map(withSaveStr);
     } catch {
       return msgbox({ title: 'Import Saves', icon: 'error', parent: win, text: `${picked.name} is not a .zip file that CONscripter can read.` });
     }
