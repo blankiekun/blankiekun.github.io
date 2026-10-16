@@ -41,6 +41,7 @@ Setting it up, once:
    for r in CONscripter conscripter-convert blankiekun.github.io; do
      gh secret set REPORT_SECRET -R blankiekun/$r --body "$s"
      gh secret set CLAUDE_CODE_OAUTH_TOKEN -R blankiekun/$r   # paste the token
+     gh secret set DISCORD_WEBHOOK_URL -R blankiekun/$r       # paste the webhook URL
      gh api -X PUT repos/blankiekun/$r/actions/permissions/workflow \
        -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true
    done
@@ -51,7 +52,9 @@ Setting it up, once:
 The player's comment and files reach Claude, so read the report before you start it.
 Claude can't run general shell commands or use the web there, only grep, zcat, jq,
 head, tail and wc on the report, so its fixes are untested; and the workflow publishes
-nothing if either secret turns up in Claude's change.
+nothing if either secret turns up in Claude's change or session. Claude runs on a runner
+with no write access, and a second job opens the pull request and posts Claude's whole
+session (the JSON transcript) to the Discord channel, even when Claude failed.
 
 ## Banning a sender
 
