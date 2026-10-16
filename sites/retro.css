@@ -2,6 +2,9 @@
    Each page sets its own colours and type on top. */
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+/* The desktop's Windows 95 cursors, which don't reach into IE's frame (css/win95.css) */
+html, button, select, input { cursor: url(../img/cursors/arrow.svg) 0 0, default; }
+input:not([type=checkbox], [type=radio], [type=range], [type=button], [type=submit]), textarea { cursor: url(../img/cursors/ibeam.svg) 3 8, text; }
 body { margin: 0; padding: 12px 16px 24px; font-size: 15px; line-height: 1.45; overflow-wrap: break-word; }
 img { max-width: 100%; height: auto; }
 a:focus-visible { outline: 2px dotted currentColor; outline-offset: 2px; }
