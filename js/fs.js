@@ -106,7 +106,9 @@ export const root = {
             { name: 'Internet Explorer', kind: 'folder', dos: 'INTERN~1', children: [app('IEXPLORE.EXE', 'ie', 'i-ie', 1012736)] },
             { name: 'Accessories', kind: 'folder', dos: 'ACCESS~1', children: [
               app('MSPAINT.EXE', 'paint', 'i-paint', 344064), app('WORDPAD.EXE', 'wordpad', 'i-wordpad', 183296),
+              { name: 'HyperTerminal', kind: 'folder', dos: 'HYPERT~1', children: [app('HYPERTRM.EXE', 'hyperterm', 'i-hyperterm', 26112)] },
             ] },
+            { name: 'blankiekun Exchange', kind: 'folder', dos: 'BLANKI~1', children: [app('EXCHNG32.EXE', 'inbox', 'i-inbox', 427520)] },
             { name: 'CONscripter', kind: 'folder', dos: 'CONSCR~1', children: [app('CONSCRIPTER.EXE', 'cons', 'i-game', 4767101)] },
           ],
         },
@@ -263,6 +265,7 @@ export function kindLabel(n) {
   if (/\.(bmp|png|gif|jpe?g)$/i.test(n.name)) return 'Bitmap Image';
   if (/\.(wav|mp3|ogg)$/i.test(n.name)) return 'Wave Sound';
   if (/\.(avi|mp4|webm)$/i.test(n.name)) return 'Video Clip';
+  if (/\.ht$/i.test(n.name)) return 'HyperTerminal file';
   return 'Text Document';
 }
 
@@ -291,6 +294,7 @@ export function iconForName(name) {
   if (ext === 'doc' || ext === 'wri' || ext === 'rtf') return 'i-doc';
   if (ext === 'bmp' || ext === 'png' || ext === 'gif' || ext === 'jpg') return 'i-bmp';
   if (ext === 'wav' || ext === 'mp3' || ext === 'ogg') return 'i-sndrec';
+  if (ext === 'ht') return 'i-hyperterm';
   if (ext === 'avi' || ext === 'mp4' || ext === 'webm') return 'i-mplayer';
   return 'i-txt';
 }
@@ -298,6 +302,7 @@ export function iconForName(name) {
 export function openerFor(node) {
   if (/\.(doc|wri|rtf)$/i.test(node.name)) return 'wordpad';
   if (/\.(wav|mp3|ogg)$/i.test(node.name)) return 'sndrec';
+  if (/\.ht$/i.test(node.name)) return 'hyperterm';
   if (/\.(avi|mp4|webm|mid|rmi)$/i.test(node.name)) return 'mplayer';
   if (/\.(bmp|png|gif|jpe?g)$/i.test(node.name) || node.data) return 'paint';
   return 'notepad';
@@ -409,7 +414,7 @@ export function rename(node, name) {
   const other = folder && child(folder, n);
   if (other && other !== node) throw new FsError(`Cannot rename ${node.name}: A file with the name you specified already exists. Specify a different filename.`);
   node.name = n;
-  if (node.kind === 'file' && node.icon && /^i-(txt|htm|doc|bmp|sndrec)$/.test(node.icon)) node.icon = iconForName(n);
+  if (node.kind === 'file' && node.icon && /^i-(txt|htm|doc|bmp|sndrec|mplayer|hyperterm)$/.test(node.icon)) node.icon = iconForName(n);
   changed();
 }
 
