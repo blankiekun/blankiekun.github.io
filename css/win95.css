@@ -131,6 +131,8 @@ a { color: var(--link); }
 .win.max { left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; }
 .win.max .resize { display: none; }
 .win.min { display: none; }
+.win.zooming { opacity: 0; }
+.zoom-caption { position: fixed; z-index: 100000; pointer-events: none; background: var(--title); }
 .titlebar {
   display: flex; align-items: center; gap: 3px;
   background: var(--title-off); color: var(--title-ink-off);

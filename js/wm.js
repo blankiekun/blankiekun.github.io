@@ -1,7 +1,7 @@
 // The window manager: overlapping windows, focus and z-order, outline dragging and
 // resizing, minimize/maximize/close, taskbar buttons, and the URL hash.
 
-import { h, icon, clamp, small } from './util.js';
+import { h, icon, clamp, small, reducedMotion } from './util.js';
 import { closeMenus, openMenu } from './menu.js';
 
 const layer = document.getElementById('windows');
@@ -168,6 +168,7 @@ export function focus(win) {
   if (win.state === 'min') {
     win.el.classList.remove('min');
     win.state = win.wasMax ? 'max' : 'normal';
+    zoom(win, false);
   }
   wins.splice(wins.indexOf(win), 1);
   wins.push(win);
@@ -210,7 +211,19 @@ function blurAll() {
   syncRoute();
 }
 
+// Like Windows 95, a title bar flies between the window and its taskbar button.
+function zoom(win, down) {
+  if (reducedMotion.matches || !win.task) return;
+  const at = q => ({ left: q.left + 'px', top: q.top + 'px', width: q.width + 'px', height: q.height + 'px' });
+  const frames = [at(win.bar.getBoundingClientRect()), at(win.task.getBoundingClientRect())];
+  if (!down) { frames.reverse(); win.el.classList.add('zooming'); }
+  const box = h('div', { class: 'zoom-caption' });
+  document.body.append(box);
+  box.animate(frames, 200).onfinish = () => { box.remove(); win.el.classList.remove('zooming'); };
+}
+
 export function minimize(win) {
+  zoom(win, true);
   win.wasMax = win.state === 'max';
   win.state = 'min';
   win.el.classList.add('min');
