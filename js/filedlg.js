@@ -8,6 +8,7 @@ import { msgbox } from './dialogs.js';
 import { root, resolve, pathOf, parentOf, canWrite, mkdir, checkName, child, writeFile, FsError, docsFolder, desktopFolder } from './fs.js';
 
 const LAST = 'w95.lastdir';
+let seq = 0;
 
 function iconOf(n) {
   if (n.icon) return n.icon;
@@ -18,6 +19,7 @@ function iconOf(n) {
 // Resolves with { path, node?, folder, name, file? } or null. `file` is a real File picked from A:.
 export function fileDialog({ mode = 'open', title, name = '', filters = [{ label: 'All Files (*.*)', exts: [] }], parent, accept }) {
   const saving = mode === 'save';
+  const id = 'fdlg' + ++seq;
   return new Promise(res => {
     let done = false;
     const finish = v => { if (done) return; done = true; res(v); win.close(true); };
@@ -28,8 +30,8 @@ export function fileDialog({ mode = 'open', title, name = '', filters = [{ label
 
     const where = h('select', { class: 'field fdlg-where', 'aria-label': saving ? 'Save in' : 'Look in' });
     const list = h('div', { class: 'fdlg-list', tabindex: '0', role: 'listbox', 'aria-label': 'Files' });
-    const nameIn = h('input', { class: 'field', id: 'fdlg-name', autocomplete: 'off', value: name });
-    const typeSel = h('select', { class: 'field', id: 'fdlg-type' }, ...filters.map((f, i) => h('option', { value: i }, f.label)));
+    const nameIn = h('input', { class: 'field', id: id + '-name', autocomplete: 'off', value: name });
+    const typeSel = h('select', { class: 'field', id: id + '-type' }, ...filters.map((f, i) => h('option', { value: i }, f.label)));
     const okBtn = h('button', { class: 'btn default', type: 'submit' }, saving ? 'Save' : 'Open');
     const upBtn = h('button', { class: 'btn fdlg-tool', type: 'button', title: 'Up One Level', 'aria-label': 'Up One Level', onclick: up }, icon('i-up'));
     const newBtn = h('button', { class: 'btn fdlg-tool', type: 'button', title: 'Create New Folder', 'aria-label': 'Create New Folder', onclick: newFolder }, icon('i-newfolder'));
@@ -148,14 +150,14 @@ export function fileDialog({ mode = 'open', title, name = '', filters = [{ label
     });
 
     const form = h('form', { class: 'dlg fdlg' },
-      h('div', { class: 'fdlg-top' }, h('label', { for: 'fdlg-where-' + mode }, saving ? 'Save in:' : 'Look in:'), where, upBtn, newBtn),
+      h('div', { class: 'fdlg-top' }, h('label', { for: id + '-where' }, saving ? 'Save in:' : 'Look in:'), where, upBtn, newBtn),
       list,
       h('div', { class: 'fdlg-grid' },
-        h('label', { for: 'fdlg-name', html: 'File <u>n</u>ame:' }), nameIn, okBtn,
-        h('label', { for: 'fdlg-type', html: saving ? 'Save as <u>t</u>ype:' : 'Files of <u>t</u>ype:' }), typeSel,
+        h('label', { for: id + '-name', html: 'File <u>n</u>ame:' }), nameIn, okBtn,
+        h('label', { for: id + '-type', html: saving ? 'Save as <u>t</u>ype:' : 'Files of <u>t</u>ype:' }), typeSel,
         h('button', { class: 'btn', type: 'button', onclick: () => finish(null) }, 'Cancel')),
       picker);
-    where.id = 'fdlg-where-' + mode;
+    where.id = id + '-where';
     form.addEventListener('submit', e => { e.preventDefault(); submit(); });
     form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
     const win = createWindow({

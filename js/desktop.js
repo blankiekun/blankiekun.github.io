@@ -32,7 +32,7 @@ const ICONS = [
   { label: 'README.TXT', app: 'notepad', icon: 'i-txt', type: 'Text Document', open: () => run('notepad readme.txt') },
   { label: 'GitHub', icon: 'i-github', type: 'Shortcut', shortcut: true, open: () => window.open(GITHUB, '_blank', 'noopener') },
 ];
-const CELL_W = 76, CELL_H = 74;
+const CELL_W = 86, CELL_H = 74;
 let moved = false;
 let renaming = false;
 

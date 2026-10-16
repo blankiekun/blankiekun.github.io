@@ -295,8 +295,12 @@ function sizeOf(n) {
 }
 
 export function parentOf(node, from = root) {
-  if (node === root || node === recycle) return null;
-  if (from === root && recycle.children.includes(node)) return recycle;
+  if (node === root || node === recycle || node === network) return null;
+  if (from === root) {
+    if (recycle.children.includes(node)) return recycle;
+    const n = parentOf(node, network);
+    if (n) return n;
+  }
   for (const c of from.children || []) {
     if (c === node) return from;
     if (c.children) { const r = parentOf(node, c); if (r) return r; }
@@ -351,17 +355,13 @@ function readOnly(node, verb) {
 export function mkdir(folder, name = 'New Folder') {
   guard(folder);
   const n = make({ name: uniqueName(folder, checkName(name)), kind: 'folder', children: [] });
-  folder.children.push(n);
-  changed();
-  return n;
+  return add(folder, n);
 }
 
 export function createFile(folder, name, props = {}) {
   guard(folder);
   const n = make({ text: '', ...props, name: uniqueName(folder, checkName(name)), kind: 'file' });
-  folder.children.push(n);
-  changed();
-  return n;
+  return add(folder, n);
 }
 
 // Save: makes the file, or replaces what's in it.
@@ -375,16 +375,14 @@ export function writeFile(path, props) {
   if (old) {
     if (old.children) throw new FsError(`Cannot save ${name}: there is already a folder with that name.`);
     readOnly(old, 'replace');
+    const before = { text: old.text, data: old.data, mtime: old.mtime, size: old.size };
     delete old.text; delete old.data;
     Object.assign(old, props, { mtime: Date.now() });
     old.size = sizeOf(old);
-    changed();
+    try { changed(); } catch (e) { delete old.text; delete old.data; Object.assign(old, before); changed(true); throw e; }
     return old;
   }
-  const n = make({ ...props, name, kind: 'file' });
-  folder.children.push(n);
-  changed();
-  return n;
+  return add(folder, make({ ...props, name, kind: 'file' }));
 }
 
 export function rename(node, name) {
@@ -443,10 +441,7 @@ export function copy(node, folder) {
   const clone = n => { const { el, from, deleted, ...rest } = n; return { ...rest, mtime: Date.now(), children: n.children && n.children.map(clone) }; };
   const c = clone(node);
   if (child(folder, c.name)) c.name = child(folder, 'Copy of ' + c.name) ? uniqueName(folder, 'Copy of ' + c.name) : 'Copy of ' + c.name;
-  const n = make(c);
-  folder.children.push(n);
-  changed();
-  return n;
+  return add(folder, make(c));
 }
 
 export function move(node, folder) {
@@ -479,7 +474,14 @@ function ser(n) {
   return children ? { ...rest, children: children.map(ser) } : rest;
 }
 
-function changed() {
+// Adds a new node, taking it back out if there's no room to keep it.
+function add(folder, n) {
+  folder.children.push(n);
+  try { changed(); } catch (e) { folder.children.splice(folder.children.indexOf(n), 1); changed(true); throw e; }
+  return n;
+}
+
+function changed(quiet) {
   const out = { at: [], bin: recycle.children.filter(n => n.user).map(ser), gone: [...gone] };
   const go = (folder, path) => {
     for (const c of folder.children || []) {
@@ -492,7 +494,7 @@ function changed() {
   let full = false;
   try { localStorage.setItem(KEY, JSON.stringify(out)); } catch { full = true; }
   for (const fn of listeners) { try { fn(); } catch (e) { console.error(e); } }
-  if (full) throw new FsError('There is not enough free disk space.\n\nDelete some files (Paint pictures take the most room) and empty the Recycle Bin, then try again.');
+  if (full && !quiet) throw new FsError('There is not enough free disk space.\n\nDelete some files (Paint pictures take the most room) and empty the Recycle Bin, then try again.');
 }
 
 (function load() {
