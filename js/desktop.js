@@ -402,6 +402,7 @@ function startItems() {
     prog('Notepad', 'notepad', 'i-notepad'),
     prog('Paint', 'paint', 'i-paint'),
     prog('Phone Dialer', 'dialer', 'i-dialer'),
+    prog('WinPopup', 'winpopup', 'i-winpopup'),
     prog('WordPad', 'wordpad', 'i-wordpad'),
   ]);
   const projects = [

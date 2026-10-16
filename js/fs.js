@@ -133,6 +133,7 @@ export const root = {
             app('MPLAYER.EXE', 'mplayer', 'i-mplayer', 33280),
             app('CLIPBRD.EXE', 'clipbrd', 'i-clipbrd', 16896),
             app('DIALER.EXE', 'dialer', 'i-dialer', 39936),
+            app('WINPOPUP.EXE', 'winpopup', 'i-winpopup', 28672),
             app('REGEDIT.EXE', 'regedit', 'i-regedit', 77824),
             app('WELCOME.EXE', 'welcome', 'i-flag', 21504),
             app('EXPLORER.EXE', 'explorer', 'i-folder-open', 204288, 'C:\\'),
