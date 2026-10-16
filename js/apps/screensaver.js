@@ -35,6 +35,8 @@ export function loadScreenSaver() {
   return out;
 }
 
+export function setScreenSaver(saver) { store.set(KEY, { ...loadScreenSaver(), saver }); }
+
 const copy = o => JSON.parse(JSON.stringify(o));
 
 // Not security: the password only keeps a passer-by from dismissing a screen

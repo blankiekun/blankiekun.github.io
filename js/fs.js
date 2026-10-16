@@ -161,6 +161,7 @@ export const root = {
     { name: 'Control Panel', kind: 'folder', icon: 'i-ctrl', virtual: true, children: [
       app('Add/Remove Programs', 'addremove', 'i-addremove'),
       app('Date/Time', 'datetime', 'i-ctrl'),
+      app('Desktop Themes', 'themes', 'i-display'),
       app('Display', 'display', 'i-display'),
       app('Mouse', 'mouse', 'i-mouse'),
       app('Regional Settings', 'regional', 'i-globe'),

@@ -49,10 +49,11 @@ export async function paste(folder, parent) {
   marks();
 }
 
-export async function del(nodes, parent) {
+// Shift+Delete skips the Recycle Bin, as in Windows 95.
+export async function del(nodes, parent, shift) {
   if (!nodes.length) return;
-  const forGood = parentOf(nodes[0]) === recycle;
-  const locked = nodes.find(n => !n.user && !forGood);
+  const forGood = shift || parentOf(nodes[0]) === recycle;
+  const locked = nodes.find(n => !n.user && parentOf(n) !== recycle);
   if (locked) {
     return msgbox({ title: 'Error Deleting File', icon: 'error', parent,
       text: `Cannot delete ${locked.name}: Access is denied.\n\nIt's one of the files that came with blankiekun 95, so it can't be deleted.` });
@@ -69,7 +70,7 @@ export async function del(nodes, parent) {
     if (b !== 'Yes') return;
   }
   const done = [];
-  try { for (const n of nodes) { remove(n); done.push(n); } } catch (e) { await fail(e, parent, 'Error Deleting File'); }
+  try { for (const n of nodes) { if (shift) gone(n); else remove(n); done.push(n); } } catch (e) { await fail(e, parent, 'Error Deleting File'); }
   if (!forGood && done.length) last = { label: 'Undo Delete', run: () => done.forEach(n => parentOf(n) === recycle && restore(n)) };
   if (nodes.some(n => clip.nodes.includes(n))) { clip.nodes = clip.nodes.filter(n => !nodes.includes(n)); marks(); }
 }

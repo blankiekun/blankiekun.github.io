@@ -30,6 +30,13 @@
 <body>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Display Properties > Color palette: 3 levels a channel for 16 colour, 6 (the 216 web colours) for 256 -->
+  <filter id="f-16" color-interpolation-filters="sRGB"><feComponentTransfer>
+    <feFuncR type="discrete" tableValues="0 .5 1"/><feFuncG type="discrete" tableValues="0 .5 1"/><feFuncB type="discrete" tableValues="0 .5 1"/>
+  </feComponentTransfer></filter>
+  <filter id="f-256" color-interpolation-filters="sRGB"><feComponentTransfer>
+    <feFuncR type="discrete" tableValues="0 .2 .4 .6 .8 1"/><feFuncG type="discrete" tableValues="0 .2 .4 .6 .8 1"/><feFuncB type="discrete" tableValues="0 .2 .4 .6 .8 1"/>
+  </feComponentTransfer></filter>
   <!-- 16-colour pixel icons, drawn on a 16×16 grid -->
   <symbol id="i-book" viewBox="0 0 16 16" shape-rendering="crispEdges">
     <path fill="#800000" d="M2 2h10v12H2z"/><path fill="#ff0000" d="M3 2h9v11H3z"/>

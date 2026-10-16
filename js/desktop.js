@@ -295,7 +295,7 @@ function iconKey(it, e) {
   else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1); }
   else if (e.key === 'ArrowRight' && !moved) { e.preventDefault(); go(i + rows); }
   else if (e.key === 'ArrowLeft' && !moved) { e.preventDefault(); go(i - rows); }
-  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del(ICONS.filter(o => o.file && o.el.classList.contains('sel')).map(o => o.node)); }
+  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del(ICONS.filter(o => o.file && o.el.classList.contains('sel')).map(o => o.node), null, e.shiftKey); }
   else if (e.key === 'F2' && it.file) { e.preventDefault(); startRename(it); }
   else if (ctrl && e.key.toLowerCase() === 'c' && it.file) { e.preventDefault(); copyNodes([it.node]); }
   else if (ctrl && e.key.toLowerCase() === 'x' && it.file) { e.preventDefault(); cut([it.node]); }

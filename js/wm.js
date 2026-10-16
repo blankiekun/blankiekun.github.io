@@ -561,3 +561,36 @@ export function minimizeAll() {
 
 // Clicking empty desktop deactivates windows, like Windows does.
 export function deactivate() { blurAll(); }
+
+// ---------- Alt+Tab and Alt+Space ----------
+// Alt+Tab steps through a box of icons while Alt is held and switches on release.
+// shortcut: the browser or OS keeps Alt+Tab for itself on most systems, so Alt+` does the same.
+let sw = null;
+function drawSwitch() {
+  sw.el.replaceChildren(
+    h('div', { class: 'alttab-icons' }, ...sw.list.map((w, i) => h('span', { class: i === sw.i ? 'on' : '' }, icon(w.opts.icon || 'i-exe')))),
+    h('div', { class: 'alttab-t' }, sw.list[sw.i].task.title));
+}
+function endSwitch(ok) {
+  const w = sw.list[sw.i];
+  sw.el.remove(); sw = null;
+  if (ok) focus(w);
+}
+document.addEventListener('keydown', e => {
+  if (e.altKey && (e.key === 'Tab' || e.code === 'Backquote')) {
+    const list = wins.filter(w => w.task).reverse();
+    if (!list.length) return;
+    e.preventDefault();
+    closeMenus();
+    if (!sw) { sw = { list, i: 0, el: h('div', { class: 'alttab', role: 'status' }) }; document.body.append(sw.el); }
+    sw.i = (sw.i + (e.shiftKey ? -1 : 1) + sw.list.length) % sw.list.length;
+    drawSwitch();
+  } else if (sw && e.key === 'Escape') {
+    e.preventDefault(); endSwitch(false);
+  } else if (e.altKey && e.code === 'Space' && active) {
+    e.preventDefault();
+    systemMenu(active, { rect: active.el.querySelector('.titlebar').getBoundingClientRect(), left: true });
+  }
+}, true);
+document.addEventListener('keyup', e => { if (sw && e.key === 'Alt') endSwitch(true); }, true);
+addEventListener('blur', () => { if (sw) endSwitch(false); });

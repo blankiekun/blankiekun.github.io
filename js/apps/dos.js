@@ -3,7 +3,7 @@
 import { h } from '../util.js';
 import { createWindow, launch, toggleMax } from '../wm.js';
 import { resolve, dosName, drive, pathOf, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
-import { run, open as shellOpen, ALIASES, PROJECTS } from '../shell.js';
+import { run, open as shellOpen, bsod, ALIASES, PROJECTS } from '../shell.js';
 
 const STAMP = '08-24-95  11:11a';
 
@@ -93,6 +93,7 @@ function open(arg) {
   }
 
   function notReady(letter) {
+    import('./control.js').then(m => m.playSound('Floppy')).catch(() => {});
     print('');
     print(`Not ready reading drive ${letter}`);
     print('Abort, Retry, Fail?');
@@ -173,7 +174,7 @@ function open(arg) {
         return;
       }
       case 'exit': win.close(); return;
-      case 'win': print('You are already running blankiekun 95.'); return;
+      case 'win': case 'win.com': bsod(); return;
       case 'format': print('Nice try.'); return;
       case 'md': case 'mkdir': {
         if (!argStr) { print('Required parameter missing'); return; }
