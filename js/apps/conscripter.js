@@ -34,6 +34,7 @@ const FLAG_LIST = [
   { flag: '--render-font-outline', label: 'Text &Outline Instead of Shadow' },
   { flag: '--no-video', label: '&No Movies' },
   { flag: '--disable-rescale', label: 'Don\'t &Rescale Images' },
+  { flag: '--no-text-overlay', label: 'No Text Overla&y (for Scanning)' },
   '-',
   { flag: '--fontcache', label: '&Cache Font' },
   { flag: '--no-vsync', label: 'No &VSync' },
