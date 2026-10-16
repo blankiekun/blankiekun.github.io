@@ -19,6 +19,7 @@ const iconsEl = document.getElementById('icons');
 const ICONS = [
   { label: 'My Computer', app: 'mycomputer', icon: 'i-computer', type: 'System', node: root, open: () => launch('mycomputer') },
   { label: 'Network Neighborhood', app: 'network', icon: 'i-network', type: 'System', node: network, open: () => launch('network') },
+  { label: 'Windows Explorer', app: 'explorer', icon: 'i-folder-open', type: 'Application', open: () => launch('explorer', { path: 'C:\\', explore: true }) },
   { label: 'Inbox', app: 'inbox', icon: 'i-inbox', type: 'Application', open: () => launch('inbox') },
   { label: 'Recycle Bin', app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', node: recycle, open: () => launch('recycle') },
   { label: 'Internet Explorer', app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
@@ -27,6 +28,10 @@ const ICONS = [
   { label: 'Solitaire', app: 'solitaire', icon: 'i-sol', type: 'Application', open: () => launch('solitaire') },
   { label: 'Paint', app: 'paint', icon: 'i-paint', type: 'Application', open: () => launch('paint') },
   { label: 'Notepad', app: 'notepad', icon: 'i-notepad', type: 'Application', open: () => launch('notepad') },
+  { label: 'WordPad', app: 'wordpad', icon: 'i-wordpad', type: 'Application', open: () => launch('wordpad') },
+  { label: 'Media Player', app: 'mplayer', icon: 'i-mplayer', type: 'Application', open: () => launch('mplayer') },
+  { label: 'CD Player', app: 'cdplayer', icon: 'i-cdplayer', type: 'Application', open: () => launch('cdplayer') },
+  { label: 'HyperTerminal', app: 'hyperterm', icon: 'i-hyperterm', type: 'Application', open: () => launch('hyperterm') },
   { label: 'Calculator', app: 'calc', icon: 'i-calc', type: 'Application', open: () => launch('calc') },
   { label: 'MS-DOS Prompt', app: 'dos', icon: 'i-dos', type: 'Application', open: () => launch('dos') },
   { label: 'Display', app: 'display', icon: 'i-display', type: 'Control Panel', open: () => launch('display') },
@@ -766,10 +771,28 @@ function clock() {
   spk.addEventListener('dblclick', () => { if (volEl) { volEl.remove(); volEl = null; } volumeControl(); });
 }
 
+// ---------- quick launch ----------
+
+const QUICK = [
+  ['Windows Explorer', 'explorer', 'i-folder-open', { path: 'C:\\', explore: true }],
+  ['Internet Explorer', 'ie', 'i-ie', 'home'],
+  ['Inbox', 'inbox', 'i-inbox'],
+  ['MS-DOS Prompt', 'dos', 'i-dos'],
+  ['Notepad', 'notepad', 'i-notepad'],
+  ['Show Desktop', null, 'i-computer'],
+];
+function quickLaunch() {
+  const bar = h('nav', { class: 'quick', 'aria-label': 'Quick Launch' },
+    ...QUICK.filter(([, id]) => !id || appInfo(id)).map(([label, id, ic, arg]) =>
+      h('button', { type: 'button', title: label, 'aria-label': label, onclick: () => id ? launch(id, arg) : minimizeAll() }, icon(ic))));
+  document.getElementById('start').after(bar);
+}
+
 export function initDesktop() {
   register({ id: 'volume', title: 'Volume Control', icon: 'i-speaker', open: () => volumeControl() });
   register({ id: 'taskbarprops', title: 'Taskbar Properties', icon: 'i-taskbar', open: taskbarProps });
   applyTaskbar();
+  quickLaunch();
   renderIcons();
   lastH = desktopEl.clientHeight;
   clock();

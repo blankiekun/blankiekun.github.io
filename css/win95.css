@@ -243,6 +243,11 @@ body.dragging iframe { pointer-events: none; }
 .start[aria-expanded="true"] { box-shadow: var(--sunken); padding: 3px 4px 1px 5px; }
 .start[aria-expanded="true"] span { outline: 1px dotted var(--ink); }
 .start svg { width: 20px; height: 18px; }
+.quick { display: flex; align-items: center; gap: 1px; padding: 0 4px 0 6px; flex: none; box-shadow: inset 1px 0 var(--shadow), inset 2px 0 var(--hilite), inset -1px 0 var(--shadow), inset -2px 0 var(--hilite); }
+.quick button { width: 22px; height: 22px; padding: 0; border: 0; background: var(--face); display: grid; place-items: center; cursor: default; }
+.quick button:hover { box-shadow: inset 1px 1px var(--hilite), inset -1px -1px var(--shadow); }
+.quick button:active { box-shadow: inset 1px 1px var(--shadow), inset -1px -1px var(--hilite); }
+.quick svg { width: 16px; height: 16px; }
 .tasks { flex: 1; min-width: 0; display: flex; gap: 3px; overflow: hidden; }
 .task {
   flex: 0 1 160px; min-width: 0;
@@ -353,6 +358,7 @@ body.shutting .taskbar::after { content: ""; position: absolute; inset: 0; backg
   .task span { display: none; }
   .task.on { padding: 1px 0 0 1px; }
   .tray svg { display: none; }
+  .quick { display: none; }
   .resize { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) {
