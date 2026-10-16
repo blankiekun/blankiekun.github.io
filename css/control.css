@@ -1,0 +1,110 @@
+/* Control Panel applets: Mouse, Regional Settings, Add/Remove Programs, Sounds. */
+
+.cp { width: 404px; max-width: calc(100vw - 14px); }
+.cp .tabs { flex-wrap: wrap; }
+.cp-panel { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cp-panel > .group, .cp .group { display: flex; flex-direction: column; gap: 8px; }
+.cp p { margin: 0; }
+.cp-note { margin: 0; }
+.cp-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cp-line.right { justify-content: flex-end; }
+.cp-line > select.field { flex: 1; min-width: 0; }
+.cp-col { display: flex; flex-direction: column; gap: 3px; }
+.cp-row { display: flex; gap: 8px; align-items: center; }
+.cp-row > select.field { flex: 1; min-width: 0; }
+.cp-form { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 8px; align-items: center; }
+.cp-form > .cp-row { display: contents; }
+.cp-form .field { min-width: 0; }
+.cp-short { width: 64px; }
+.cp-sample { display: flex; align-items: center; background: var(--face); white-space: nowrap; overflow: hidden; }
+.cp-check { display: flex; align-items: center; }
+.cp-hr { width: 100%; border: 0; height: 2px; margin: 0; box-shadow: inset 0 1px var(--shadow), inset 0 -1px var(--hilite); }
+
+/* Trackbar: a sunken groove, a raised pointer and tick marks underneath. */
+.cp-slider { display: flex; align-items: flex-start; gap: 6px; }
+.cp-slider > span { padding-top: 4px; white-space: nowrap; }
+.cp-slider.off > span { color: var(--shadow); text-shadow: 1px 1px var(--hilite); }
+.cp-track { flex: 1; min-width: 80px; }
+.cp-track input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 0; background: transparent; display: block; }
+.cp-track input[type="range"]:focus-visible { outline: 1px dotted var(--ink); outline-offset: 0; }
+.cp-track input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--face); box-shadow: var(--sunken); }
+.cp-track input[type="range"]::-moz-range-track { height: 4px; background: var(--face); box-shadow: var(--sunken); }
+.cp-track input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 11px; height: 20px; margin-top: -8px; border: 0; border-radius: 0; background: var(--face); box-shadow: var(--raised-btn); clip-path: polygon(0 0, 100% 0, 100% 72%, 50% 100%, 0 72%); }
+.cp-track input[type="range"]::-moz-range-thumb { width: 11px; height: 20px; border: 0; border-radius: 0; background: var(--face); box-shadow: var(--raised-btn); clip-path: polygon(0 0, 100% 0, 100% 72%, 50% 100%, 0 72%); }
+.cp-ticks { height: 5px; margin: 0 5px; background: linear-gradient(90deg, var(--ink) 1px, transparent 1px) 0 0 / calc((100% - 1px) / var(--n)) 100% repeat-x; }
+
+/* Progress bar, in blocks. */
+.cp-prog { height: 18px; box-shadow: var(--thin-in); padding: 2px; overflow: hidden; }
+.cp-prog i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--title) 0 8px, transparent 8px 10px); transition: width .2s steps(3); }
+.cp-prog.busy i { width: 40%; animation: cp-busy 1.2s steps(10) infinite; transition: none; }
+@keyframes cp-busy { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { .cp-prog.busy i { animation: none; width: 100%; } }
+.cp-busy { width: 300px; max-width: calc(100vw - 14px); }
+
+/* ---------- Mouse ---------- */
+.cp-mouse { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.cp-radios { display: flex; flex-direction: column; gap: 6px; }
+.cp-radios label { display: flex; align-items: center; white-space: nowrap; }
+.cp-mousepic svg { width: 42px; height: 62px; }
+.cp-btnlabels { display: flex; flex-direction: column; gap: 6px; }
+.cp-dbl { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.cp-dbl .cp-slider { flex: 1 1 180px; align-self: center; }
+.cp-test { display: flex; align-items: flex-end; gap: 6px; }
+.cp-jack { border: 0; padding: 4px; background: var(--paper); box-shadow: var(--sunken); cursor: default; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.cp-jack:focus-visible { outline: 1px dotted var(--ink); outline-offset: -3px; }
+.cp-jack svg { width: 48px; height: 58px; }
+.cp-schemes { display: flex; flex-direction: column; gap: 6px; }
+.cp-schemes .cp-line:first-child { flex-wrap: nowrap; }
+.cp-ppreview { width: 44px; height: 44px; flex: none; background: var(--paper); box-shadow: var(--sunken); display: grid; place-items: center; font-size: 22px; }
+.cp-plist { height: 150px; }
+.cp-plist .opt { display: flex; justify-content: space-between; gap: 8px; }
+.cp-plist .opt b, .cp-ppreview b { font-weight: normal; display: inline-block; min-width: 1.4em; text-align: center; }
+[data-anim="true"] .hg { animation: cp-hg 1.6s steps(8) infinite; }
+@keyframes cp-hg { to { transform: rotate(180deg); } }
+@media (prefers-reduced-motion: reduce) { [data-anim="true"] .hg { animation: none; } }
+.cp-ghost { position: fixed; left: 0; top: 0; width: 12px; height: 19px; pointer-events: none; z-index: 2147483000; background: no-repeat 0 0 / 12px 19px; }
+
+/* ---------- Regional Settings ---------- */
+.cp-map { align-self: center; box-shadow: var(--sunken); padding: 2px; background: var(--face); }
+.cp-map svg { width: 192px; height: 80px; image-rendering: pixelated; }
+.cp-regional .cp-form > .cp-row > span { white-space: nowrap; }
+
+/* ---------- Add/Remove Programs ---------- */
+.cp-intro { display: flex; gap: 10px; align-items: flex-start; }
+.cp-big svg { width: 32px; height: 32px; }
+.cp-wpic { display: flex; flex-direction: column; gap: 4px; flex: none; }
+.cp-wpic svg { width: 32px; height: 32px; }
+.cp-wpic.small { flex-direction: row; }
+.cp-wpic.small svg { width: 16px; height: 16px; }
+.cp-progs, .cp-comps { height: 120px; }
+.cp-progs .opt, .cp-comps .opt, .cp-events .opt { display: flex; align-items: center; gap: 4px; }
+.cp-progs svg, .cp-comps svg, .cp-events svg { width: 16px; height: 16px; flex: none; }
+.cp-comps .opt input { margin: 0 2px 0 0; }
+.cp-comps .opt > span:nth-of-type(1) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cp-size { padding-left: 8px; }
+.cp-desc { min-height: 3.4em; }
+.cp-wizard { width: 400px; max-width: calc(100vw - 14px); }
+.cp-wbody { display: flex; gap: 14px; min-height: 150px; }
+.cp-wtext { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.cp-wtext p { margin: 0; }
+.cp-uninst { width: 340px; max-width: calc(100vw - 14px); }
+.cp-uninst p { margin: 0; }
+.cp-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.cp-steps li { display: flex; gap: 6px; align-items: center; }
+.cp-mark { width: 14px; height: 14px; flex: none; display: grid; place-items: center; font-weight: bold; box-shadow: var(--thin-in); background: var(--paper); font-size: 11px; line-height: 1; }
+
+/* ---------- Sounds ---------- */
+.cp-events { height: 150px; }
+.cp-events .opt:not(.cp-ehead) { padding-left: 22px; }
+.cp-snd { width: 16px; height: 16px; flex: none; }
+.cp-preview { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.cp-preview svg { width: 16px; height: 16px; }
+.cp-play { min-width: 28px; padding-left: 6px; padding-right: 6px; }
+.cp-play:active:not(:disabled) { padding: 1px 5px 0 7px; }
+
+@media (max-width: 420px) {
+  .cp-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cp-regional .cp-form > .cp-row > span { white-space: normal; }
+  .cp-wbody { min-height: 0; }
+  .cp-plist, .cp-events { height: 120px; }
+}

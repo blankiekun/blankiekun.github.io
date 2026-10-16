@@ -4,38 +4,10 @@ import { h, store, reducedMotion } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
+import { SUITS, RANKS, red, cardFace } from './cards.js';
 
-const SUITS = ['♣', '♦', '♥', '♠'];
-const RANKS = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const red = s => s === 1 || s === 2;
 const BACKS = { weave: 'Blue weave', bricks: 'Red bricks', fish: 'Ocean' };
 const PREFS = 'w95.sol.prefs';
-
-// Pip positions as fractions of the card's face, for 1-10.
-const PIPS = {
-  1: [[.5, .5]], 2: [[.5, .2], [.5, .8]], 3: [[.5, .2], [.5, .5], [.5, .8]],
-  4: [[.3, .2], [.7, .2], [.3, .8], [.7, .8]],
-  5: [[.3, .2], [.7, .2], [.5, .5], [.3, .8], [.7, .8]],
-  6: [[.3, .2], [.7, .2], [.3, .5], [.7, .5], [.3, .8], [.7, .8]],
-  7: [[.3, .2], [.7, .2], [.5, .35], [.3, .5], [.7, .5], [.3, .8], [.7, .8]],
-  8: [[.3, .2], [.7, .2], [.5, .35], [.3, .5], [.7, .5], [.5, .65], [.3, .8], [.7, .8]],
-  9: [[.3, .2], [.7, .2], [.3, .4], [.7, .4], [.5, .5], [.3, .6], [.7, .6], [.3, .8], [.7, .8]],
-  10: [[.3, .2], [.7, .2], [.5, .3], [.3, .4], [.7, .4], [.3, .6], [.7, .6], [.5, .7], [.3, .8], [.7, .8]],
-};
-
-function cardFace(c) {
-  const sym = SUITS[c.s];
-  const corner = cls => h('div', { class: 'cd-corner ' + cls }, h('b', null, RANKS[c.r]), h('i', null, sym));
-  const mid = h('div', { class: 'cd-mid' });
-  if (c.r <= 10) {
-    for (const [x, y] of PIPS[c.r]) {
-      mid.append(h('span', { class: 'cd-pip' + (y > .55 ? ' flip' : '') + (c.r === 1 ? ' ace' : ''), style: { left: x * 100 + '%', top: y * 100 + '%' } }, sym));
-    }
-  } else {
-    mid.append(h('div', { class: 'cd-court' }, h('b', null, RANKS[c.r]), h('i', null, sym), h('b', { class: 'flip' }, RANKS[c.r])));
-  }
-  return h('div', { class: 'cd-front' + (red(c.s) ? ' red' : '') }, corner('tl'), mid, corner('br'));
-}
 
 function open() {
   const prefs = { draw: 1, back: 'weave', ...store.get(PREFS, {}) };
@@ -377,7 +349,7 @@ function open() {
   const win = createWindow({
     app: 'solitaire', title: 'Solitaire', icon: 'i-sol', body: h('div', { class: 'sol' }, bar, board, status),
     width: 620, height: 470, minW: 300, minH: 260, route: 'solitaire',
-    onResize: () => render(),
+    onResize: () => { if (stock) render(); },
     onClosed: () => { clearInterval(timer); stopCelebration(); },
   });
   deal();

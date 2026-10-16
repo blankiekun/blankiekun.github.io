@@ -2,7 +2,7 @@
 // resizing, minimize/maximize/close, taskbar buttons, and the URL hash.
 
 import { h, icon, clamp, small } from './util.js';
-import { closeMenus } from './menu.js';
+import { closeMenus, openMenu } from './menu.js';
 
 const layer = document.getElementById('windows');
 const tasks = document.getElementById('tasks');
@@ -54,6 +54,24 @@ export function createWindow(o) {
   btns.append(h('button', { class: 'tbtn x', type: 'button', 'aria-label': 'Close', onclick: () => close(win) }, icon('i-x')));
 
   const bar = h('div', { class: 'titlebar' }, ic, title, btns);
+  // The icon is the system menu; double-clicking it closes the window.
+  if (ic) {
+    ic.classList.add('sysicon');
+    ic.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.stopPropagation(); e.preventDefault();
+      focus(win);
+      if (Date.now() - (win.sysAt || 0) < 400) { closeMenus('dbl'); close(win); return; }
+      win.sysAt = Date.now();
+      systemMenu(win, { rect: bar.getBoundingClientRect(), left: true });
+    });
+  }
+  bar.addEventListener('contextmenu', e => {
+    if (e.target.closest('.tbtn')) return;
+    e.preventDefault();
+    focus(win);
+    systemMenu(win, { x: e.clientX, y: e.clientY });
+  });
   const body = h('div', { class: 'win-body' });
   if (o.body) body.append(o.body);
   const el = h('section', {
@@ -117,6 +135,11 @@ export function createWindow(o) {
     win.task.addEventListener('click', () => {
       if (active === win && win.state !== 'min') minimize(win);
       else focus(win);
+    });
+    win.task.addEventListener('contextmenu', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (win.state !== 'min') focus(win);
+      systemMenu(win, { x: e.clientX, y: e.clientY });
     });
     tasks.append(win.task);
   }
@@ -374,6 +397,146 @@ function syncRoute() {
     history.replaceState(null, '', want || location.pathname + location.search);
   }
   if (routeListener) routeListener(r);
+}
+
+// ---------- the system menu ----------
+
+export function systemMenu(win, at) {
+  const o = win.opts;
+  const resizable = o.resizable !== false && !o.dialog;
+  const normal = win.state === 'normal';
+  const items = o.dialog
+    ? [{ label: '&Move', action: () => keyMove(win, 'move') }, '-', { label: '&Close', key: 'Alt+F4', className: 'bold', action: () => close(win) }]
+    : [
+      { label: '&Restore', disabled: normal, action: () => win.state === 'min' ? focus(win) : restore(win) },
+      { label: '&Move', disabled: !normal, action: () => keyMove(win, 'move') },
+      { label: '&Size', disabled: !normal || !resizable, action: () => keyMove(win, 'size') },
+      { label: 'Mi&nimize', disabled: win.state === 'min', action: () => minimize(win) },
+      { label: 'Ma&ximize', disabled: win.state === 'max' || win.maxBtn.disabled, action: () => { if (win.state === 'min') focus(win); maximize(win); } },
+      '-',
+      { label: '&Close', key: 'Alt+F4', className: 'bold', action: () => close(win) },
+    ];
+  openMenu(items, at.rect ? { rect: { left: at.rect.left + 2, right: at.rect.left + 2, top: at.rect.top, bottom: at.rect.bottom } } : at, { focusFirst: !at.x });
+}
+
+// Move and Size from the system menu: the outline follows the arrow keys (or the
+// mouse), Enter puts the window there and Esc gives up, like the original.
+function keyMove(win, mode) {
+  const A = area();
+  const r = win.el.getBoundingClientRect();
+  const box = { x: r.left, y: r.top, w: r.width, h: r.height };
+  const outline = h('div', { class: 'drag-outline' });
+  document.body.append(outline);
+  const draw = () => Object.assign(outline.style, { left: box.x + 'px', top: box.y + 'px', width: box.w + 'px', height: box.h + 'px' });
+  draw();
+  document.body.style.cursor = mode === 'move' ? 'move' : 'nwse-resize';
+  let mx = null, my = null;
+  function end(ok) {
+    document.removeEventListener('keydown', key, true);
+    document.removeEventListener('pointermove', pm, true);
+    document.removeEventListener('pointerdown', pd, true);
+    outline.remove();
+    document.body.style.cursor = '';
+    if (!ok) return;
+    win.el.style.left = Math.round(box.x - A.left) + 'px';
+    win.el.style.top = Math.round(box.y - A.top) + 'px';
+    if (mode === 'size') {
+      win.el.style.width = Math.round(box.w) + 'px';
+      win.el.style.height = Math.round(box.h) + 'px';
+      if (win.opts.onResize) win.opts.onResize();
+    }
+  }
+  function nudge(dx, dy) {
+    if (mode === 'move') {
+      box.x = clamp(box.x + dx, A.left - box.w + 40, A.right - 40);
+      box.y = clamp(box.y + dy, A.top, A.bottom - 20);
+    } else {
+      box.w = clamp(box.w + dx, win.minW, A.right - box.x);
+      box.h = clamp(box.h + dy, win.minH, A.bottom - box.y);
+    }
+    draw();
+  }
+  function key(e) {
+    const d = e.ctrlKey ? 1 : 8;
+    const k = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[e.key];
+    if (k) nudge(...k);
+    else if (e.key === 'Enter') end(true);
+    else if (e.key === 'Escape') end(false);
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  }
+  function pm(e) { if (mx != null) nudge(e.clientX - mx, e.clientY - my); mx = e.clientX; my = e.clientY; }
+  function pd(e) { e.preventDefault(); e.stopPropagation(); end(true); }
+  // Wait for the menu click to finish before listening.
+  setTimeout(() => {
+    document.addEventListener('keydown', key, true);
+    document.addEventListener('pointermove', pm, true);
+    document.addEventListener('pointerdown', pd, true);
+  });
+}
+
+// ---------- arranging: the taskbar's right-click menu ----------
+
+const arrangeable = () => wins.filter(w => w.state !== 'min' && !w.opts.dialog && w.opts.resizable !== false);
+let undoArrange = null;
+
+function remember(list, label) {
+  const saved = list.map(w => ({ w, state: w.state, wasMax: w.wasMax, left: w.el.style.left, top: w.el.style.top, width: w.el.style.width, height: w.el.style.height }));
+  undoArrange = { label, run() {
+    for (const s of saved) {
+      if (!wins.includes(s.w)) continue;
+      if (s.state === 'min') { if (s.w.state !== 'min') minimize(s.w); continue; }
+      if (s.w.state === 'min') focus(s.w);
+      Object.assign(s.w.el.style, { left: s.left, top: s.top, width: s.width, height: s.height });
+      if (s.state === 'max' && s.w.state !== 'max') maximize(s.w);
+      else if (s.state !== 'max' && s.w.state === 'max') restore(s.w);
+    }
+    undoArrange = null;
+  } };
+}
+export function undoLabel() { return undoArrange && undoArrange.label; }
+export function undo() { if (undoArrange) undoArrange.run(); }
+
+export function cascadeAll() {
+  const list = arrangeable();
+  if (!list.length) return;
+  remember(list, '&Undo Cascade');
+  const A = area();
+  list.forEach((w, i) => {
+    if (w.state === 'max') restore(w);
+    const W = Math.min(A.width * 0.6, Math.max(320, A.width - list.length * 24)), H = Math.min(A.height * 0.7, Math.max(220, A.height - list.length * 24));
+    Object.assign(w.el.style, { left: i * 24 + 'px', top: i * 24 + 'px', width: Math.round(W) + 'px', height: Math.round(H) + 'px' });
+    focus(w);
+    if (w.opts.onResize) w.opts.onResize();
+  });
+}
+
+// Tile Vertically puts windows side by side, Horizontally stacks them; past three
+// windows they go in a grid.
+export function tile(vertical) {
+  const list = arrangeable();
+  if (!list.length) return;
+  remember(list, '&Undo Tile');
+  const A = area();
+  const n = list.length;
+  const lines = n <= 3 ? n : Math.ceil(Math.sqrt(n));
+  const groups = Array.from({ length: lines }, () => []);
+  list.forEach((w, i) => groups[Math.floor(i * lines / n)].push(w));
+  groups.forEach((g, L) => g.forEach((w, k) => {
+    if (w.state === 'max') restore(w);
+    const along = vertical ? A.width / lines : A.height / lines, across = (vertical ? A.height : A.width) / g.length;
+    const [x, y, W, H] = vertical ? [L * along, k * across, along, across] : [k * across, L * along, across, along];
+    Object.assign(w.el.style, { left: Math.round(x) + 'px', top: Math.round(y) + 'px', width: Math.round(W) + 'px', height: Math.round(H) + 'px' });
+    if (w.opts.onResize) w.opts.onResize();
+  }));
+}
+
+export function minimizeAll() {
+  const list = wins.filter(w => w.state !== 'min' && w.task);
+  if (!list.length) return;
+  remember(list, '&Undo Minimize All');
+  for (const w of list) { w.wasMax = w.state === 'max'; w.state = 'min'; w.el.classList.add('min'); }
+  blurAll();
 }
 
 // Clicking empty desktop deactivates windows, like Windows does.

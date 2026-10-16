@@ -1,0 +1,129 @@
+/* HyperTerminal and the blankiekun Exchange Inbox. */
+
+/* ---------- HyperTerminal ---------- */
+.ht { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ht-tools, .ix-tools { display: flex; flex-wrap: wrap; align-items: center; padding: 2px 0; box-shadow: var(--thin-out); margin-bottom: 2px; flex: none; }
+.ht-tb, .ix-tb { width: 24px; height: 22px; padding: 0; display: inline-grid; place-items: center; background: none; border: 0; cursor: default; flex: none; }
+.ht-tb svg, .ix-tb svg { width: 16px; height: 16px; }
+.ht-tb:hover:not(:disabled), .ix-tb:hover:not(:disabled) { box-shadow: var(--thin-out); }
+.ht-tb:active:not(:disabled), .ix-tb:active:not(:disabled) { box-shadow: var(--thin-in); }
+.ht-tb:active:not(:disabled) svg, .ix-tb:active:not(:disabled) svg { transform: translate(1px, 1px); }
+.ht-tb:disabled svg, .ix-tb:disabled svg { filter: grayscale(1) opacity(.45) drop-shadow(1px 1px 0 var(--hilite)); }
+.ht-sep { width: 2px; height: 20px; margin: 0 4px; box-shadow: inset 1px 0 var(--shadow), inset -1px 0 var(--hilite); }
+
+.ht-term { flex: 1; min-height: 0; position: relative; display: flex; }
+.ht-screen {
+  flex: 1; min-width: 0; overflow: auto; background: #fff; color: #000; box-shadow: var(--sunken);
+  padding: 4px 6px; font: 19px/1.1 var(--font-dos); white-space: pre-wrap; overflow-wrap: anywhere;
+  cursor: text; user-select: text; -webkit-user-select: text;
+}
+.ht-line { min-height: 1.1em; }
+.ht-screen a { color: #0000ff; }
+.ht-hot { cursor: pointer; }
+.ht-hot:hover { text-decoration: underline; }
+.ht-cursor { display: inline-block; width: .5em; margin-left: 1px; }
+.ht-screen.on .ht-cursor { background: #000; }
+@media (prefers-reduced-motion: no-preference) {
+  .ht-screen.on .ht-cursor { animation: ht-blink 1s steps(1) infinite; }
+  @keyframes ht-blink { 50% { background: transparent; } }
+}
+/* The real (invisible) input: it holds the typing and brings up phone keyboards. */
+.ht-input { position: absolute; left: 4px; bottom: 4px; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; caret-color: transparent; }
+
+/* ANSI colours, darkened to read on the white screen. Bold brightens. */
+.ht-f0 { color: #000; } .ht-f1 { color: #a00000; } .ht-f2 { color: #006400; } .ht-f3 { color: #806000; }
+.ht-f4 { color: #0000a0; } .ht-f5 { color: #800080; } .ht-f6 { color: #007070; } .ht-f7 { color: #707070; }
+.ht-f0b { color: #000; font-weight: bold; } .ht-f1b { color: #e00000; } .ht-f2b { color: #008a00; } .ht-f3b { color: #b07800; }
+.ht-f4b { color: #0000ff; } .ht-f5b { color: #c000c0; } .ht-f6b { color: #008c8c; } .ht-f7b { color: #fff; }
+.ht-b0 { background: #000; } .ht-b1 { background: #800000; } .ht-b2 { background: #008000; } .ht-b3 { background: #808000; }
+.ht-b4 { background: #000080; } .ht-b5 { background: #800080; } .ht-b6 { background: #008080; } .ht-b7 { background: #c0c0c0; }
+
+.ht-sb > span { flex: none; }
+.ht-sb > :first-child { flex: none; min-width: 128px; font-variant-numeric: tabular-nums; }
+.ht-sb > :nth-child(2) { flex: 1; min-width: 0; }
+.ht-ind.off { color: var(--shadow); }
+@media (max-width: 640px) {
+  .ht-sb > :nth-child(n+4) { display: none; }
+  .ht-sb > :first-child { min-width: 0; }
+}
+
+.ht-dlg { width: min(360px, calc(100vw - 16px)); }
+.ht-head { align-items: center !important; }
+.ht-head b { font-weight: normal; }
+.ht-col { display: flex; flex-direction: column; gap: 4px; }
+.ht-icons { display: flex; gap: 2px; overflow-x: auto; padding: 4px; background: var(--paper); box-shadow: var(--sunken); }
+.ht-ic { flex: none; padding: 4px 6px; cursor: default; }
+.ht-ic svg { width: 32px; height: 32px; }
+.ht-ic.sel { background: var(--select); }
+.ht-icons:focus-visible .ht-ic.sel { outline: 1px dotted var(--select-ink); outline-offset: -2px; }
+.ht-rows { display: flex; flex-direction: column; gap: 8px; }
+.ht-rows .dp-row > span:first-child { min-width: 104px; }
+.ht-grid { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.ht-grid .btn { min-width: 0; }
+.ht-grid select { min-width: 0; }
+.ht-status { min-height: 16px; }
+.ht-connect { width: min(420px, calc(100vw - 16px)); }
+.ht-props { width: min(380px, calc(100vw - 16px)); }
+.ht-props .tabpanel { min-height: 230px; }
+.ht-check { display: flex; align-items: center; }
+.ht-sample { height: 40px; display: flex; align-items: center; justify-content: center; background: var(--paper); box-shadow: var(--sunken); overflow: hidden; white-space: nowrap; }
+@media (max-width: 400px) {
+  .ht-grid { grid-template-columns: minmax(0, 1fr) auto; }
+  .ht-grid > :nth-child(3n+1) { grid-column: 1 / -1; }
+}
+
+/* ---------- blankiekun Exchange ---------- */
+.ix, .ix-note-win, .ix-compose { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ix-tbgroup { display: flex; align-items: center; padding: 0 4px; border-left: 1px solid var(--shadow); box-shadow: inset 1px 0 var(--hilite); }
+.ix-tbgroup:first-child { border-left: 0; box-shadow: none; }
+.ix-tb.wide { width: auto; padding: 0 6px 0 4px; gap: 4px; display: inline-flex; }
+.ix-where { width: 150px; margin-right: 4px; }
+
+.ix-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(130px, 30%) minmax(0, 1fr); gap: 3px; }
+.ix-panes.no-tree { grid-template-columns: minmax(0, 1fr); }
+.ix-panes.no-tree .ix-tree { display: none; }
+.ix-bold { font-weight: bold; }
+.ix-list { background: var(--paper); box-shadow: var(--sunken); overflow: auto; padding: 2px; display: flex; flex-direction: column; }
+.ix-row { display: grid; grid-template-columns: 14px 20px minmax(90px, 1fr) minmax(120px, 2fr) 150px; align-items: center; min-width: 440px; }
+.ix-head { position: sticky; top: -2px; z-index: 1; }
+.ix-col { background: var(--face); box-shadow: var(--raised-btn); border: 0; padding: 1px 4px; height: 18px; text-align: left; white-space: nowrap; overflow: hidden; display: flex; align-items: center; cursor: default; }
+.ix-col:active { box-shadow: var(--thin-in); }
+.ix-col.c-imp { justify-content: center; padding: 0; font-weight: bold; }
+.ix-col svg { width: 14px; height: 14px; }
+.ix-item { height: 18px; cursor: default; }
+.ix-item > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+.ix-item > .c-imp, .ix-item > .c-ic { padding: 0; display: grid; place-items: center; }
+.ix-item svg { width: 16px; height: 16px; }
+.ix-item > .c-imp svg { width: 12px; height: 12px; }
+.ix-item.unread { font-weight: bold; }
+.ix-item.draft { font-style: italic; }
+.ix-item.sel { background: var(--select); color: var(--select-ink); }
+.ix-list:focus-visible .ix-item.sel { outline: 1px dotted var(--select-ink); outline-offset: -1px; }
+.ix-empty { padding: 12px 6px; text-align: center; color: var(--shadow); }
+.ix .statusbar > .ix-note { flex: none; min-width: 160px; }
+.ix .statusbar > .ix-note:empty { display: none; }
+@media (max-width: 640px) {
+  .ix-panes { grid-template-columns: minmax(0, 1fr); }
+  .ix-tree { display: none; }
+  .ix-row { grid-template-columns: 20px minmax(70px, 1fr) minmax(90px, 1.6fr) 62px; min-width: 0; }
+  .ix-row > .c-imp { display: none; }
+  .ix-item { height: 26px; }
+  .ix-where { width: 120px; }
+}
+
+.ix-headers { display: flex; flex-direction: column; gap: 3px; padding: 4px 2px 6px; flex: none; }
+.ix-hrow { display: flex; align-items: center; gap: 6px; }
+.ix-hrow > span:first-child { width: 64px; flex: none; text-align: right; }
+.ix-hrow .field { flex: 1; min-width: 0; }
+.ix-hrow input[readonly] { background: var(--face); }
+.ix-compose .ix-hrow input:not([readonly]) { background: var(--paper); }
+.ix-addr { box-shadow: var(--raised-btn); text-align: center !important; padding: 2px 0; }
+.ix-body { flex: 1; min-height: 0; overflow: auto; background: var(--paper); box-shadow: var(--sunken); padding: 6px 8px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; cursor: text; }
+.ix-compose-body { flex: 1; min-height: 80px; font: inherit; padding: 6px 8px; }
+.ix-over { color: #c00000; }
+.ix-deliver { width: min(320px, calc(100vw - 16px)); }
+.ix-deliver .row { align-items: center !important; }
+.ix-progress { height: 18px; box-shadow: var(--thin-in); padding: 2px; }
+.ix-progress i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--select) 0 9px, transparent 9px 11px); }
+.ix-col-label { display: block; }
+#ix-move { height: auto; }

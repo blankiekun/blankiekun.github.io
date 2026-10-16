@@ -1,17 +1,18 @@
 // Notepad.
 
-import { h, download } from '../util.js';
+import { h, esc } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
-import { walk } from '../fs.js';
+import { saveAs, openFile, saveTo } from '../filedlg.js';
 import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
 
 function open(arg) {
   let name = arg && arg.name ? arg.name : 'Untitled';
+  let path = arg && arg.path || null;   // set once it's saved on the pretend disk
   let saved = arg && arg.text != null ? arg.text : '';
   // Only notes the visitor writes get a Send button, not README.TXT and the other files on disk.
-  let own = !(arg && arg.text);
+  let own = !(arg && arg.text) || !!(arg && arg.path);
   let wrap = true;
   let lastFind = '';
 
@@ -24,32 +25,30 @@ function open(arg) {
     if (!dirty()) return true;
     const b = await msgbox({ title: 'Notepad', icon: 'warn', parent: win, buttons: ['&Yes', '&No', 'Cancel'],
       text: `The text in the ${name} file has changed.\n\nDo you want to save the changes?` });
-    if (b === 'Yes') { save(); return true; }
+    if (b === 'Yes') return save();
     return b === 'No';
   }
-  function save() {
-    const file = /\.[a-z0-9]+$/i.test(name) ? name : name + '.txt';
-    download(file === 'Untitled.txt' ? 'Untitled.txt' : file, new Blob([ta.value.replace(/\n/g, '\r\n')], { type: 'text/plain' }));
+  const TXT = [{ label: 'Text Documents (*.txt)', exts: ['.txt'] }, { label: 'All Files (*.*)', exts: [] }];
+  async function save(as) {
+    if (!path || as) {
+      const r = await saveAs({ name: /\.[a-z0-9]+$/i.test(name) ? name : name + '.txt', filters: TXT, parent: win });
+      if (!r) return false;
+      const n = saveTo(r, { text: ta.value }, () => new Blob([ta.value.replace(/\n/g, '\r\n')], { type: 'text/plain' }), win);
+      if (!n && !r.floppy) return false;
+      name = r.name; path = n ? r.path : null;
+    } else if (!saveTo({ path }, { text: ta.value }, null, win)) return false;
     saved = ta.value;
+    win.setTitle(title());
+    return true;
   }
-  function load(n, t) { name = n; saved = t; ta.value = t; own = t === ''; syncSend(); win.setTitle(title()); ta.setSelectionRange(0, 0); ta.scrollTop = 0; }
+  function load(n, t, p) { name = n; path = p || null; saved = t; ta.value = t; own = t === '' || !!p; syncSend(); win.setTitle(title()); ta.setSelectionRange(0, 0); ta.scrollTop = 0; }
   async function openDialog() {
     if (!(await confirmSave())) return;
-    const files = [];
-    walk((node, p) => { if (node.kind === 'file') files.push({ node, p }); });
-    let pick = files[0];
-    const lb = h('div', { class: 'listbox', tabindex: '0', style: { height: '140px', width: 'min(320px, calc(100vw - 60px))' } },
-      ...files.map(f => {
-        const o = h('div', { class: 'opt' + (f === pick ? ' sel' : '') }, f.p);
-        o.addEventListener('click', () => { pick = f; lb.querySelectorAll('.opt').forEach(x => x.classList.toggle('sel', x === o)); });
-        o.addEventListener('dblclick', () => { pick = f; ok(); });
-        return o;
-      }));
-    const ok = () => { d.close(true); load(pick.node.name, pick.node.text); };
-    const form = h('div', { class: 'dlg' }, h('div', null, 'File ', h('u', null, 'n'), 'ame:'), lb,
-      h('div', { class: 'btns right' }, h('button', { class: 'btn default', type: 'button', onclick: ok }, 'Open'), h('button', { class: 'btn', type: 'button', onclick: () => d.close(true) }, 'Cancel')));
-    const d = createWindow({ title: 'Open', body: form, dialog: true, resizable: false, width: 'auto', parent: win, taskbar: false });
-    lb.focus();
+    const r = await openFile({ filters: TXT, parent: win, accept: '.txt,text/plain' });
+    if (!r) return;
+    if (r.file) load(r.file.name, (await r.file.text()).replace(/\r\n/g, '\n'));
+    else if (r.node.text != null) load(r.node.name, r.node.text, r.node.user ? r.path : null);
+    else msgbox({ title: 'Notepad', icon: 'error', parent: win, text: `${r.name}\nThis is not a text file.` });
   }
   function findNext() {
     if (!lastFind) return findDialog();
@@ -81,11 +80,11 @@ function open(arg) {
     { label: '&File', items: () => [
       { label: '&New', action: async () => { if (await confirmSave()) load('Untitled', ''); } },
       { label: '&Open...', action: openDialog },
-      { label: '&Save', action: save },
+      { label: '&Save', key: 'Ctrl+S', action: () => save() },
       ...(sendEnabled() && own ? [{ label: 'S&end to blankiekun...', icon: 'i-mail', action: sendNote }] : []),
-      { label: 'Save &As...', action: async () => { const v = await inputbox({ title: 'Save As', label: 'File name:', value: name, parent: win, ok: 'Save' }); if (v) { name = v; win.setTitle(title()); save(); } } },
+      { label: 'Save &As...', action: () => save(true) },
       '-',
-      { label: '&Print', action: () => { const w = window.open('', '_blank'); if (w) { w.document.write('<pre>' + ta.value.replace(/</g, '&lt;') + '</pre>'); w.print(); } } },
+      { label: '&Print', action: () => import('./printers.js').then(m => m.printJob(name, '<pre style="white-space:pre-wrap;font:10pt monospace">' + esc(ta.value) + '</pre>')) },
       '-',
       { label: 'E&xit', action: () => win.close() },
     ] },
@@ -115,6 +114,7 @@ function open(arg) {
   ta.addEventListener('keydown', e => {
     if (e.key === 'F5') { e.preventDefault(); insert(new Date().toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }).replace(',', '')); }
     if (e.key === 'F3') { e.preventDefault(); findNext(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
   });
 
   const root = h('div', { class: 'np' }, bar, ta);

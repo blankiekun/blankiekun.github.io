@@ -1,12 +1,14 @@
 // The desktop surface: icons, right-click menu, Start menu, tray clock,
 // and the boot / shut down / log off screens.
 
-import { h, icon, clamp, wait, reducedMotion } from './util.js';
+import { h, icon, clamp, wait, reducedMotion, store } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, createWindow, all, close, deactivate, appInfo } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel } from './wm.js';
 import { msgbox } from './dialogs.js';
-import { run } from './shell.js';
-import { recycle } from './fs.js';
+import { run, open as shellOpen, RECENT } from './shell.js';
+import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
+import { properties, iconOf } from './props.js';
+import { clip, cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut, undo as undoFile, undoLabel as fileUndoLabel, renameNode, makeShortcut } from './fileops.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 const desktopEl = document.getElementById('desktop');
@@ -15,8 +17,10 @@ const iconsEl = document.getElementById('icons');
 // ---------- icons ----------
 
 const ICONS = [
-  { label: 'My Computer', app: 'mycomputer', icon: 'i-computer', type: 'System', open: () => launch('mycomputer') },
-  { label: 'Recycle Bin', app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', open: () => launch('recycle') },
+  { label: 'My Computer', app: 'mycomputer', icon: 'i-computer', type: 'System', node: root, open: () => launch('mycomputer') },
+  { label: 'Network Neighborhood', app: 'network', icon: 'i-network', type: 'System', node: network, open: () => launch('network') },
+  { label: 'Inbox', app: 'inbox', icon: 'i-inbox', type: 'Application', open: () => launch('inbox') },
+  { label: 'Recycle Bin', app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', node: recycle, open: () => launch('recycle') },
   { label: 'Internet Explorer', app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
   { label: 'CONscripter', app: 'cons', icon: 'i-game', type: 'Application', open: () => launch('cons') },
   { label: 'Minesweeper', app: 'minesweeper', icon: 'i-mine', type: 'Application', open: () => launch('minesweeper') },
@@ -29,35 +33,121 @@ const ICONS = [
   { label: 'README.TXT', app: 'notepad', icon: 'i-txt', type: 'Text Document', open: () => run('notepad readme.txt') },
   { label: 'GitHub', icon: 'i-github', type: 'Shortcut', shortcut: true, open: () => window.open(GITHUB, '_blank', 'noopener') },
 ];
-const CELL_W = 76, CELL_H = 74;
+const CELL_W = 86, CELL_H = 74;
 let moved = false;
+let renaming = false;
+
+// The visitor's files in C:\WINDOWS\Desktop show up after the built-in icons.
+function fileIcon(node) {
+  return { label: node.name, icon: () => iconOf(node), type: kindLabel(node), node, file: true, open: () => shellOpen(node) };
+}
+
+function makeIcon(it, i) {
+  const b = h('button', { class: 'icon', type: 'button', role: 'option', 'aria-selected': 'false', tabindex: i === 0 ? '0' : '-1' },
+    icon(typeof it.icon === 'function' ? it.icon() : it.icon), h('span', null, it.label));
+  if (it.shortcut || (it.node && (it.node.kind === 'link' || it.node.kind === 'shortcut'))) b.append(h('i', { class: 'lnk', 'aria-hidden': 'true' }));
+  it.el = b;
+  if (it.node === recycle) b.dropFolder = () => recycle;
+  else if (it.node && it.node.children && it.file) b.dropFolder = () => it.node;
+  b.addEventListener('pointerdown', e => iconDown(it, e));
+  b.addEventListener('dblclick', () => { if (!renaming) it.open(); });
+  b.addEventListener('keydown', e => iconKey(it, e));
+  b.addEventListener('contextmenu', e => {
+    e.preventDefault(); e.stopPropagation();
+    select(it);
+    openMenu(iconMenu(it), { x: e.clientX, y: e.clientY });
+  });
+  return b;
+}
+
+function iconMenu(it) {
+  const n = it.node;
+  if (n === recycle) return [
+    { label: '&Open', action: it.open }, { label: '&Explore', action: () => launch('explorer', { node: recycle, explore: true }) }, '-',
+    { label: 'Empty Recycle &Bin', disabled: !recycle.children.length, action: emptyAll }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(recycle, desktopFolder()) }, '-',
+    { label: 'P&roperties', action: () => properties(recycle) },
+  ];
+  if (n === root) return [
+    { label: '&Open', action: it.open }, { label: '&Explore', action: () => launch('explorer', { node: root, explore: true }) },
+    { label: '&Find...', action: () => launch('find') }, '-',
+    { label: 'Map &Network Drive...', disabled: true }, { label: '&Disconnect Network Drive...', disabled: true }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(root, desktopFolder()) }, { label: 'Rena&me', disabled: true }, '-',
+    { label: 'P&roperties', action: () => launch('sysprops') },
+  ];
+  if (n === network) return [
+    { label: '&Open', action: it.open }, { label: '&Explore', action: () => launch('explorer', { node: network, explore: true }) },
+    { label: '&Find Computer...', action: () => launch('find') }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(network, desktopFolder()) }, '-',
+    { label: 'P&roperties', action: () => msgbox({ title: 'Network', icon: 'i-network', text: 'The following network components are installed:\n\n  Client for GitHub Networks\n  Dial-Up Adapter (28.8 kbps)\n  TCP/IP -> the whole internet' }) },
+  ];
+  if (it.file) return [
+    { label: '&Open', action: it.open },
+    ...(n.children ? [{ label: '&Explore', action: () => launch('explorer', { node: n, explore: true }) }] : []), '-',
+    { label: 'Se&nd To', submenu: [{ label: '3½ Floppy (A:)', icon: 'i-floppy', action: () => toFloppy([n]) }] }, '-',
+    { label: 'Cu&t', action: () => cut([n]) }, { label: '&Copy', action: () => copyNodes([n]) },
+    ...(n.children ? [{ label: '&Paste', disabled: !canPaste(n), action: () => paste(n) }] : []), '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(n, desktopFolder()) }, { label: '&Delete', action: () => del([n]) }, { label: 'Rena&me', action: () => startRename(it) }, '-',
+    { label: 'P&roperties', action: () => properties(n) },
+  ];
+  // A program's icon: its shortcut opens the same program.
+  const asNode = it.app ? { name: it.label, kind: 'app', app: it.app, arg: it.app === 'ie' ? 'home' : undefined, icon: typeof it.icon === 'string' ? it.icon : undefined } : null;
+  return [{ label: '&Open', action: it.open }, '-', { label: 'Cu&t', disabled: true }, { label: '&Copy', disabled: true }, '-',
+    { label: 'Create &Shortcut', disabled: !asNode, action: () => makeShortcut(asNode, desktopFolder()) }, { label: '&Delete', disabled: true }, { label: 'Rena&me', disabled: true }, '-',
+    { label: 'P&roperties', action: () => msgbox({ title: it.label + ' Properties', icon: it.el.querySelector('use').getAttribute('href').slice(1), text: `${it.label}\n\nType: ${it.type}\nLocation: C:\\WINDOWS\\Desktop` }) }];
+}
+
+async function emptyAll() {
+  const n = recycle.children.length;
+  const b = await msgbox({ title: n === 1 ? 'Confirm File Delete' : 'Confirm Multiple File Delete', icon: 'i-warn', buttons: ['&Yes', '&No'],
+    text: n === 1 ? `Are you sure you want to delete '${recycle.children[0].name}'?` : `Are you sure you want to delete these ${n} items?` });
+  if (b === 'Yes') { emptyBin(); sound('Empty Recycle Bin'); }
+}
 
 function renderIcons() {
   // Programs that failed to load don't get an icon.
   for (let i = ICONS.length - 1; i >= 0; i--) if (ICONS[i].app && !appInfo(ICONS[i].app)) ICONS.splice(i, 1);
-  ICONS.forEach((it, i) => {
-    const b = h('button', { class: 'icon', type: 'button', role: 'option', 'aria-selected': 'false', tabindex: i === 0 ? '0' : '-1' },
-      icon(typeof it.icon === 'function' ? it.icon() : it.icon), h('span', null, it.label));
-    if (it.shortcut) b.append(h('i', { class: 'lnk', 'aria-hidden': 'true' }));
-    it.el = b;
-    b.addEventListener('pointerdown', e => iconDown(it, e));
-    b.addEventListener('dblclick', () => it.open());
-    b.addEventListener('keydown', e => iconKey(it, e));
-    b.addEventListener('contextmenu', e => {
-      e.preventDefault(); e.stopPropagation();
-      select(it);
-      openMenu([{ label: '&Open', action: it.open }, '-', { label: 'Cu&t', disabled: true }, { label: '&Copy', disabled: true }, '-',
-        { label: 'Create &Shortcut', disabled: true }, { label: '&Delete', disabled: true }, { label: 'Rena&me', disabled: true }, '-',
-        { label: 'P&roperties', action: () => msgbox({ title: it.label + ' Properties', icon: it.el.querySelector('use').getAttribute('href').slice(1), text: `${it.label}\n\nType: ${it.type}\nLocation: C:\\WINDOWS\\Desktop` }) }],
-      { x: e.clientX, y: e.clientY });
-    });
-    iconsEl.append(b);
-  });
+  ICONS.forEach((it, i) => iconsEl.append(makeIcon(it, i)));
+  for (const n of desktopFolder().children) { const it = fileIcon(n); ICONS.push(it); iconsEl.append(makeIcon(it, ICONS.length)); }
   arrange();
 }
 
+// Keeps the visitor's icons in step with the Desktop folder; new ones go in the next free spot.
+function syncFiles() {
+  const nodes = desktopFolder().children;
+  for (let i = ICONS.length - 1; i >= 0; i--) {
+    const it = ICONS[i];
+    if (it.file && !nodes.includes(it.node)) { it.el.remove(); ICONS.splice(i, 1); }
+  }
+  for (const n of nodes) {
+    let it = ICONS.find(o => o.node === n);
+    if (!it) {
+      it = fileIcon(n);
+      ICONS.push(it);
+      iconsEl.append(makeIcon(it, ICONS.length));
+      const spot = freeSpot();
+      it.x = spot.x; it.y = spot.y; place(it);
+    } else if (!renaming) {
+      it.label = n.name; it.type = kindLabel(n);
+      it.el.querySelector('span').textContent = n.name;
+    }
+  }
+  refreshIcons();
+}
+onChange(syncFiles);
+onClip(() => ICONS.forEach(it => it.el && it.el.classList.toggle('cut', !!it.node && isCut(it.node))));
+
+function freeSpot() {
+  const rows = Math.max(1, Math.floor((desktopEl.clientHeight - 8) / CELL_H));
+  const taken = new Set(ICONS.filter(o => o.x != null).map(o => Math.round((o.x - 4) / CELL_W) + ':' + Math.round((o.y - 6) / CELL_H)));
+  for (let i = 0; ; i++) {
+    const c = Math.floor(i / rows), r = i % rows;
+    if (!taken.has(c + ':' + r)) return { x: 4 + c * CELL_W, y: 6 + r * CELL_H };
+  }
+}
+
 export function refreshIcons() {
-  ICONS.forEach(it => { if (typeof it.icon === 'function') it.el.querySelector('use').setAttribute('href', '#' + it.icon()); });
+  ICONS.forEach(it => { if (typeof it.icon === 'function' && it.el) it.el.querySelector('use').setAttribute('href', '#' + it.icon()); });
 }
 
 function arrange(order = ICONS) {
@@ -90,8 +180,17 @@ function select(it) {
   });
 }
 
+// Where a dragged icon would land: a folder or the Recycle Bin, else just the desktop.
+function dropAt(x, y, it) {
+  for (let el = document.elementFromPoint(x, y); el; el = el.parentElement) {
+    if (el === it.el || el === desktopEl) return null;
+    if (el.dropFolder) return { el, folder: el.dropFolder() };
+  }
+  return null;
+}
+
 function iconDown(it, e) {
-  if (e.button !== 0) return;
+  if (e.button !== 0 || renaming) return;
   e.stopPropagation();
   closeMenus('icon');
   deactivate();
@@ -99,7 +198,7 @@ function iconDown(it, e) {
   it.el.focus({ preventScroll: true });
   const touch = e.pointerType !== 'mouse';
   const sx = e.clientX, sy = e.clientY;
-  let ghost = null;
+  let ghost = null, over = null;
   it.el.setPointerCapture(e.pointerId);
   const move = ev => {
     const dx = ev.clientX - sx, dy = ev.clientY - sy;
@@ -111,19 +210,27 @@ function iconDown(it, e) {
     }
     ghost.style.left = it.x + dx + 'px';
     ghost.style.top = it.y + dy + 'px';
+    if (it.file) {
+      const t = dropAt(ev.clientX, ev.clientY, it);
+      if (over && (!t || t.el !== over)) over.classList.remove('drop-hot');
+      over = t && t.el;
+      if (over) over.classList.add('drop-hot');
+    }
   };
   const up = ev => {
     it.el.removeEventListener('pointermove', move);
     it.el.removeEventListener('pointerup', up);
     it.el.removeEventListener('pointercancel', up);
+    if (over) over.classList.remove('drop-hot');
     if (ghost) {
       ghost.remove();
-      if (ev.type === 'pointerup') {
-        it.x = clamp(it.x + ev.clientX - sx, 0, desktopEl.clientWidth - CELL_W);
-        it.y = clamp(it.y + ev.clientY - sy, 0, desktopEl.clientHeight - CELL_H);
-        place(it);
-        moved = true;
-      }
+      if (ev.type !== 'pointerup') return;
+      const t = it.file && dropAt(ev.clientX, ev.clientY, it);
+      if (t) { drop([it.node], t.folder, ev.ctrlKey); return; }
+      it.x = clamp(it.x + ev.clientX - sx, 0, desktopEl.clientWidth - CELL_W);
+      it.y = clamp(it.y + ev.clientY - sy, 0, desktopEl.clientHeight - CELL_H);
+      place(it);
+      moved = true;
     } else if (touch && ev.type === 'pointerup') {
       it.open(); // a tap opens on touch screens; double-click is a mouse habit
     }
@@ -133,22 +240,78 @@ function iconDown(it, e) {
   it.el.addEventListener('pointercancel', up);
 }
 
+function startRename(it) {
+  const span = it.el.querySelector('span');
+  const box = h('textarea', { class: 'icon-rename', rows: 2, spellcheck: false, 'aria-label': 'New name' });
+  box.value = it.node.name;
+  span.replaceChildren(box);
+  renaming = true;
+  box.focus();
+  const dot = it.node.children ? -1 : it.node.name.lastIndexOf('.');
+  box.setSelectionRange(0, dot > 0 ? dot : box.value.length);
+  let done = false;
+  const finish = ok => {
+    if (done) return;
+    done = true; renaming = false;
+    const v = box.value.replace(/\n/g, '').trim();
+    span.textContent = it.node.name;
+    if (ok && v && v !== it.node.name) renameNode(it.node, v);
+    it.el.focus({ preventScroll: true });
+  };
+  box.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  box.addEventListener('pointerdown', e => e.stopPropagation());
+  box.addEventListener('dblclick', e => e.stopPropagation());
+  box.addEventListener('blur', () => finish(true));
+}
+
 function iconKey(it, e) {
+  if (renaming) return;
   const i = ICONS.indexOf(it);
   const rows = Math.max(1, Math.floor((desktopEl.clientHeight - 8) / CELL_H));
   const go = j => { const o = ICONS[clamp(j, 0, ICONS.length - 1)]; select(o); o.el.focus(); };
-  if (e.key === 'Enter') { e.preventDefault(); it.open(); }
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (e.key === 'Enter') { e.preventDefault(); if (e.altKey && it.node) properties(it.node); else it.open(); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); go(i + 1); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1); }
   else if (e.key === 'ArrowRight' && !moved) { e.preventDefault(); go(i + rows); }
   else if (e.key === 'ArrowLeft' && !moved) { e.preventDefault(); go(i - rows); }
+  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del([it.node]); }
+  else if (e.key === 'F2' && it.file) { e.preventDefault(); startRename(it); }
+  else if (ctrl && e.key.toLowerCase() === 'c' && it.file) { e.preventDefault(); copyNodes([it.node]); }
+  else if (ctrl && e.key.toLowerCase() === 'x' && it.file) { e.preventDefault(); cut([it.node]); }
+  else if (ctrl && e.key.toLowerCase() === 'v') { e.preventDefault(); paste(desktopFolder()); }
+  else if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); undoFile(); }
 }
+
+// Things dragged out of folder windows land on the desktop.
+desktopEl.dropFolder = () => desktopFolder();
+iconsEl.dropFolder = () => desktopFolder();
 
 desktopEl.addEventListener('pointerdown', e => {
   if (e.target !== desktopEl && e.target !== iconsEl) return;
   select(null);
   deactivate();
 });
+
+function newThing(fn) {
+  try {
+    const n = fn(desktopFolder());
+    const it = ICONS.find(o => o.node === n);
+    if (it) { select(it); startRename(it); }
+  } catch (e) { if (!(e instanceof FsError)) throw e; msgbox({ title: 'Error', icon: 'error', text: e.message }); }
+}
+function blankBitmap() {
+  const c = document.createElement('canvas');
+  c.width = 480; c.height = 320;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+
 desktopEl.addEventListener('contextmenu', e => {
   if (e.target !== desktopEl && e.target !== iconsEl) return;
   e.preventDefault();
@@ -163,10 +326,18 @@ desktopEl.addEventListener('contextmenu', e => {
     '-',
     { label: '&Refresh', action: refreshDesktop },
     '-',
-    { label: '&Paste', disabled: true },
-    { label: 'Paste &Shortcut', disabled: true },
+    { label: '&Paste', disabled: !canPaste(desktopFolder()), action: () => paste(desktopFolder()) },
+    { label: 'Paste &Shortcut', disabled: !clip.nodes.length, action: () => clip.nodes.forEach(n => makeShortcut(n, desktopFolder())) },
+    ...(fileUndoLabel() ? [{ label: '&' + fileUndoLabel(), action: () => undoFile() }] : []),
     '-',
-    { label: 'Ne&w', submenu: [{ label: '&Folder', disabled: true }, { label: '&Shortcut', disabled: true }, '-', { label: 'Text Document', icon: 'i-txt', action: () => launch('notepad', { name: 'New Text Document.txt', text: '' }) }] },
+    { label: 'Ne&w', submenu: [
+      { label: '&Folder', icon: 'i-folder', action: () => newThing(f => mkdir(f)) },
+      { label: '&Shortcut', disabled: true },
+      '-',
+      { label: 'Text Document', icon: 'i-txt', action: () => newThing(f => createFile(f, 'New Text Document.txt', { text: '' })) },
+      { label: 'WordPad Document', icon: 'i-doc', action: () => newThing(f => createFile(f, 'New WordPad Document.doc', { text: '' })) },
+      { label: 'Bitmap Image', icon: 'i-bmp', action: () => newThing(f => createFile(f, 'New Bitmap Image.bmp', { data: blankBitmap() })) },
+    ] },
     '-',
     { label: 'P&roperties', action: () => launch('display') },
   ], { x: e.clientX, y: e.clientY });
@@ -190,18 +361,39 @@ window.addEventListener('resize', () => {
 const startBtn = document.getElementById('start');
 const banner = h('div', { class: 'side', 'aria-hidden': 'true' }, 'blankiekun', h('b', null, '95'));
 
+// A Start menu entry for a program, left out when the program didn't load.
+const prog = (label, id, ic, arg) => appInfo(id) ? { label, icon: ic, action: () => launch(id, arg) } : null;
+const some = list => list.filter(Boolean);
+
 function startItems() {
-  const accessories = [
-    { label: 'Games', icon: 'i-programs', submenu: [
-      { label: 'CONscripter', icon: 'i-game', action: () => launch('cons') },
-      { label: 'Minesweeper', icon: 'i-mine', action: () => launch('minesweeper') },
-      { label: 'Solitaire', icon: 'i-sol', action: () => launch('solitaire') },
-    ] },
+  const accessories = some([
+    { label: 'Games', icon: 'i-programs', submenu: some([
+      prog('CONscripter', 'cons', 'i-game'),
+      prog('FreeCell', 'freecell', 'i-freecell'),
+      prog('Hearts', 'hearts', 'i-hearts'),
+      prog('Minesweeper', 'minesweeper', 'i-mine'),
+      prog('Solitaire', 'solitaire', 'i-sol'),
+    ]) },
+    { label: 'Multimedia', icon: 'i-programs', submenu: some([
+      prog('CD Player', 'cdplayer', 'i-cdplayer'),
+      prog('Media Player', 'mplayer', 'i-mplayer'),
+      prog('Sound Recorder', 'sndrec', 'i-sndrec'),
+      { label: 'Volume Control', icon: 'i-speaker', action: () => volumePopup(true) },
+    ]) },
+    { label: 'System Tools', icon: 'i-programs', submenu: some([
+      prog('Character Map', 'charmap', 'i-charmap'),
+      prog('Disk Defragmenter', 'defrag', 'i-defrag'),
+      prog('ScanDisk', 'scandisk', 'i-drive'),
+    ]) },
     '-',
-    { label: 'Calculator', icon: 'i-calc', action: () => launch('calc') },
-    { label: 'Notepad', icon: 'i-notepad', action: () => launch('notepad') },
-    { label: 'Paint', icon: 'i-paint', action: () => launch('paint') },
-  ];
+    { label: 'HyperTerminal', icon: 'i-programs', submenu: some([prog('HyperTerminal', 'hyperterm', 'i-hyperterm')]) },
+    '-',
+    prog('Calculator', 'calc', 'i-calc'),
+    prog('Clipboard Viewer', 'clipbrd', 'i-clipbrd'),
+    prog('Notepad', 'notepad', 'i-notepad'),
+    prog('Paint', 'paint', 'i-paint'),
+    prog('WordPad', 'wordpad', 'i-wordpad'),
+  ]);
   const projects = [
     { label: "blankiekun's Homepage", icon: 'i-htm', action: () => launch('ie', 'home') },
     '-',
@@ -209,6 +401,7 @@ function startItems() {
     { label: 'conscripter-convert', icon: 'i-convert', action: () => launch('ie', 'convert') },
     { label: 'CONscripter', icon: 'i-game', action: () => launch('ie', 'conscripter') },
   ];
+  const docs = recentDocs();
   return [
     { label: 'blankiekun', sub: 'GitHub profile', img: GITHUB + '.png?size=64', className: 'account', href: GITHUB },
     '-',
@@ -216,21 +409,20 @@ function startItems() {
       { label: 'Accessories', icon: 'i-programs', submenu: accessories },
       { label: 'Projects', icon: 'i-programs', submenu: projects },
       '-',
+      prog('blankiekun Exchange', 'inbox', 'i-inbox'),
       { label: 'Internet Explorer', icon: 'i-ie', action: () => launch('ie', 'home') },
       { label: 'MS-DOS Prompt', icon: 'i-dos', action: () => launch('dos') },
-      { label: 'Windows Explorer', icon: 'i-folder-open', action: () => launch('explorer', 'C:\\') },
+      { label: 'Windows Explorer', icon: 'i-folder-open', action: () => launch('explorer', { path: 'C:\\', explore: true }) },
     ] },
-    { label: '&Documents', icon: 'i-docs', submenu: [
-      { label: 'README.TXT', app: 'notepad', icon: 'i-txt', action: () => run('notepad readme.txt') },
-      { label: 'TODO.TXT', icon: 'i-txt', action: () => run('notepad todo.txt') },
-    ] },
+    { label: '&Documents', icon: 'i-docs', submenu: docs.length ? docs : [{ label: '(Empty)', disabled: true }] },
     { label: '&Settings', icon: 'i-ctrl', submenu: [
       { label: '&Control Panel', icon: 'i-ctrl', action: () => launch('explorer', 'Control Panel') },
-      { label: '&Display', icon: 'i-display', action: () => launch('display') },
       { label: '&Printers', icon: 'i-printer', action: () => launch('explorer', 'Printers') },
+      { label: '&Taskbar...', icon: 'i-taskbar', action: taskbarProps },
     ] },
     { label: '&Find', icon: 'i-find', submenu: [
       { label: '&Files or Folders...', icon: 'i-find', action: () => launch('find') },
+      { label: '&Computer...', icon: 'i-pc', action: () => launch('network') },
       { label: 'On the &Internet...', icon: 'i-globe', action: () => launch('ie', 'home') },
     ] },
     { label: '&Help', icon: 'i-helpbook', action: () => launch('help') },
@@ -241,10 +433,20 @@ function startItems() {
   ];
 }
 
+// The Documents menu: README and TODO, then whatever the visitor opened lately.
+function recentDocs() {
+  const out = [];
+  for (const p of store.get(RECENT, ['C:\\My Documents\\README.TXT', 'C:\\My Documents\\TODO.TXT'])) {
+    const n = resolve(p);
+    if (n && n.kind === 'file') out.push({ label: n.name, icon: iconOf(n), action: () => shellOpen(n) });
+  }
+  return out;
+}
+
 function toggleStart(keyboard) {
   if (startBtn.getAttribute('aria-expanded') === 'true') { closeMenus('toggle'); return; }
   openMenu(startItems(), { rect: startBtn.getBoundingClientRect(), above: true }, {
-    className: 'startmenu', banner, focusFirst: keyboard,
+    className: 'startmenu' + (taskbarPrefs().small ? ' small' : ''), banner, focusFirst: keyboard,
     onClose: () => startBtn.setAttribute('aria-expanded', 'false'),
   });
   startBtn.setAttribute('aria-expanded', 'true');
@@ -258,10 +460,13 @@ document.addEventListener('keydown', e => {
 // ---------- Run ----------
 
 export function runDialog() {
-  const input = h('input', { class: 'field', id: 'run-open', autocomplete: 'off', style: { flex: '1', minWidth: '0' } });
+  // The Open box remembers what was run before, newest first.
+  const history = store.get('w95.run', []);
+  const input = h('input', { class: 'field', id: 'run-open', autocomplete: 'off', list: 'run-history', value: history[0] || '', style: { flex: '1', minWidth: '0' } });
+  const datalist = h('datalist', { id: 'run-history' }, ...history.map(v => h('option', { value: v })));
   const form = h('form', { class: 'dlg', style: { width: 'min(360px, calc(100vw - 24px))' } },
     h('div', { class: 'row' }, icon('i-run'), h('div', { class: 'msg' }, 'Type the name of a program, folder, or document, and blankiekun 95 will open it for you.')),
-    h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('span', { html: '<u>O</u>pen:' }), input),
+    h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('span', { html: '<u>O</u>pen:' }), input, datalist),
     h('div', { class: 'btns right' },
       h('button', { class: 'btn default', type: 'submit' }, 'OK'),
       h('button', { class: 'btn', type: 'button', onclick: () => win.close() }, 'Cancel'),
@@ -269,17 +474,21 @@ export function runDialog() {
   form.addEventListener('submit', e => {
     e.preventDefault();
     const v = input.value;
-    if (run(v, win)) win.close();
+    if (run(v, win)) {
+      if (v.trim()) store.set('w95.run', [v.trim(), ...history.filter(x => x !== v.trim())].slice(0, 10));
+      win.close();
+    }
     else msgbox({ title: v, icon: 'error', parent: win, text: `Cannot find the file '${v}' (or one of its components). Make sure the path and filename are correct and that all required libraries are available.` });
   });
   form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); win.close(); } });
   const win = createWindow({ title: 'Run', body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, x: 8, y: Math.max(0, desktopEl.clientHeight - 190), help: () => launch('help') });
   input.focus();
+  input.select();
 }
 
 // ---------- shut down / log off ----------
 
-function shutDown() {
+export function shutDown() {
   const opts = [
     ['shutdown', '&Shut down the computer?'],
     ['restart', '&Restart the computer?'],
@@ -322,6 +531,7 @@ function closeAll() { all().forEach(w => close(w, true)); }
 
 async function powerOff() {
   closeAll();
+  sound('Exit Windows');
   const wait1 = h('div', { class: 'screen wait' }, h('div', null, 'Please wait while your computer shuts down.'));
   document.body.append(wait1);
   await wait(reducedMotion.matches ? 300 : 1400);
@@ -369,10 +579,13 @@ function logOn() {
 
 // ---------- boot ----------
 
+export let freshBoot = false;
+
 export async function boot() {
   let booted = false;
   try { booted = sessionStorage.getItem('w95.booted') === '1'; sessionStorage.setItem('w95.booted', '1'); } catch {}
   if (booted) return;
+  freshBoot = true;
   const fast = reducedMotion.matches;
   let skip;
   const skipped = new Promise(r => { skip = r; });
@@ -390,25 +603,173 @@ export async function boot() {
   await Promise.race([wait(fast ? 600 : 2200), skipped]);
   removeEventListener('keydown', onKey);
   splash.remove();
+  sound('Start Windows');
+}
+
+// Sounds come from the Sounds applet; nothing plays if it didn't load.
+export function sound(event) {
+  import('./apps/control.js').then(m => m.playSound && m.playSound(event)).catch(() => {});
+}
+
+// ---------- taskbar ----------
+
+const taskbarEl = document.getElementById('taskbar');
+const TASKBAR = 'w95.taskbar';
+const taskbarPrefs = () => ({ ontop: true, autohide: false, small: false, clock: true, ...store.get(TASKBAR, {}) });
+
+function applyTaskbar(p = taskbarPrefs()) {
+  document.body.classList.toggle('tb-autohide', p.autohide);
+  document.body.classList.toggle('tb-under', !p.ontop);
+  document.getElementById('clock').hidden = !p.clock;
+}
+// Auto hide: the taskbar slides away and comes back when the pointer reaches the bottom edge.
+document.addEventListener('pointermove', e => {
+  if (!document.body.classList.contains('tb-autohide')) return;
+  const show = e.clientY >= innerHeight - 4 || taskbarEl.contains(e.target) || isOpen();
+  taskbarEl.classList.toggle('peek', show);
+});
+
+taskbarEl.addEventListener('contextmenu', e => {
+  if (e.target.closest('.task') || e.target.closest('.start')) return;
+  e.preventDefault();
+  openMenu(some([
+    { label: '&Cascade', action: cascadeAll },
+    { label: 'Tile &Horizontally', action: () => tile(false) },
+    { label: 'Tile &Vertically', action: () => tile(true) },
+    '-',
+    { label: '&Minimize All Windows', action: minimizeAll },
+    undoLabel() && { label: undoLabel(), action: undo },
+    '-',
+    { label: 'P&roperties', action: taskbarProps },
+  ]), { x: e.clientX, y: e.clientY });
+});
+
+export function taskbarProps() {
+  const p = taskbarPrefs();
+  const box = (k, label) => h('label', { class: 'pr-check' }, h('input', { type: 'checkbox', checked: p[k], 'data-k': k }), h('span', { html: label }));
+  const pic = h('div', { class: 'tbp-pic', 'aria-hidden': 'true' },
+    h('div', { class: 'tbp-win' }, h('i'), h('b', null, 'Sound Recorder')),
+    h('div', { class: 'tbp-bar' }, h('span', { class: 'tbp-start' }, 'Start'), h('span', { class: 'tbp-task' }), h('span', { class: 'tbp-clock' }, '12:45 PM')));
+  const opts = h('div', { class: 'tbp' }, pic,
+    box('ontop', 'Always on <u>t</u>op'), box('autohide', 'A<u>u</u>to hide'),
+    box('small', 'Show <u>s</u>mall icons in Start menu'), box('clock', 'Show <u>C</u>lock'));
+  const sync = () => {
+    const q = Object.fromEntries([...opts.querySelectorAll('input')].map(i => [i.dataset.k, i.checked]));
+    pic.querySelector('.tbp-clock').hidden = !q.clock;
+    return q;
+  };
+  opts.addEventListener('change', () => { sync(); applyBtn.disabled = false; });
+  const progs = h('div', { class: 'tbp' },
+    h('fieldset', { class: 'group' }, h('legend', null, 'Customize Start Menu'),
+      h('p', null, 'You can customize your Start menu by adding or removing items from it.'),
+      h('div', { class: 'btns right' },
+        h('button', { class: 'btn', type: 'button', onclick: () => launch('explorer', 'C:\\WINDOWS') }, 'Advanced...'))),
+    h('fieldset', { class: 'group' }, h('legend', null, 'Documents Menu'),
+      h('div', { class: 'row', style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+        h('p', { style: { margin: 0, flex: 1 } }, 'Click Clear to remove the contents of the Documents Menu.'),
+        h('button', { class: 'btn', type: 'button', onclick: e => { store.set(RECENT, []); e.currentTarget.disabled = true; } }, 'Clear'))));
+  const tabs = h('div', { class: 'tabs', role: 'tablist' }, ...['Taskbar Options', 'Start Menu Programs'].map((t, i) => {
+    const b = h('button', { type: 'button', role: 'tab', 'aria-selected': String(i === 0) }, t);
+    b.addEventListener('click', () => { tabs.querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', String(x === b))); opts.hidden = i !== 0; progs.hidden = i !== 1; });
+    return b;
+  }));
+  progs.hidden = true;
+  const apply = () => { const q = sync(); store.set(TASKBAR, q); applyTaskbar(q); applyBtn.disabled = true; };
+  const applyBtn = h('button', { class: 'btn', type: 'button', disabled: true, onclick: apply }, 'Apply');
+  const form = h('form', { class: 'dlg', style: { width: 'min(380px, calc(100vw - 24px))' } },
+    h('div', { class: 'dp-tabs' }, tabs, h('div', { class: 'tabpanel' }, opts, progs)),
+    h('div', { class: 'btns right' }, h('button', { class: 'btn default', type: 'submit' }, 'OK'),
+      h('button', { class: 'btn', type: 'button', onclick: () => win.close() }, 'Cancel'), applyBtn));
+  form.addEventListener('submit', e => { e.preventDefault(); apply(); win.close(); });
+  form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); win.close(); } });
+  sync();
+  const win = createWindow({ app: 'taskbarprops', title: 'Taskbar Properties', icon: 'i-taskbar', body: form, dialog: true, resizable: false, width: 'auto', taskbar: true, help: () => launch('help') });
+  form.querySelector('.btn').focus();
+}
+
+// ---------- volume ----------
+
+const VOLUME = 'w95.volume';
+const volume = () => ({ level: 0.8, mute: false, ...store.get(VOLUME, {}) });
+function setVolume(v) {
+  store.set(VOLUME, v);
+  window.dispatchEvent(new CustomEvent('w95-volume'));
+  document.querySelector('.tray .spk').classList.toggle('muted', v.mute);
+}
+
+let volEl = null;
+// The little popup over the speaker, or (from the Start menu) the Volume Control mixer.
+export function volumePopup(mixer) {
+  if (mixer) return volumeControl();
+  if (volEl) { volEl.remove(); volEl = null; return; }
+  const v = volume();
+  const slider = h('input', { type: 'range', class: 'vol-slider', min: 0, max: 100, value: Math.round(v.level * 100), 'aria-label': 'Volume', orient: 'vertical' });
+  const mute = h('input', { type: 'checkbox', id: 'vol-mute', checked: v.mute });
+  slider.addEventListener('input', () => setVolume({ ...volume(), level: slider.value / 100 }));
+  mute.addEventListener('change', () => setVolume({ ...volume(), mute: mute.checked }));
+  volEl = h('div', { class: 'vol-pop', role: 'dialog', 'aria-label': 'Volume' }, h('div', null, 'Volume'), slider, h('label', { for: 'vol-mute' }, mute, ' ', h('u', null, 'M'), 'ute'));
+  volEl.addEventListener('pointerdown', e => e.stopPropagation());
+  document.body.append(volEl);
+  slider.focus();
+  const off = e => { if (volEl && !volEl.contains(e.target) && !e.target.closest('.spk')) { volEl.remove(); volEl = null; document.removeEventListener('pointerdown', off, true); } };
+  document.addEventListener('pointerdown', off, true);
+  volEl.addEventListener('keydown', e => { if (e.key === 'Escape') { volEl.remove(); volEl = null; } });
+}
+
+function volumeControl() {
+  const v = volume();
+  const col = (name, live) => {
+    const s = h('input', { type: 'range', class: 'vol-slider', min: 0, max: 100, value: live ? Math.round(v.level * 100) : 80, 'aria-label': name + ' volume', orient: 'vertical' });
+    const bal = h('input', { type: 'range', class: 'vol-bal', min: -50, max: 50, value: 0, 'aria-label': name + ' balance' });
+    const m = h('input', { type: 'checkbox', checked: live && v.mute });
+    if (live) {
+      s.addEventListener('input', () => setVolume({ ...volume(), level: s.value / 100 }));
+      m.addEventListener('change', () => setVolume({ ...volume(), mute: m.checked }));
+    }
+    return h('div', { class: 'vol-col' }, h('b', null, name), h('span', null, 'Balance:'), bal, h('span', null, 'Volume:'), s, h('label', null, m, live ? ' Mute all' : ' Mute'));
+  };
+  const body = h('div', { class: 'vol-mixer' }, col('Volume Control', true), col('Wave'), col('MIDI'), col('CD Audio'), col('Line-In'));
+  createWindow({ app: 'volume', title: 'Volume Control', icon: 'i-speaker', body, width: 'auto', resizable: false, maximizable: false });
 }
 
 // ---------- clock ----------
+
+let formatTime = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+let formatDate = d => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
 function clock() {
   const t = document.getElementById('clock');
   const tray = t.parentElement;
   const tick = () => {
     const d = new Date();
-    t.textContent = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    t.textContent = formatTime(d);
     t.dateTime = d.toISOString();
-    tray.title = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    tray.title = formatDate(d);
   };
   tick();
   setInterval(tick, 10000);
-  tray.addEventListener('dblclick', () => launch('datetime'));
+  // Regional Settings decides how the time looks, when that applet loaded.
+  import('./apps/control.js').then(m => {
+    if (m.formatTime) formatTime = d => m.formatTime(d);
+    if (m.formatDate) formatDate = d => m.formatDate(d, true);
+    tick();
+  }).catch(() => {});
+  window.addEventListener('w95-regional', tick);
+  t.addEventListener('dblclick', () => launch('datetime'));
+  const spk = tray.querySelector('svg');
+  spk.classList.add('spk');
+  spk.classList.toggle('muted', volume().mute);
+  spk.setAttribute('aria-hidden', 'false');
+  spk.setAttribute('role', 'button');
+  spk.setAttribute('aria-label', 'Volume');
+  spk.addEventListener('click', () => volumePopup(false));
+  spk.addEventListener('dblclick', () => { if (volEl) { volEl.remove(); volEl = null; } volumeControl(); });
 }
 
 export function initDesktop() {
+  register({ id: 'volume', title: 'Volume Control', icon: 'i-speaker', open: () => volumeControl() });
+  register({ id: 'taskbarprops', title: 'Taskbar Properties', icon: 'i-taskbar', open: taskbarProps });
+  applyTaskbar();
   renderIcons();
   lastH = desktopEl.clientHeight;
   clock();

@@ -1,0 +1,82 @@
+/* Paint: the selection tools, Text, Magnifier and the extra dialogs.
+   The basics (.pt-tool, .pt-opt, .pt-holder ...) live in apps.css. */
+
+.pt:focus { outline: none; }
+.pt-main { position: relative; }
+.pt-toolbox { overflow-y: auto; }
+
+/* Opaque / Transparent and the zoom choices in the options box */
+.pt-opt.mode { height: 26px; }
+.pt-opt.mode svg { width: 24px; height: 20px; }
+.pt-opt.mode[aria-pressed="true"] svg { outline: 1px solid var(--select-ink); }
+.pt-opt.zoom { height: 14px; font: 10px/1 var(--font-ui); color: var(--ink); }
+.pt-opt.zoom[aria-pressed="true"] { color: var(--select-ink); }
+
+/* the picture and what floats over it */
+.pt-holder > canvas.pt-float { position: absolute; left: 0; top: 0; pointer-events: none; }
+.pt-holder[data-tool="magnifier"] { cursor: zoom-in; }
+.pt-holder[data-tool="text"] { cursor: text; }
+.pt-holder.over-sel { cursor: move; }
+.pt-grid {
+  position: absolute; left: 0; top: 0; pointer-events: none;
+  background-image: linear-gradient(to right, rgba(128, 128, 128, .75) 1px, transparent 1px), linear-gradient(to bottom, rgba(128, 128, 128, .75) 1px, transparent 1px);
+}
+.pt-ants { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.pt-ants path { fill: none; stroke-width: 1px; vector-effect: non-scaling-stroke; shape-rendering: crispEdges; }
+.pt-ants .a { stroke: #fff; }
+.pt-ants .b { stroke: #000; stroke-dasharray: 4 4; animation: pt-ants .8s steps(4) infinite; }
+@keyframes pt-ants { to { stroke-dashoffset: -8; } }
+@media (prefers-reduced-motion: reduce) { .pt-ants .b { animation: none; } }
+
+.pt-text {
+  position: absolute; margin: 0; padding: 0; border: 0; border-radius: 0;
+  resize: none; overflow: hidden; white-space: pre-wrap; overflow-wrap: break-word;
+  outline: 1px dashed var(--select); outline-offset: 0;
+  -webkit-font-smoothing: none; font-smooth: never; caret-color: currentColor;
+  touch-action: auto; cursor: text;
+}
+
+/* Fonts toolbar */
+.pt-fontbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 4px 3px; box-shadow: inset 0 -1px var(--shadow), inset 0 -2px var(--hilite); }
+.pt-fontbar[hidden] { display: none; }
+.pt-fb-title { padding-right: 4px; }
+.pt-fb-face { width: 150px; }
+.pt-fb-size { width: 56px; }
+.pt-fb-btn { width: 23px; height: 22px; border: 0; padding: 0; background: var(--face); box-shadow: var(--raised-btn); color: var(--ink); font: 13px/1 var(--font-ui); cursor: default; }
+.pt-fb-btn[aria-pressed="true"] { box-shadow: var(--sunken); background: repeating-conic-gradient(var(--face) 0 25%, var(--hilite) 0 50%) 0 0 / 2px 2px; }
+
+/* Thumbnail */
+.pt-thumb { position: absolute; right: 22px; top: 6px; z-index: 2; background: var(--face); box-shadow: var(--raised); padding: 3px; }
+.pt-thumb[hidden] { display: none; }
+.pt-thumb-t { background: var(--title); color: var(--title-ink); font-weight: bold; padding: 1px 3px; margin-bottom: 2px; }
+.pt-thumb canvas { display: block; image-rendering: pixelated; box-shadow: var(--thin-in); }
+
+/* View Bitmap */
+.pt-view { position: fixed; inset: 0; z-index: 100000; background: #000; display: grid; place-items: center; cursor: default; outline: none; }
+.pt-view img { image-rendering: pixelated; max-width: 100vw; max-height: 100vh; width: auto; height: auto; object-fit: contain; }
+
+/* dialogs */
+.pt-num { width: 64px; }
+.pt-ss { width: min(280px, calc(100vw - 32px)); }
+.pt-ss .group { display: flex; flex-direction: column; gap: 6px; }
+.pt-ss-row { display: flex; align-items: center; gap: 6px; }
+.pt-ss-row > label { min-width: 72px; }
+.pt-zoomopts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+.pt-radio { display: flex; align-items: center; }
+
+.pt-ec { max-width: calc(100vw - 24px); }
+.pt-ec-cols { display: flex; gap: 14px; flex-wrap: wrap; }
+.pt-ec-grid { display: grid; grid-template-columns: repeat(8, 20px); grid-auto-rows: 17px; gap: 4px 5px; margin-top: 4px; }
+.pt-ec-sw { border: 0; padding: 0; box-shadow: var(--sunken); cursor: default; }
+.pt-ec-sw.sel { outline: 1px solid var(--ink); outline-offset: 2px; }
+.pt-ec-custom { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
+.pt-ec-pick { position: relative; display: inline-flex; align-items: center; justify-content: center; height: 23px; padding: 0 10px; background: var(--face); box-shadow: var(--raised-btn); cursor: default; }
+.pt-ec-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: default; border: 0; padding: 0; }
+.pt-ec-prev { height: 40px; box-shadow: var(--sunken); }
+.pt-ec-cap { text-align: center; margin-top: -4px; }
+
+@media (max-width: 640px) {
+  .pt-fb-face { width: 120px; }
+  .pt-tool { touch-action: manipulation; }
+  .pt-sw { touch-action: manipulation; }
+}
