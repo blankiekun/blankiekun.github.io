@@ -14,6 +14,7 @@ import * as drive from './consdrive.js';
 import * as anki from './consanki.js';
 
 const NO_TIP = 'w95.cons.notip';
+const NO_OFFLINE_TIP = 'w95.cons.noofflinetip';
 const FLAGS = 'w95.cons.flags';
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
@@ -439,6 +440,13 @@ function open() {
     h('span', { class: 'cons-promo-text' },
       h('b', null, 'Now offering Google Drive sync!'),
       h('span', null, 'Keep your saves safe, and carry on playing on any computer. Click to turn it on.')));
+  // On the welcome screen until closed, or until games are kept.
+  const offlineTip = h('div', { class: 'cons-tip cons-offline-tip', role: 'note' }, icon('i-info'),
+    h('span', null, 'Play offline: turn on ', h('b', null, 'Keep a copy of games I open'), ' in ',
+      h('a', { href: '#', onclick: e => { e.preventDefault(); settingsDialog(); } }, 'File > Settings'), '.'),
+    h('button', { class: 'cons-tip-x', type: 'button', title: 'Close', 'aria-label': 'Close',
+      onclick: () => { store.set(NO_OFFLINE_TIP, true); showOfflineTip(); } }, icon('i-x')));
+  const showOfflineTip = () => { offlineTip.hidden = !canKeepGames || keepGames() || store.get(NO_OFFLINE_TIP, false); };
   const recentRows = h('div', { class: 'cons-recent-list' });
   const recentBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Recent games'), recentRows);
 
@@ -472,6 +480,7 @@ function open() {
         h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
         h('button', { class: 'btn', type: 'button', onclick: openZip }, h('span', { html: 'Open <u>Z</u>ip...' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
+      offlineTip,
       promo,
       recentBox,
       h('fieldset', { class: 'group cons-warn' },
@@ -717,6 +726,7 @@ function open() {
       store.set(KEEP_GAMES, keepBox.checked);
       store.set(NO_TIP, !tipBox.checked);
       if (tipBox.checked) tipShown = false;
+      showOfflineTip();
       d.close(true);
       if (keepGames() && frame && game.named) keepCopy(game);
     });
@@ -781,7 +791,7 @@ function open() {
       { label: 'Show &Text Overlay', checked: showText, disabled: !player(), action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
       '-',
       { label: 'Storage &Used...', action: storageUsed },
-      { label: '&Reset Tips', disabled: !store.get(NO_TIP, false), action: () => { store.set(NO_TIP, false); tipShown = false; say('Tips will show again'); } },
+      { label: '&Reset Tips', disabled: !store.get(NO_TIP, false) && !store.get(NO_OFFLINE_TIP, false), action: () => { store.set(NO_TIP, false); store.set(NO_OFFLINE_TIP, false); tipShown = false; showOfflineTip(); say('Tips will show again'); } },
       { label: '&Delete This Game\'s Saves...', disabled: !player(), action: deleteSaves },
       { label: '&Clear All Site Data...', action: clearAll },
     ] },
@@ -951,6 +961,7 @@ function open() {
   }
 
   const keepGames = () => canKeepGames && store.get(KEEP_GAMES, false);
+  showOfflineTip();
   let copying = null;  // the title being copied
   async function keepCopy(g) {
     if (copying || (recentGames().find(r => r.title === g.title) || {}).kept) return;
