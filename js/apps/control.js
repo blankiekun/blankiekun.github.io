@@ -221,11 +221,11 @@ const JACK_OPEN = [
 const JACK_PAL = { k: '#000', r: '#ff0000', y: '#ffff00', m: '#800000', b: '#0000ff', w: '#fff' };
 
 const POINTERS = [
-  ['Normal Select', 'var(--arrow)', '↖'], ['Help Select', 'help', '↖?'], ['Working In Background', 'var(--busy)', '↖⌛'],
-  ['Busy', 'var(--wait)', '⌛'], ['Precision Select', 'crosshair', '+'], ['Text Select', 'var(--ibeam)', 'I'],
-  ['Handwriting', 'var(--arrow)', '✎'], ['Unavailable', 'not-allowed', '⊘'], ['Vertical Resize', 'var(--ns)', '↕'],
+  ['Normal Select', 'var(--arrow)', '↖'], ['Help Select', 'var(--help)', '↖?'], ['Working In Background', 'var(--busy)', '↖⌛'],
+  ['Busy', 'var(--wait)', '⌛'], ['Precision Select', 'var(--cross)', '+'], ['Text Select', 'var(--ibeam)', 'I'],
+  ['Handwriting', 'var(--pen)', '✎'], ['Unavailable', 'var(--no)', '⊘'], ['Vertical Resize', 'var(--ns)', '↕'],
   ['Horizontal Resize', 'var(--ew)', '↔'], ['Diagonal Resize 1', 'var(--nwse)', '⤡'], ['Diagonal Resize 2', 'var(--nesw)', '⤢'],
-  ['Move', 'var(--move)', '✥'],
+  ['Move', 'var(--move)', '✥'], ['Alternate Select', 'var(--up)', '↑'],
 ];
 const POINTER_SCHEMES = ['(None)', 'Windows Standard', 'Animated hourglasses'];
 

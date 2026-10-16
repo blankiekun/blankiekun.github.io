@@ -19,7 +19,7 @@
 }
 .ht-line { min-height: 1.1em; }
 .ht-screen a { color: #0000ff; }
-.ht-hot { cursor: pointer; }
+.ht-hot { cursor: var(--hand); }
 .ht-hot:hover { text-decoration: underline; }
 .ht-cursor { display: inline-block; width: .5em; margin-left: 1px; }
 .ht-screen.on .ht-cursor { background: #000; }
