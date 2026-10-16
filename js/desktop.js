@@ -401,6 +401,7 @@ function startItems() {
     prog('Clipboard Viewer', 'clipbrd', 'i-clipbrd'),
     prog('Notepad', 'notepad', 'i-notepad'),
     prog('Paint', 'paint', 'i-paint'),
+    prog('Phone Dialer', 'dialer', 'i-dialer'),
     prog('WordPad', 'wordpad', 'i-wordpad'),
   ]);
   const projects = [

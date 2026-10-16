@@ -127,3 +127,12 @@
 .ix-progress i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, var(--select) 0 9px, transparent 9px 11px); }
 .ix-col-label { display: block; }
 #ix-move { height: auto; }
+
+/* ---------- Phone Dialer ---------- */
+.pd { display: flex; flex-direction: column; }
+.pd-main { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.pd-row { display: flex; gap: 6px; }
+.pd-num { width: 150px; }
+.pd-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 6px; }
+.pd-key { min-width: 0; height: 32px; flex-direction: column; line-height: 1; }
+.pd-key small { font-size: 9px; min-height: 9px; }
