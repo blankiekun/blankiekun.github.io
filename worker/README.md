@@ -49,6 +49,9 @@ Setting it up, once:
 3. `claude-fix.yml` has to be on each repo's default branch before the button works.
 
 The player's comment and files reach Claude, so read the report before you start it.
+Claude can't run general shell commands or use the web there, only grep, zcat, jq,
+head, tail and wc on the report, so its fixes are untested; and the workflow publishes
+nothing if either secret turns up in Claude's change.
 
 ## Banning a sender
 
