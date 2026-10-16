@@ -1,6 +1,6 @@
 // Boots the desktop, registers the programs, and maps the URL hash to windows.
 
-import { register, launch, appInfo, activeWindow } from './wm.js';
+import { register, launch, appInfo, activeWindow, maximize } from './wm.js';
 import { initDesktop, boot, freshBoot } from './desktop.js';
 import { store } from './util.js';
 
@@ -20,6 +20,9 @@ function route(hash) {
   return false;
 }
 
+// ?app=cons opens just that program, filling the page, with no desktop or taskbar around it.
+const solo = new URLSearchParams(location.search).get('app');
+
 async function start() {
   const loaded = await Promise.allSettled(MODULES.map(m => import(`./apps/${m}.js`)));
   for (const r of loaded) {
@@ -28,6 +31,16 @@ async function start() {
     if (r.value.applyDisplay) r.value.applyDisplay();
   }
   initDesktop();
+  if (solo && appInfo(solo)) {
+    const w = launch(solo);
+    if (w) {
+      maximize(w); w.el.classList.add('solo-win'); document.title = w.opts.title;
+      // Exiting the program goes to the full desktop rather than an empty page.
+      const closed = w.opts.onClosed;
+      w.opts.onClosed = () => { if (closed) closed(); location.href = location.pathname; };
+      return;
+    }
+  }
   window.addEventListener('hashchange', () => {
     const w = activeWindow();
     const cur = w && w.route ? (typeof w.route === 'function' ? w.route() : w.route) : '';
@@ -37,5 +50,5 @@ async function start() {
   if (freshBoot && store.get('w95.welcome', true)) launch('welcome');
 }
 
-boot();
+if (solo) document.body.classList.add('solo'); else boot();
 start();

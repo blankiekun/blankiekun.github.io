@@ -383,3 +383,9 @@ body.tb-under .taskbar { z-index: 5; }
 .tray .spk { cursor: default; }
 .tray .spk.muted { opacity: .6; }
 .tray .spk.muted use { filter: none; }
+
+/* ---------- ?app=id: one program fills the page, no desktop around it ---------- */
+body.solo .desktop { inset: 0; background: var(--face); }
+body.solo .icons, body.solo .taskbar { display: none; }
+.win.solo-win { border: 0; padding: 0; box-shadow: none; }
+.win.solo-win > .titlebar { display: none; }
