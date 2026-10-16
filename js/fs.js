@@ -134,6 +134,8 @@ export const root = {
             app('CLIPBRD.EXE', 'clipbrd', 'i-clipbrd', 16896),
             app('DIALER.EXE', 'dialer', 'i-dialer', 39936),
             app('WINPOPUP.EXE', 'winpopup', 'i-winpopup', 28672),
+            app('SYSMON.EXE', 'sysmon', 'i-sysmon', 64000),
+            app('RSRCMTR.EXE', 'resmeter', 'i-resmeter', 7680),
             app('REGEDIT.EXE', 'regedit', 'i-regedit', 77824),
             app('WELCOME.EXE', 'welcome', 'i-flag', 21504),
             app('EXPLORER.EXE', 'explorer', 'i-folder-open', 204288, 'C:\\'),

@@ -392,7 +392,9 @@ function startItems() {
     { label: 'System Tools', icon: 'i-programs', submenu: some([
       prog('Character Map', 'charmap', 'i-charmap'),
       prog('Disk Defragmenter', 'defrag', 'i-defrag'),
+      prog('Resource Meter', 'resmeter', 'i-resmeter'),
       prog('ScanDisk', 'scandisk', 'i-drive'),
+      prog('System Monitor', 'sysmon', 'i-sysmon'),
     ]) },
     '-',
     { label: 'HyperTerminal', icon: 'i-programs', submenu: some([prog('HyperTerminal', 'hyperterm', 'i-hyperterm')]) },
