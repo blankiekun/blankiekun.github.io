@@ -97,7 +97,11 @@ function iconMenu(it) {
   ];
   // A program's icon: its shortcut opens the same program.
   const asNode = it.app ? { name: it.label, kind: 'app', app: it.app, arg: it.app === 'ie' ? 'home' : undefined, icon: typeof it.icon === 'string' ? it.icon : undefined } : null;
-  return [{ label: '&Open', action: it.open }, '-', { label: 'Cu&t', disabled: true }, { label: '&Copy', disabled: true }, '-',
+  const canPin = it.app && it.type !== 'Text Document';
+  return [{ label: '&Open', action: it.open },
+    ...(canPin ? [isPinned(it.app) ? { label: 'Unpin from &Taskbar', action: () => unpin(it.app) }
+      : { label: 'Pin to &Taskbar', action: () => pin({ label: it.label, id: it.app, icon: asNode.icon, arg: it.app === 'explorer' ? { path: 'C:\\', explore: true } : asNode.arg }) }] : []),
+    '-', { label: 'Cu&t', disabled: true }, { label: '&Copy', disabled: true }, '-',
     { label: 'Create &Shortcut', disabled: !asNode, action: () => makeShortcut(asNode, desktopFolder()) }, { label: '&Delete', disabled: true }, { label: 'Rena&me', disabled: true }, '-',
     { label: 'P&roperties', action: () => msgbox({ title: it.label + ' Properties', icon: it.el.querySelector('use').getAttribute('href').slice(1), text: `${it.label}\n\nType: ${it.type}\nLocation: C:\\WINDOWS\\Desktop` }) }];
 }
@@ -643,6 +647,7 @@ taskbarEl.addEventListener('contextmenu', e => {
     { label: 'Tile &Vertically', action: () => tile(true) },
     '-',
     { label: '&Minimize All Windows', action: minimizeAll },
+    { label: 'Reset &Quick Launch', action: () => { pins = QUICK_DEFAULT.slice(); savePins(); } },
     undoLabel() && { label: undoLabel(), action: undo },
     '-',
     { label: 'P&roperties', action: taskbarProps },
@@ -773,19 +778,58 @@ function clock() {
 
 // ---------- quick launch ----------
 
-const QUICK = [
-  ['Windows Explorer', 'explorer', 'i-folder-open', { path: 'C:\\', explore: true }],
-  ['Internet Explorer', 'ie', 'i-ie', 'home'],
-  ['Inbox', 'inbox', 'i-inbox'],
-  ['MS-DOS Prompt', 'dos', 'i-dos'],
-  ['Notepad', 'notepad', 'i-notepad'],
-  ['Show Desktop', null, 'i-computer'],
+const QUICK = 'w95.quick';
+const QUICK_DEFAULT = [
+  { label: 'Windows Explorer', id: 'explorer', icon: 'i-folder-open', arg: { path: 'C:\\', explore: true } },
+  { label: 'Internet Explorer', id: 'ie', icon: 'i-ie', arg: 'home' },
+  { label: 'Inbox', id: 'inbox', icon: 'i-inbox' },
+  { label: 'MS-DOS Prompt', id: 'dos', icon: 'i-dos' },
+  { label: 'Notepad', id: 'notepad', icon: 'i-notepad' },
+  { label: 'Show Desktop', id: 'showdesktop', icon: 'i-computer' },
 ];
+let pins = store.get(QUICK, QUICK_DEFAULT);
+const quickEl = h('nav', { class: 'quick', 'aria-label': 'Quick Launch' });
+const savePins = () => { store.set(QUICK, pins); renderQuick(); };
+const isPinned = id => pins.some(p => p.id === id);
+const pin = p => { if (!isPinned(p.id)) { pins.push(p); savePins(); } };
+const unpin = id => { pins = pins.filter(p => p.id !== id); savePins(); };
+
+function renderQuick() {
+  quickEl.replaceChildren(...pins.filter(p => p.id === 'showdesktop' || appInfo(p.id)).map(p => {
+    const b = h('button', { type: 'button', title: p.label, 'aria-label': p.label }, icon(p.icon));
+    b.addEventListener('click', () => { if (!b.dragged) p.id === 'showdesktop' ? minimizeAll() : launch(p.id, p.arg); });
+    b.addEventListener('contextmenu', e => {
+      e.preventDefault(); e.stopPropagation();
+      openMenu([{ label: '&Open', action: () => b.click() }, '-', { label: 'Unpin from &Taskbar', action: () => unpin(p.id) }], { x: e.clientX, y: e.clientY });
+    });
+    // Drag sideways to reorder; the order is saved on drop.
+    b.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      const x0 = e.clientX;
+      b.dragged = false;
+      const move = ev => {
+        if (!b.dragged && Math.abs(ev.clientX - x0) < 5) return;
+        b.dragged = true;
+        const over = [...quickEl.children].find(o => o !== b && ev.clientX >= o.getBoundingClientRect().left && ev.clientX < o.getBoundingClientRect().right);
+        if (over) over.getBoundingClientRect().left > b.getBoundingClientRect().left ? over.after(b) : over.before(b);
+      };
+      const up = () => {
+        document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+        if (!b.dragged) return;
+        const order = [...quickEl.children].map(o => o.title);
+        pins.sort((a, c) => order.indexOf(a.label) - order.indexOf(c.label));
+        store.set(QUICK, pins);
+        setTimeout(() => { b.dragged = false; });
+      };
+      // On document, not b: moving b in the DOM drops pointer capture.
+      document.addEventListener('pointermove', move); document.addEventListener('pointerup', up); document.addEventListener('pointercancel', up);
+    });
+    return b;
+  }));
+}
 function quickLaunch() {
-  const bar = h('nav', { class: 'quick', 'aria-label': 'Quick Launch' },
-    ...QUICK.filter(([, id]) => !id || appInfo(id)).map(([label, id, ic, arg]) =>
-      h('button', { type: 'button', title: label, 'aria-label': label, onclick: () => id ? launch(id, arg) : minimizeAll() }, icon(ic))));
-  document.getElementById('start').after(bar);
+  renderQuick();
+  document.getElementById('start').after(quickEl);
 }
 
 export function initDesktop() {

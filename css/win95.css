@@ -244,7 +244,8 @@ body.dragging iframe { pointer-events: none; }
 .start[aria-expanded="true"] span { outline: 1px dotted var(--ink); }
 .start svg { width: 20px; height: 18px; }
 .quick { display: flex; align-items: center; gap: 1px; padding: 0 4px 0 6px; flex: none; box-shadow: inset 1px 0 var(--shadow), inset 2px 0 var(--hilite), inset -1px 0 var(--shadow), inset -2px 0 var(--hilite); }
-.quick button { width: 22px; height: 22px; padding: 0; border: 0; background: var(--face); display: grid; place-items: center; cursor: default; }
+.quick:empty { display: none; }
+.quick button { touch-action: none; width: 22px; height: 22px; padding: 0; border: 0; background: var(--face); display: grid; place-items: center; cursor: default; }
 .quick button:hover { box-shadow: inset 1px 1px var(--hilite), inset -1px -1px var(--shadow); }
 .quick button:active { box-shadow: inset 1px 1px var(--shadow), inset -1px -1px var(--hilite); }
 .quick svg { width: 16px; height: 16px; }
