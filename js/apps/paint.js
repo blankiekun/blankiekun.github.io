@@ -114,7 +114,7 @@ function open(arg) {
   let tool = 'pencil', prevTool = 'pencil';
   const size = { brush: 2, eraser: 6, line: 1, airbrush: 8 };
   let fillMode = 'outline';
-  let transparent = false;           // Opaque/Transparent, shared by the selections and Text
+  let transparent = true;            // Opaque/Transparent, shared by the selections and Text
   let zoom = 1, grid = false, thumbOn = false, textBarOn = true;
   const font = { face: 'Arial', size: 12, bold: false, italic: false, underline: false };
   const pal = PALETTE.slice();
