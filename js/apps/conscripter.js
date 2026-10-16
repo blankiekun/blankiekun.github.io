@@ -268,24 +268,40 @@ function makeZip(files) {
   return new Blob([...parts, ...central, end], { type: 'application/zip' });
 }
 
-async function readZip(buf) {
-  const v = new DataView(buf), u8 = new Uint8Array(buf);
-  let e = buf.byteLength - 22;
-  while (e >= 0 && v.getUint32(e, true) !== 0x06054b50) e--;
+// Reads the zip a slice at a time, so a game of a few GB doesn't have to fit in memory:
+// stored files are slices of the zip itself, deflated ones are unpacked once into Blobs.
+async function readZip(zip) {
+  const tail = await zip.slice(Math.max(0, zip.size - 65557)).arrayBuffer(), t = new DataView(tail);
+  let e = tail.byteLength - 22;
+  while (e >= 0 && t.getUint32(e, true) !== 0x06054b50) e--;
   if (e < 0) throw new Error('not a zip');
-  const count = v.getUint16(e + 10, true), out = [];
-  const utf8 = new TextDecoder(), sjis = new TextDecoder('shift_jis');
-  for (let i = 0, p = v.getUint32(e + 16, true); i < count; i++) {
+  const count = t.getUint16(e + 10, true), cdSize = t.getUint32(e + 12, true), cdOff = t.getUint32(e + 16, true);
+  // shortcut: no Zip64, so zips over 4 GB or 65535 files don't open; add it if a game needs it.
+  if (cdOff === 0xffffffff || count === 0xffff) throw new Error('zip64');
+  const cd = await zip.slice(cdOff, cdOff + cdSize).arrayBuffer(), v = new DataView(cd), u8 = new Uint8Array(cd);
+  const utf8 = new TextDecoder(), sjis = new TextDecoder('shift_jis'), out = [];
+  for (let i = 0, p = 0; i < count; i++) {
     const flags = v.getUint16(p + 8, true), method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true);
     const nlen = v.getUint16(p + 28, true), xlen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true), lo = v.getUint32(p + 42, true);
-    const path = (flags & 0x800 ? utf8 : sjis).decode(u8.subarray(p + 46, p + 46 + nlen));
+    const path = (flags & 0x800 ? utf8 : sjis).decode(u8.subarray(p + 46, p + 46 + nlen)).replace(/\\/g, '/');
     p += 46 + nlen + xlen + clen;
-    if (path.endsWith('/')) continue;
-    const start = lo + 30 + v.getUint16(lo + 26, true) + v.getUint16(lo + 28, true);
-    let data = u8.slice(start, start + csize);
-    if (method === 8) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
-    else if (method !== 0) continue;
-    out.push({ path, data });
+    if (path.endsWith('/') || path.split('/').includes('..') || (method !== 0 && method !== 8)) continue;
+    const lh = new DataView(await zip.slice(lo, lo + 30).arrayBuffer());
+    const start = lo + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
+    let file = zip.slice(start, start + csize);
+    if (method === 8) file = await new Response(file.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+    out.push({ path, file });
+  }
+  return out;
+}
+
+// A picked or dropped .zip becomes the files in it, under a folder named after the zip.
+async function unzipAll(list) {
+  const out = [];
+  for (const f of list) {
+    if (!/\.zip$/i.test(f.path)) { out.push(f); continue; }
+    const dir = f.path.replace(/\.zip$/i, '/');
+    for (const z of await readZip(f.file)) out.push({ path: dir + z.path, file: z.file });
   }
   return out;
 }
@@ -313,7 +329,7 @@ function open() {
 
   // Welcome page, drawn like a 95 Setup wizard.
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
-    h('b', null, 'Drag a game folder here'),
+    h('b', null, 'Drag a game folder or .zip here'),
     h('span', null, 'the one with 0.txt, 00.txt or nscript.dat in it'));
   const keepText = h('span');
   const keepBtn = h('button', { class: 'btn', type: 'button', hidden: true, onclick: () => askKeep(true) }, h('span', { html: '<u>K</u>eep Saves...' }));
@@ -357,10 +373,11 @@ function open() {
       h('span', null, 'CON', h('b', null, 'scripter'))),
     h('div', { class: 'cons-main' },
       h('h2', null, 'Welcome to CONscripter'),
-      h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder from your computer to start. The game is read from your disk and never leaves this computer.'),
+      h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder, or a .zip of one, from your computer to start. The game is read from your disk and never leaves this computer.'),
       dropBox,
       h('div', { class: 'cons-btns' },
         h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
+        h('button', { class: 'btn', type: 'button', onclick: openZip }, h('span', { html: 'Open <u>Z</u>ip...' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
       promo,
       recentBox,
@@ -545,6 +562,7 @@ function open() {
   const bar = menubar([
     { label: '&File', items: () => [
       { label: 'Open &Folder...', key: 'Ctrl+O', action: openPicked },
+      { label: 'Open &Zip...', action: openZip },
       '-',
       { label: '&Export Saves...', disabled: !player(), action: exportSaves },
       { label: '&Import Saves...', disabled: !player(), action: importSaves },
@@ -712,12 +730,21 @@ function open() {
         return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: `The folder ${handle.name} could not be read.\n\n${e.message}` });
       }
     }
-    const g = await findGame(list);
+    let g = await findGame(list);
+    if (!g && list.some(f => /\.zip$/i.test(f.path))) {
+      say('Unpacking...');
+      try { g = await findGame(await unzipAll(list)); } catch (e) {
+        idle();
+        return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: e.message === 'zip64'
+          ? 'That zip is too big for CONscripter to open (over 4 GB or 65,535 files). Extract it first, then open the folder.'
+          : 'That zip could not be read. It may be damaged, or not really a .zip file.' });
+      }
+    }
     if (!g) {
       idle();
-      const zip = list.some(f => /\.(zip|7z|rar)$/i.test(f.path));
+      const zip = list.some(f => /\.(7z|rar|lzh)$/i.test(f.path));
       return msgbox({ title: 'CONscripter', icon: 'error', parent: win,
-        text: zip ? 'That looks like an archive. Extract it first, then open the folder.'
+        text: zip ? 'That looks like an archive CONscripter can\'t open. Extract it first, or make it a .zip.'
           : 'There is no NScripter game here.\n\nCONscripter looks for a folder with 0.txt, 00.txt or nscript.dat in it.' });
     }
     if (!g.font) {
@@ -731,6 +758,13 @@ function open() {
   }
 
   async function openPicked() { load(await pickFolder()); }
+  function openZip() {
+    const input = h('input', { type: 'file', accept: '.zip,application/zip', hidden: true });
+    input.addEventListener('change', () => { load({ list: [...input.files].map(file => ({ path: file.name, file })) }); input.remove(); });
+    input.addEventListener('cancel', () => input.remove());
+    document.body.append(input);
+    input.click();
+  }
   function takeDrop(dt) { const p = fromDrop(dt); win.focus(); p.then(load); }
 
   // Opening the folder again, or asking to read it again, needs the click that got us here,
@@ -775,10 +809,11 @@ function open() {
     let files;
     try {
       // Zips from CONscripter's own web page keep the full /cons_save/<game>/ path (/onsyuri_save/ before the rename).
-      files = (await readZip(await picked.arrayBuffer())).map(f => {
+      files = await Promise.all((await readZip(picked)).map(async f => {
         const m = f.path.match(/(?:^|\/)(?:cons|onsyuri)_save\/[^/]+\/(.+)$/);
-        return { ...f, path: (m ? m[1] : f.path).replace(/^\/+/, '') };
-      }).filter(f => f.path && !f.path.split('/').includes('..'));
+        return { path: (m ? m[1] : f.path).replace(/^\/+/, ''), data: new Uint8Array(await f.file.arrayBuffer()) };
+      }));
+      files = files.filter(f => f.path);
     } catch {
       return msgbox({ title: 'Import Saves', icon: 'error', parent: win, text: `${picked.name} is not a .zip file that CONscripter can read.` });
     }
