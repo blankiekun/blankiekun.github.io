@@ -593,6 +593,7 @@ body:has(.win.cons-full) .taskbar { display: none; }
 .ex-twist { width: 9px; height: 9px; padding: 0; border: 1px solid var(--shadow); background: var(--paper); font: 9px/7px var(--font-ui); display: grid; place-items: center; flex: none; cursor: default; }
 .ex-twist[hidden] { display: grid !important; visibility: hidden; }
 @media (max-width: 640px) { .ex-panes, .ex-heads { grid-template-columns: 120px 1fr; } .ex-where { width: 120px; } }
+.regedit .ex-list.v-details .ex-head, .regedit .ex-list.v-details .ex-item { grid-template-columns: 20px minmax(100px, 1fr) minmax(140px, 2fr); }
 .ex-opt { align-items: center; margin: 6px 0; }
 .ex-opt span { flex: 1; }
 .ex-optpic { width: 50px; height: 34px; position: relative; flex: none; }

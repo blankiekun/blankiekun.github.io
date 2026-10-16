@@ -132,6 +132,7 @@ export const root = {
             app('TASKMAN.EXE', 'taskman', 'i-exe', 14848),
             app('MPLAYER.EXE', 'mplayer', 'i-mplayer', 33280),
             app('CLIPBRD.EXE', 'clipbrd', 'i-clipbrd', 16896),
+            app('REGEDIT.EXE', 'regedit', 'i-regedit', 77824),
             app('WELCOME.EXE', 'welcome', 'i-flag', 21504),
             app('EXPLORER.EXE', 'explorer', 'i-folder-open', 204288, 'C:\\'),
           ],
