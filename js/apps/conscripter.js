@@ -468,6 +468,22 @@ function open() {
     launch('notepad', { name: game.title + ' variables.txt', text: text.replace(/\r?\n/g, '\n') });
   }
 
+  async function dumpState() {
+    const p = player();
+    if (!p) return;
+    say('Dumping game state...');
+    const state = await p.dumpState();
+    say('Playing ' + game.title);
+    if (!state) return msgbox({ title: 'Dump Game State', icon: 'error', parent: win, text: 'The engine didn\'t write its state. It only does between pages; click to the next line and try again.' });
+    launch('notepad', { name: game.title + ' state.json', text: JSON.stringify(state, null, 2) });
+  }
+
+  function saveTrace() {
+    const p = player();
+    if (!p) return;
+    download(game.title + ' trace.jsonl', new Blob([p.traceLines.join('\n') + '\n'], { type: 'application/x-ndjson' }));
+  }
+
   function engineLog() {
     const p = player();
     if (!p) return;
@@ -552,7 +568,9 @@ function open() {
       '-',
       { label: 'Save &Editor...', disabled: !player(), action: saveEditor },
       { label: 'Dump &Variables', disabled: !player(), action: dumpVars },
+      { label: 'Dump &Game State', disabled: !player(), action: dumpState },
       { label: 'Engine L&og', disabled: !player(), action: engineLog },
+      { label: 'Save Tr&ace', disabled: !player(), action: saveTrace },
       { label: 'Show &Text Overlay', checked: showText, disabled: !player(), action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
       '-',
       { label: 'Storage &Used...', action: storageUsed },

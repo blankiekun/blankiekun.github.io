@@ -50,6 +50,14 @@ var engineLog = []; // var: the parent reads it
 function logLine(s) { engineLog.push(s); if (engineLog.length > 5000) engineLog.splice(0, 1000); }
 // ?version on the engine's files: a cached old conscripter.js with a new .wasm can't start.
 var g_cons_module = { canvas, locateFile: (p, dir) => dir + p + '?v0.25.3', print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
+// The engine's debug trace (CONscripter's DEBUG.md), for Debug > Dump Game State and Save Trace.
+var traceLines = []; // var: the parent reads it
+let traceWaiter = null;
+function consTrace(line) {
+  traceLines.push(line);
+  if (traceLines.length > 20000) traceLines.splice(1, 5000); // keep [0], the meta record
+  if (traceWaiter && line.startsWith('{"t":"dump"')) traceWaiter(line);
+}
 var g_cons_index = {};
 var g_cons_filemap = {};      // empty: no server lazyload, every file is already mounted
 function fetch_file() { return Promise.resolve(0); }
@@ -732,6 +740,14 @@ async function dumpVars() {
   }
   return null;
 }
+// F8 also writes a dump record to the trace: the page's state (text, bg, sprites, music, ...) and the variables.
+async function dumpState() {
+  const got = new Promise(res => { traceWaiter = res; setTimeout(res, 2000, null); });
+  press(119, 'F8');
+  const line = await got;
+  traceWaiter = null;
+  return line && JSON.parse(line);
+}
 async function clearSaves() {
   const FS = g_cons_module.FS;
   for (const f of listSaves()) FS.unlink(savedir + '/' + f.path);
@@ -791,7 +807,7 @@ async function start(game) {
   if (game.beforeRun) await game.beforeRun();
   canvas.focus();
   M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding,
-    '--dump-vars', VARS_FILE, ...(game.args || [])]);
+    '--dump-vars', VARS_FILE, '--trace', '/dev/null', ...(game.args || [])]); // the records go to consTrace
 }
 </script>
 </body>
