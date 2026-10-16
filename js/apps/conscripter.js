@@ -16,7 +16,8 @@ const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
-const KEEP_GAMES = 'w95.cons.keepgames';  // File > Settings: keep a copy of games in this browser
+const KEEP_GAMES = 'w95.cons.keepgames';
+const FOLD = 'w95.cons.fold';  // touch screens: Menu / Skip buttons folded away  // File > Settings: keep a copy of games in this browser
 // The engine release in cons/ (conscripter.js/.wasm); CONscripter's update_site workflow bumps it.
 const ENGINE_VERSION = 'v0.26.0';
 
@@ -740,9 +741,8 @@ function open() {
   const syncBtn = h('button', { class: 'cons-fs cons-sync', type: 'button', onclick: syncMenu }, driveLogo(), syncLabel);
   const ankiLabel = h('span', { class: 'cons-sync-label' });
   const ankiBtn = h('button', { class: 'cons-fs cons-sync cons-anki', type: 'button', hidden: true, onclick: ankiMenu }, h('b', { class: 'anki-logo', 'aria-hidden': 'true' }, '★'), ankiLabel);
-  bar.append(ankiBtn);
+  bar.append(fsBtn, ankiBtn);
   if (drive.available) bar.append(syncBtn);
-  bar.append(fsBtn);
 
   // In full screen: point at (or click) the top edge for the menu bar.
   const hot = h('div', { class: 'cons-hot', 'aria-hidden': 'true' });
@@ -758,15 +758,17 @@ function open() {
   function toggleSkip() { skip = !skip; player().setSkip(skip); skipBtn.classList.toggle('on', skip); frame.focus(); }
   const skipBtn = h('button', { class: 'btn', type: 'button', onclick: () => player() && toggleSkip() }, 'Skip');
   const touchFs = h('button', { class: 'btn', type: 'button', onclick: fullScreen, hidden: !canFull }, 'Full Screen');
+  let folded = store.get(FOLD, false);
   const touchBar = h('div', { class: 'cons-touch' },
     h('button', { class: 'btn', type: 'button', onclick: () => { if (player()) { player().pressEsc(); frame.focus(); } } }, 'Menu'),
-    skipBtn, touchFs, h('button', { class: 'btn cons-fold', type: 'button', 'aria-label': 'Hide buttons', 'aria-expanded': 'true', onclick: e => {
-      const folded = root.classList.toggle('cons-folded');
+    skipBtn, touchFs, h('button', { class: 'btn cons-fold', type: 'button', 'aria-label': folded ? 'Show buttons' : 'Hide buttons', 'aria-expanded': String(!folded), onclick: e => {
+      folded = root.classList.toggle('cons-folded');
+      store.set(FOLD, folded);
       e.currentTarget.setAttribute('aria-expanded', !folded);
       e.currentTarget.setAttribute('aria-label', folded ? 'Show buttons' : 'Hide buttons');
       if (frame) frame.focus();
     } }));
-  const root = h('div', { class: 'cons' }, hot, bar, view, touchBar, status);
+  const root = h('div', { class: folded ? 'cons cons-folded' : 'cons' }, hot, bar, view, touchBar, status);
 
   // Ask the browser not to evict saves on its own. Clearing site data still erases them.
   function showKeep(kept, refused) {

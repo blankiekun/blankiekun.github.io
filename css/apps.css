@@ -426,14 +426,14 @@
 .cons-tip-never { flex: none; padding: 1px 6px; border: 0; background: var(--face); color: #000; font: inherit; font-size: 11px; box-shadow: var(--raised-btn); white-space: nowrap; }
 .cons-tip-never:active { box-shadow: var(--sunken); }
 .menubar > .cons-fs {
-  margin: 0 2px 0 auto; padding: 1px 6px; display: flex; align-items: center; gap: 4px;
+  margin: 0 0 0 auto; padding: 1px 6px; display: flex; align-items: center; gap: 4px;
   background: var(--face); box-shadow: var(--raised-btn);
 }
 .menubar > .cons-fs svg { width: 8px; height: 7px; }
 .menubar > .cons-fs:active:not(:disabled) { box-shadow: var(--sunken); }
 .menubar > .cons-fs:disabled { color: var(--shadow); text-shadow: 1px 1px var(--hilite); }
-.menubar > .cons-sync { margin-right: 0; }
-.menubar > .cons-sync + .cons-fs { margin-left: 4px; }
+.menubar > .cons-fs:last-child { margin-right: 2px; }
+.menubar > .cons-fs + .cons-fs { margin-left: 4px; }
 .menubar > .cons-sync .drive-logo { width: 14px; height: 13px; }
 .menubar > .cons-sync .drive-logo svg { width: 100%; height: 100%; }
 .menubar > .cons-sync.warn .cons-sync-label { color: #800000; font-weight: bold; }
