@@ -454,10 +454,13 @@ document.addEventListener('keydown', e => {
 // ---------- Run ----------
 
 export function runDialog() {
-  const input = h('input', { class: 'field', id: 'run-open', autocomplete: 'off', style: { flex: '1', minWidth: '0' } });
+  // The Open box remembers what was run before, newest first.
+  const history = store.get('w95.run', []);
+  const input = h('input', { class: 'field', id: 'run-open', autocomplete: 'off', list: 'run-history', value: history[0] || '', style: { flex: '1', minWidth: '0' } });
+  const datalist = h('datalist', { id: 'run-history' }, ...history.map(v => h('option', { value: v })));
   const form = h('form', { class: 'dlg', style: { width: 'min(360px, calc(100vw - 24px))' } },
     h('div', { class: 'row' }, icon('i-run'), h('div', { class: 'msg' }, 'Type the name of a program, folder, or document, and blankiekun 95 will open it for you.')),
-    h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('span', { html: '<u>O</u>pen:' }), input),
+    h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('span', { html: '<u>O</u>pen:' }), input, datalist),
     h('div', { class: 'btns right' },
       h('button', { class: 'btn default', type: 'submit' }, 'OK'),
       h('button', { class: 'btn', type: 'button', onclick: () => win.close() }, 'Cancel'),
@@ -465,12 +468,16 @@ export function runDialog() {
   form.addEventListener('submit', e => {
     e.preventDefault();
     const v = input.value;
-    if (run(v, win)) win.close();
+    if (run(v, win)) {
+      if (v.trim()) store.set('w95.run', [v.trim(), ...history.filter(x => x !== v.trim())].slice(0, 10));
+      win.close();
+    }
     else msgbox({ title: v, icon: 'error', parent: win, text: `Cannot find the file '${v}' (or one of its components). Make sure the path and filename are correct and that all required libraries are available.` });
   });
   form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); win.close(); } });
   const win = createWindow({ title: 'Run', body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, x: 8, y: Math.max(0, desktopEl.clientHeight - 190), help: () => launch('help') });
   input.focus();
+  input.select();
 }
 
 // ---------- shut down / log off ----------
