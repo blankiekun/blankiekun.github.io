@@ -454,20 +454,37 @@ function screenshot() { return new Promise(res => canvas.toBlob(res, 'image/webp
 // 64 MB of chunks around. The engine's fread() never notices.
 // Firefox suspends the page's AudioContext for every synchronous XHR, and restarting
 // the audio stream costs 32 ms or more of silence, so the chunk after each one read
-// is fetched ahead asynchronously: a file read front to back misses only its first.
+// is fetched ahead asynchronously, and the engine (webPreload) asks for the bytes of
+// each file before it reads them and waits while consPreload loads them.
 const CHUNK = 1 << 20, CACHE_CHUNKS = (64 << 20) / CHUNK;
-const cache = new Map(), pending = new Set();
+const cache = new Map(), pending = new Set(), failed = new Set();
 let nextId = 0;
 
 function prefetch(file, id, n) {
   const key = id + ':' + n, start = n * CHUNK;
-  if (start >= file.size || cache.has(key) || pending.has(key)) return;
+  if (start >= file.size || cache.has(key) || pending.has(key) || failed.has(key)) return;
   pending.add(key);
   file.slice(start, Math.min(file.size, start + CHUNK)).arrayBuffer().then(b => {
     pending.delete(key);
     cache.set(key, new Uint8Array(b));
     if (cache.size > CACHE_CHUNKS) cache.delete(cache.keys().next().value);
-  }, () => pending.delete(key));
+  }, () => { pending.delete(key); failed.add(key); });
+}
+
+// True once the bytes from start are cached (or can't be: the read then stays synchronous).
+function consPreload(fd, start, length) {
+  const lazy = g_cons_module.FS.getStream(fd)?.node.lazy;
+  if (!lazy) return true;
+  const end = Math.min(lazy.file.size, start + length);
+  if (end - start > CACHE_CHUNKS / 2 * CHUNK) return true; // would push its own chunks out
+  let ready = true;
+  for (let n = Math.floor(start / CHUNK); n * CHUNK < end; n++) {
+    const key = lazy.id + ':' + n;
+    if (cache.has(key) || failed.has(key)) continue;
+    ready = false;
+    prefetch(lazy.file, lazy.id, n);
+  }
+  return ready;
 }
 
 function readSlice(file, start, end) {
@@ -502,6 +519,7 @@ function mountFile(FS, path, file) {
   const i = path.lastIndexOf('/');
   const node = FS.createFile(path.slice(0, i), path.slice(i + 1), {}, true, false);
   const id = nextId++;
+  node.lazy = { file, id };
   Object.defineProperty(node, 'usedBytes', { get: () => file.size });
   node.stream_ops = {
     ...node.stream_ops,
