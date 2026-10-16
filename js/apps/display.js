@@ -3,6 +3,7 @@
 
 import { h, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
+import { msgbox } from '../dialogs.js';
 import { screenSaverTab } from './screensaver.js';
 
 const KEY = 'w95.display';
@@ -92,7 +93,8 @@ function varsFor(s) {
 // Paint's Set As Wallpaper puts the picture here.
 const PAINTED = 'Paint Wallpaper';
 
-const DEFAULTS = { pattern: '(None)', wallpaper: '(None)', color: '#008080', scheme: 'Windows Standard' };
+const DEFAULTS = { pattern: '(None)', wallpaper: '(None)', color: '#008080', scheme: 'Windows Standard', depth: 'High Color (16 bit)' };
+const DEPTHS = { '16 Color': '16', '256 Color': '256', 'High Color (16 bit)': '', 'True Color (24 bit)': '' };
 function current() { return { ...DEFAULTS, ...(store.get(KEY, null) || {}) }; }
 
 export function setWallpaper(dataUrl, tile) {
@@ -104,6 +106,7 @@ export function setWallpaper(dataUrl, tile) {
 export function applyDisplay(s = current()) {
   const vars = varsFor(s);
   for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty(k, v);
+  document.documentElement.dataset.depth = DEPTHS[s.depth] || '';
 }
 
 function listbox(options, value, onpick, label) {
@@ -137,6 +140,7 @@ function open() {
   function preview() {
     const v = varsFor(draft);
     for (const [k, val] of Object.entries(v)) screen.style.setProperty(k, val);
+    screen.dataset.depth = DEPTHS[draft.depth] || '';
     applyBtn.disabled = false;
   }
 
@@ -164,8 +168,10 @@ function open() {
     h('p', { class: 'dp-note' }, 'A scheme sets the window colours and a matching desktop colour. Project pages in Internet Explorer keep their own look.'),
     h('button', { class: 'btn', type: 'button', onclick: () => { Object.assign(draft, DEFAULTS); schemeSel.value = DEFAULTS.scheme; preview(); } }, 'Restore defaults'));
 
+  const depthSel = h('select', { class: 'field', id: 'dp-depth' }, ...Object.keys(DEPTHS).map(d => h('option', { value: d, selected: d === draft.depth }, d)));
+  depthSel.addEventListener('change', () => { draft.depth = depthSel.value; preview(); });
   const setPanel = h('div', { class: 'dp-panel', hidden: true },
-    h('div', { class: 'dp-row' }, h('span', null, 'Color palette:'), h('select', { class: 'field', disabled: true }, h('option', null, '16 Color'))),
+    h('label', { class: 'dp-row', for: 'dp-depth' }, h('span', { html: '<u>C</u>olor palette:' }), depthSel),
     h('div', { class: 'dp-row' }, h('span', null, 'Desktop area:'), h('b', { class: 'dp-res' }, `${innerWidth} by ${innerHeight} pixels`)),
     h('div', { class: 'dp-row' }, h('span', null, 'Font size:'), h('select', { class: 'field', disabled: true }, h('option', null, 'Small Fonts'))));
 
@@ -183,17 +189,26 @@ function open() {
     return b;
   }));
 
-  function commit() {
+  // A new colour palette waits for a restart, like the real thing; Yes fakes one.
+  async function commit() {
+    const was = current().depth;
     store.set(KEY, { ...draft, vars: varsFor(draft) });
-    applyDisplay(draft);
+    applyDisplay({ ...draft, depth: was });
     ss.commit();
     applyBtn.disabled = true;
+    if (draft.depth === was) return;
+    const b = await msgbox({ title: 'System Settings Change', icon: 'i-warn', parent: win, buttons: ['&Yes', '&No'],
+      text: 'You must restart your computer before the new settings will take effect.\n\nDo you want to restart your computer now?' });
+    if (b !== 'Yes') return;
+    const black = h('div', { class: 'screen', style: { background: '#000' } });
+    document.body.append(black);
+    setTimeout(() => { applyDisplay(current()); black.remove(); }, 1200);
   }
 
   const body = h('div', { class: 'dlg dp' },
     h('div', { class: 'dp-tabs' }, tabs, h('div', { class: 'tabpanel' }, monitor, ...panels)),
     h('div', { class: 'btns right' },
-      h('button', { class: 'btn default', type: 'button', onclick: () => { commit(); win.close(); } }, 'OK'),
+      h('button', { class: 'btn default', type: 'button', onclick: async () => { await commit(); win.close(); } }, 'OK'),
       h('button', { class: 'btn', type: 'button', onclick: () => win.close() }, 'Cancel'),
       applyBtn));
   applyBtn.innerHTML = '<u>A</u>pply';

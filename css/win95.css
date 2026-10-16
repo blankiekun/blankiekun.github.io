@@ -85,6 +85,12 @@ a { color: var(--link); }
   image-rendering: pixelated;
   overflow: hidden;
 }
+/* Fewer colours: only the wallpaper layer is filtered, so windows don't pay for it. */
+[data-depth="16"] .desktop::before, [data-depth="256"] .desktop::before,
+.dp-screen[data-depth="16"]::before, .dp-screen[data-depth="256"]::before {
+  content: ''; position: absolute; inset: 0; background: inherit; filter: url(#f-16);
+}
+[data-depth="256"] .desktop::before, .dp-screen[data-depth="256"]::before { filter: url(#f-256); }
 .icons { position: absolute; inset: 0; }
 .icon {
   position: absolute; width: 86px;
