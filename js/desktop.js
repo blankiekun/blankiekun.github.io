@@ -792,11 +792,12 @@ function clock() {
 // ---------- tooltips ----------
 
 // title= hints in the shell show as Windows 95's yellow tooltips instead of the browser's.
+// An iframe's title is its accessible name, not a hint, so it is left alone.
 let tipFor = null, tipEl = null, tipTimer = 0, tipX = 0, tipY = 0;
 function hideTip() { clearTimeout(tipTimer); if (tipEl) tipEl.remove(); tipEl = tipFor = null; }
 document.addEventListener('pointermove', e => { tipX = e.clientX; tipY = e.clientY; }, { passive: true });
 document.addEventListener('pointerover', e => {
-  const el = e.pointerType === 'mouse' && e.target.closest ? e.target.closest('[title], [data-tip]') : null;
+  const el = e.pointerType === 'mouse' && e.target.closest ? e.target.closest('[title]:not(iframe), [data-tip]') : null;
   if (el === tipFor) return;
   hideTip();
   if (!el) return;
