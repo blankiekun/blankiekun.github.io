@@ -395,3 +395,13 @@ body.tb-under .taskbar { z-index: 5; }
 .alttab-icons span.on { border-color: var(--ink); }
 .alttab-icons svg { width: 32px; height: 32px; }
 .alttab-t { margin-top: 10px; padding: 3px 6px; box-shadow: var(--sunken); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The joke blue screen from typing WIN inside Windows */
+.screen.bsod {
+  background: #0000aa; color: #fff; font: clamp(16px, 2.6vw, 24px)/1.25 var(--font-dos);
+  padding: 12vh max(16px, 12vw) 0; outline: none; cursor: default;
+}
+.screen.bsod p { margin: 0 0 1.2em; white-space: pre-wrap; }
+.screen.bsod p:first-child, .screen.bsod p:last-child { text-align: center; }
+.screen.bsod span { background: #aaa; color: #0000aa; }
+.screen.bsod i { font-style: normal; animation: blink 1s steps(1) infinite; }
