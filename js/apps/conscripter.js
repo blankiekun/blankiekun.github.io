@@ -16,6 +16,7 @@ const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
+const KEEP_GAMES = 'w95.cons.keepgames';  // File > Settings: keep a copy of games in this browser
 // The engine release in cons/ (conscripter.js/.wasm); CONscripter's update_site workflow bumps it.
 const ENGINE_VERSION = 'v0.26.0';
 
@@ -131,8 +132,9 @@ async function walkHandle(dir) {
 
 // ---------- recent games ----------
 
-// The list is [{ title, at, folder }], newest first. folder: the browser kept the folder
+// The list is [{ title, at, folder, kept }], newest first. folder: the browser kept the folder
 // itself (in IndexedDB, under the title), so the game opens again without picking it.
+// kept: the game's size, once a copy of it is in the browser's own storage (below).
 const recentGames = () => store.get(RECENT, []);
 
 function folders(mode, fn) {
@@ -148,18 +150,61 @@ function folders(mode, fn) {
   });
 }
 
+// handle undefined: opened from the kept copy, so the folder stays as it was.
 function remember(title, handle) {
-  const list = [{ title, at: Date.now(), folder: !!handle }, ...recentGames().filter(r => r.title !== title)];
+  const old = recentGames().find(r => r.title === title);
+  const list = [{ ...old, title, at: Date.now(), ...(handle !== undefined && { folder: !!handle }) }, ...recentGames().filter(r => r.title !== title)];
   store.set(RECENT, list.slice(0, MAX_RECENT));
   folders('readwrite', s => {
-    if (handle) s.put(handle, title); else s.delete(title);
+    if (handle) s.put(handle, title); else if (handle === null) s.delete(title);
     for (const r of list.slice(MAX_RECENT)) s.delete(r.title);
   }).catch(() => {});
+  for (const r of list.slice(MAX_RECENT)) if (r.kept) dropKept(r.title);
 }
 
 function forget(title) {
   store.set(RECENT, recentGames().filter(r => r.title !== title));
   folders('readwrite', s => { s.delete(title); }).catch(() => {});
+  dropKept(title);
+}
+
+// ---------- games kept in this browser ----------
+
+// A copy of the game's files in the site's private storage (the origin private file system),
+// one folder per title, so Recent games opens it without picking it again, offline too.
+const canKeepGames = !!(navigator.storage && navigator.storage.getDirectory && window.FileSystemFileHandle && 'createWritable' in FileSystemFileHandle.prototype);
+const keptRoot = () => navigator.storage.getDirectory().then(d => d.getDirectoryHandle('cons-games', { create: true }));
+const keptDir = async title => (await keptRoot()).getDirectoryHandle(title);
+const markKept = (title, size) => store.set(RECENT, recentGames().map(r => r.title === title ? { ...r, kept: size } : r));
+async function dropKept(title) {
+  markKept(title, 0);
+  if (canKeepGames) await (await keptRoot()).removeEntry(title, { recursive: true }).catch(() => {});
+}
+// Everything, copies left half-made by a closed tab included.
+async function dropAllKept() {
+  store.set(RECENT, recentGames().map(r => ({ ...r, kept: 0 })));
+  if (canKeepGames) await navigator.storage.getDirectory().then(d => d.removeEntry('cons-games', { recursive: true })).catch(() => {});
+}
+
+// Only marked kept once every file is in, so a copy cut short is never opened.
+async function copyGame(g, progress) {
+  const root = await keptRoot();
+  await root.removeEntry(g.title, { recursive: true }).catch(() => {});
+  const top = await root.getDirectoryHandle(g.title, { create: true });
+  let done = 0;
+  try {
+    for (const f of g.files) {
+      const parts = f.path.split('/');
+      let d = top;
+      for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+      await f.file.stream().pipeTo(await (await d.getFileHandle(parts.at(-1), { create: true })).createWritable());
+      progress(done += f.file.size);
+    }
+  } catch (e) {
+    await root.removeEntry(g.title, { recursive: true }).catch(() => {});
+    throw e;
+  }
+  markKept(g.title, g.size);
 }
 
 const hhmm = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -380,7 +425,7 @@ function open() {
     recentBox.hidden = !list.length;
     recentRows.replaceChildren(...list.map(r => {
       const row = h('button', { class: 'cons-recent-item', type: 'button', onclick: () => openRecent(r),
-        title: r.folder ? 'Open ' + r.title : 'Choose the ' + r.title + ' folder again to open it' },
+        title: r.kept ? 'Open ' + r.title + ' (kept in this browser)' : r.folder ? 'Open ' + r.title : 'Choose the ' + r.title + ' folder again to open it' },
       icon('i-folder'), h('span', { class: 'cons-recent-name' }, r.title), h('span', { class: 'cons-recent-at' }, when(r.at)));
       row.addEventListener('contextmenu', e => {
         e.preventDefault(); e.stopPropagation();
@@ -570,12 +615,67 @@ function open() {
     say('Deleted the saves');
   }
 
+  // File > Settings. The checkboxes apply on OK; deleting kept games happens at once.
+  function settingsDialog() {
+    const keepBox = h('input', { type: 'checkbox', id: 'cons-set-keep', checked: keepGames(), disabled: !canKeepGames });
+    const tipBox = h('input', { type: 'checkbox', id: 'cons-set-tip', checked: !store.get(NO_TIP, false) });
+    const keptRows = h('div', { class: 'cons-recent-list' });
+    const dropAll = h('button', { class: 'btn', type: 'button', onclick: async () => {
+      const b = await msgbox({ title: 'Settings', icon: 'question', parent: d, buttons: ['&Yes', '&No'], text: 'Delete every game kept in this browser?\n\nSaves are kept. To play a game again, open its folder or zip.' });
+      if (b === 'Yes') { await dropAllKept(); showKept(); }
+    } }, h('span', { html: '<u>D</u>elete All' }));
+    const used = h('p');
+    function showKept() {
+      const kept = recentGames().filter(r => r.kept);
+      keptRows.replaceChildren(...(kept.length ? kept.map(r => h('div', { class: 'cons-kept-item' }, icon('i-folder'),
+        h('span', { class: 'cons-recent-name' }, r.title), h('span', { class: 'cons-recent-at' }, bytes(r.kept)),
+        h('button', { class: 'btn', type: 'button', title: 'Delete the copy of ' + r.title, onclick: async () => { await dropKept(r.title); showKept(); } }, 'Delete')))
+        : [h('span', { class: 'cons-recent-at' }, canKeepGames ? 'No games are kept yet.' : 'This browser can\'t keep games.')]));
+      dropAll.disabled = !kept.length;
+      showRecent();
+      const st = navigator.storage;
+      if (st && st.estimate) Promise.all([st.estimate(), st.persisted ? st.persisted() : false]).then(([{ usage, quota }, kept]) => {
+        used.textContent = `This site is using ${bytes(usage || 0)} of the ${bytes(quota || 0)} the browser allows it. ` +
+          (kept ? 'The browser has agreed not to clear it on its own.' : 'The browser may clear it on its own if it runs low on space.');
+      }, () => {});
+    }
+    showKept();
+    const sw = navigator.serviceWorker;
+    const offline = !sw ? 'This browser can\'t open the page without an internet connection.'
+      : sw.controller ? 'This page opens without an internet connection, and so do the games kept in this browser.'
+      : 'This page will open without an internet connection after it\'s next loaded.';
+    const form = h('form', { class: 'dlg cons-settings' },
+      h('fieldset', { class: 'group' }, h('legend', null, 'Games'),
+        h('label', { class: 'cons-check', for: 'cons-set-keep' }, keepBox, h('span', { html: '<u>K</u>eep a copy of games I open in this browser' })),
+        h('p', null, 'Recent games then open without choosing the folder or zip again, even offline. Each copy takes as much space as the game.'),
+        keptRows, h('div', { class: 'btns right' }, dropAll)),
+      h('fieldset', { class: 'group' }, h('legend', null, 'Saves and storage'),
+        h('label', { class: 'cons-check', for: 'cons-set-tip' }, tipBox, h('span', { html: 'Show the <u>t</u>ip about saves when a game starts' })),
+        used),
+      h('fieldset', { class: 'group' }, h('legend', null, 'Offline'), h('p', null, offline)),
+      h('div', { class: 'btns right' },
+        h('button', { class: 'btn default', type: 'submit' }, 'OK'),
+        h('button', { class: 'btn', type: 'button', onclick: () => d.close(true) }, 'Cancel')));
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      store.set(KEEP_GAMES, keepBox.checked);
+      store.set(NO_TIP, !tipBox.checked);
+      if (tipBox.checked) tipShown = false;
+      d.close(true);
+      if (keepGames() && frame && game.named) keepCopy(game);
+    });
+    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); d.close(true); } });
+    const d = createWindow({ title: 'CONscripter Settings', body: form, dialog: true, resizable: false, width: 'auto', parent: win, taskbar: false });
+    form.querySelector('.default').focus();
+  }
+
   async function clearAll() {
     const b = await msgbox({ title: 'Clear All Site Data', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
-      text: 'Erase everything this site keeps in this browser?\n\nThat is the saves of every game, and every setting: display, Minesweeper and Solitaire, tips. The page reloads after.' +
+      text: 'Erase everything this site keeps in this browser?\n\nThat is the saves of every game, the games kept in this browser, and every setting: display, Minesweeper and Solitaire, tips. The page reloads after.' +
         (drive.enabled() ? ' Google Drive sync is turned off, and the copies in your Google Drive are kept.' : '') + '\n\nThis can\'t be undone.' });
     if (b !== 'Yes') return;
     if (frame) { frame.remove(); frame = null; } // its open save database would hold up the delete
+    await dropAllKept();
     try { localStorage.clear(); sessionStorage.clear(); } catch {}
     const dbs = indexedDB.databases ? await indexedDB.databases().catch(() => []) : [];
     await Promise.all(dbs.map(d => new Promise(res => {
@@ -597,6 +697,8 @@ function open() {
         { label: '&Sync Now', disabled: !player() || !drive.enabled(), action: () => syncSaves({ interactive: true, report: true }) }] : []),
       '-',
       { label: '&Close Game', disabled: !frame, action: () => confirmQuit().then(ok => ok && stop('Ready')) },
+      '-',
+      { label: 'Se&ttings...', action: settingsDialog },
       '-',
       ...recentGames().map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
       ...(recentGames().length ? ['-'] : []),
@@ -745,7 +847,8 @@ function open() {
   const idle = () => say(frame ? 'Playing ' + game.title : 'Ready');
 
   // From a folder handle, or a list of files already read.
-  async function load({ list, handle }) {
+  // kept: handle is the game's copy in this browser.
+  async function load({ list, handle, kept }) {
     if (list && !list.length) return;
     say('Reading files...');
     if (!list) {
@@ -777,8 +880,30 @@ function open() {
         text: `${g.title} has no font.\n\nPut a default.ttf next to the game's script and open it again.` });
     }
     if (!(await confirmQuit())) { say('Playing ' + game.title); return; }
-    if (g.named) remember(g.title, handle);
+    if (g.named) remember(g.title, kept ? undefined : handle || null);
     boot(g);
+    if (g.named && !kept && keepGames()) keepCopy(g);
+  }
+
+  const keepGames = () => canKeepGames && store.get(KEEP_GAMES, false);
+  let copying = null;  // the title being copied
+  async function keepCopy(g) {
+    if (copying || (recentGames().find(r => r.title === g.title) || {}).kept) return;
+    const s = navigator.storage, { usage = 0, quota = 0 } = s.estimate ? await s.estimate().catch(() => ({})) : {};
+    if (quota && g.size > (quota - usage) * 0.9) return say(`There's no room in this browser to keep ${g.title} (${bytes(g.size)})`);
+    copying = g.title;
+    let shown = -1;
+    try {
+      await copyGame(g, done => {
+        const pct = Math.floor(done / (g.size || 1) * 100);
+        if (pct !== shown) say(`Keeping a copy of ${g.title} in this browser... ${shown = pct}%`);
+      });
+      say(`${g.title} is kept in this browser`);
+    } catch (e) {
+      say(`${g.title} could not be kept in this browser: ${e.message}`);
+    } finally {
+      copying = null;
+    }
   }
 
   async function openPicked() { load(await pickFolder()); }
@@ -794,11 +919,16 @@ function open() {
   // Opening the folder again, or asking to read it again, needs the click that got us here,
   // so nothing slow happens before.
   async function openRecent(r) {
+    if (r.kept) {
+      let handle = null;
+      try { handle = await keptDir(r.title); } catch { markKept(r.title, 0); } // the browser cleared it
+      if (handle) return load({ handle, kept: true });
+    }
     if (!r.folder) { say(`Choose the ${r.title} folder`); return openPicked(); }
     let handle = null;
     try { handle = await folders('readonly', s => s.get(r.title)); } catch {}
     if (!handle) return openPicked();
-    let ok = await handle.queryPermission({ mode: 'read' }) === 'granted';
+    let ok = !handle.queryPermission || await handle.queryPermission({ mode: 'read' }) === 'granted';
     if (!ok) ok = await handle.requestPermission({ mode: 'read' }).then(p => p === 'granted', () => false);
     if (!ok) return say('Ready');
     if (await handle.values().next().then(() => false, e => e.name === 'NotFoundError')) {

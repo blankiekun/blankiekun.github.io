@@ -389,6 +389,13 @@
 .cons-recent-at { flex: none; color: var(--shadow); }
 .cons-recent-item:hover, .cons-recent-item:focus-visible { background: var(--select); color: var(--select-ink); outline: 0; }
 .cons-recent-item:hover .cons-recent-at, .cons-recent-item:focus-visible .cons-recent-at { color: inherit; }
+.cons-settings { width: 400px; max-width: calc(100vw - 32px); }
+.cons-settings fieldset { display: flex; flex-direction: column; gap: 6px; }
+.cons-settings p { margin: 0; }
+.cons-check { display: flex; align-items: center; gap: 6px; }
+.cons-kept-item { display: flex; align-items: center; gap: 6px; padding: 1px 4px; }
+.cons-kept-item svg { width: 16px; height: 16px; flex: none; }
+.cons-kept-item .btn { min-width: 0; padding: 0 6px; }
 .cons-warn { display: flex; flex-direction: column; gap: 8px; }
 .cons-warn-row { display: flex; gap: 10px; align-items: flex-start; }
 .cons-warn-row svg { width: 32px; height: 32px; flex: none; }
