@@ -6,6 +6,9 @@ import { menubar } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
 import { saveAs, openFile, saveTo } from '../filedlg.js';
 import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
+import { formatTime, formatDate } from './control.js';
+
+const stamp = () => formatTime() + ' ' + formatDate();
 
 function open(arg) {
   let name = arg && arg.name ? arg.name : 'Untitled';
@@ -41,7 +44,14 @@ function open(arg) {
     win.setTitle(title());
     return true;
   }
-  function load(n, t, p) { name = n; path = p || null; saved = t; ta.value = t; own = t === '' || !!p; syncSend(); win.setTitle(title()); ta.setSelectionRange(0, 0); ta.scrollTop = 0; }
+  function load(n, t, p) { name = n; path = p || null; saved = t; ta.value = t; own = t === '' || !!p; syncSend(); win.setTitle(title()); ta.setSelectionRange(0, 0); ta.scrollTop = 0; logStamp(); }
+  // A file whose first line is .LOG gets the time and date added each time it's opened.
+  function logStamp() {
+    if (!/^\.LOG(\n|$)/.test(ta.value)) return;
+    ta.value += '\n' + stamp() + '\n';
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.scrollTop = ta.scrollHeight;
+  }
   async function openDialog() {
     if (!(await confirmSave())) return;
     const r = await openFile({ filters: TXT, parent: win, accept: '.txt,text/plain' });
@@ -97,7 +107,7 @@ function open(arg) {
       { label: 'De&lete', key: 'Del', action: () => insert('') },
       '-',
       { label: 'Select &All', action: () => { ta.focus(); ta.select(); } },
-      { label: 'Time/&Date', key: 'F5', action: () => insert(new Date().toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }).replace(',', '')) },
+      { label: 'Time/&Date', key: 'F5', action: () => insert(stamp()) },
       '-',
       { label: '&Word Wrap', checked: wrap, action: () => { wrap = !wrap; ta.classList.toggle('nowrap', !wrap); } },
     ] },
@@ -112,7 +122,7 @@ function open(arg) {
   ]);
 
   ta.addEventListener('keydown', e => {
-    if (e.key === 'F5') { e.preventDefault(); insert(new Date().toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', month: 'numeric', day: 'numeric', year: 'numeric' }).replace(',', '')); }
+    if (e.key === 'F5') { e.preventDefault(); insert(stamp()); }
     if (e.key === 'F3') { e.preventDefault(); findNext(); }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
   });
@@ -135,6 +145,7 @@ function open(arg) {
   if (sendBtn) tipLater(sendBtn, root, 'notepad', 'Send your note to blankiekun with this button.', () => own && dirty() && ta.value.trim().length > 15);
   ta.focus();
   ta.setSelectionRange(0, 0);
+  logStamp();
   return win;
 }
 
