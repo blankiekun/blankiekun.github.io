@@ -16,6 +16,8 @@ const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
+// The engine release in cons/ (conscripter.js/.wasm); bump it with them.
+const ENGINE_VERSION = 'v0.25.2';
 
 // Debug > Engine Flags: engine options, used from the next start.
 const FLAG_LIST = [
@@ -53,6 +55,19 @@ const SCRIPTS = ['0.txt', '00.txt', 'nscript.dat', 'nscr_sec.dat', 'onscript.nt'
 
 // Call straight from the drop handler: the entries have to be taken before anything awaits.
 // Resolves to { list, handle }; handle is the dropped folder, where the browser can keep it.
+// Help > About: the engine release, and the site's newest commit on GitHub (the
+// one Pages serves once it has deployed), which has no version of its own.
+function aboutCons(win) {
+  const site = h('span', null, '…');
+  fetch('https://api.github.com/repos/blankiekun/blankiekun.github.io/commits/main')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(c => site.replaceChildren(h('a', { href: c.html_url, target: '_blank', rel: 'noopener' },
+      c.sha.slice(0, 7) + ' (' + c.commit.committer.date.slice(0, 10) + ')')))
+    .catch(() => { site.textContent = 'unknown'; });
+  return about('CONscripter', 'i-game', win,
+    h('p', null, 'Engine ' + ENGINE_VERSION, h('br'), 'Site ', site));
+}
+
 function fromDrop(dt) {
   const items = [...dt.items];
   const handle = items.length === 1 && items[0].getAsFileSystemHandle ? items[0].getAsFileSystemHandle().catch(() => null) : null;
@@ -547,7 +562,7 @@ function open() {
     ] },
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help', 'CONscripter') }, '-',
-      { label: '&About CONscripter', action: () => about('CONscripter', 'i-game', win) },
+      { label: '&About CONscripter', action: () => aboutCons(win) },
     ] },
   ]);
 

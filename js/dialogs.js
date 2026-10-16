@@ -57,12 +57,14 @@ export function inputbox({ title, label, value = '', parent, ok = 'OK' }) {
 }
 
 // Help > About for every app: the classic shell About box.
-export function about(appName, appIcon, parent) {
+// extra: more lines under the app's name, such as its version.
+export function about(appName, appIcon, parent, extra) {
   const body = h('div', { class: 'dlg about' },
     h('div', { class: 'row' },
       h('div', { class: 'about-logo' }, icon('i-flag'), appIcon ? icon(appIcon) : null),
       h('div', { class: 'about-text' },
         h('p', null, h('b', null, 'blankiekun 95'), h('br'), appName),
+        extra ?? null,
         h('p', null, 'Copyright © 1981-1995 blankiekun'),
         h('p', null, 'This product is licensed to:', h('br'), h('a', { href: 'https://github.com/blankiekun', target: '_blank', rel: 'noopener' }, 'github.com/blankiekun')),
         h('hr'),
