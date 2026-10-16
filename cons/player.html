@@ -452,11 +452,23 @@ function screenshot() { return new Promise(res => canvas.toBlob(res, 'image/webp
 // Emscripten's own lazy files need a web worker, so these nodes read 1 MB slices of
 // the File with a synchronous XHR on a blob: URL instead, and keep the most recent
 // 64 MB of chunks around. The engine's fread() never notices.
-// Firefox plays silence for an audio callback the main thread runs late, so a voice's
-// 1 MB read cut the BGM there: it reads 64 KB slices, a sixteenth of the stall.
-const CHUNK = /Firefox\//.test(navigator.userAgent) ? 1 << 16 : 1 << 20, CACHE_CHUNKS = (64 << 20) / CHUNK;
-const cache = new Map();
+// Firefox suspends the page's AudioContext for every synchronous XHR, and restarting
+// the audio stream costs 32 ms or more of silence, so the chunk after each one read
+// is fetched ahead asynchronously: a file read front to back misses only its first.
+const CHUNK = 1 << 20, CACHE_CHUNKS = (64 << 20) / CHUNK;
+const cache = new Map(), pending = new Set();
 let nextId = 0;
+
+function prefetch(file, id, n) {
+  const key = id + ':' + n, start = n * CHUNK;
+  if (start >= file.size || cache.has(key) || pending.has(key)) return;
+  pending.add(key);
+  file.slice(start, Math.min(file.size, start + CHUNK)).arrayBuffer().then(b => {
+    pending.delete(key);
+    cache.set(key, new Uint8Array(b));
+    if (cache.size > CACHE_CHUNKS) cache.delete(cache.keys().next().value);
+  }, () => pending.delete(key));
+}
 
 function readSlice(file, start, end) {
   const url = URL.createObjectURL(file.slice(start, end));
@@ -475,6 +487,7 @@ function readSlice(file, start, end) {
 
 function chunk(file, id, n) {
   const key = id + ':' + n;
+  prefetch(file, id, n + 1);
   let c = cache.get(key);
   if (c) { cache.delete(key); cache.set(key, c); return c; }
   c = readSlice(file, n * CHUNK, Math.min(file.size, (n + 1) * CHUNK));
