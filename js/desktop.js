@@ -188,37 +188,43 @@ function mark(o, on) {
 }
 
 // Where a dragged icon would land: a folder or the Recycle Bin, else just the desktop.
-function dropAt(x, y, it) {
+function dropAt(x, y, group) {
   for (let el = document.elementFromPoint(x, y); el; el = el.parentElement) {
-    if (el === it.el || el === desktopEl) return null;
+    if (group.some(o => o.el === el) || el === desktopEl || el === iconsEl) return null;
     if (el.dropFolder) return { el, folder: el.dropFolder() };
   }
   return null;
 }
 
+// Dragging a selected icon drags the whole selection with it.
 function iconDown(it, e) {
   if (e.button !== 0 || renaming) return;
   e.stopPropagation();
   closeMenus('icon');
   deactivate();
-  select(it);
+  const wasSel = it.el.classList.contains('sel');
+  if (!wasSel) select(it);
   it.el.focus({ preventScroll: true });
+  const group = ICONS.filter(o => o.el.classList.contains('sel'));
+  const files = group.filter(o => o.file).map(o => o.node);
   const touch = e.pointerType !== 'mouse';
   const sx = e.clientX, sy = e.clientY;
-  let ghost = null, over = null;
+  let ghosts = null, over = null;
   it.el.setPointerCapture(e.pointerId);
   const move = ev => {
     const dx = ev.clientX - sx, dy = ev.clientY - sy;
-    if (!ghost) {
+    if (!ghosts) {
       if (Math.hypot(dx, dy) < (touch ? 10 : 4)) return;
-      ghost = it.el.cloneNode(true);
-      ghost.classList.add('ghost');
-      iconsEl.append(ghost);
+      ghosts = group.map(o => {
+        const g = o.el.cloneNode(true);
+        g.classList.add('ghost');
+        iconsEl.append(g);
+        return g;
+      });
     }
-    ghost.style.left = it.x + dx + 'px';
-    ghost.style.top = it.y + dy + 'px';
-    if (it.file) {
-      const t = dropAt(ev.clientX, ev.clientY, it);
+    group.forEach((o, i) => { ghosts[i].style.left = o.x + dx + 'px'; ghosts[i].style.top = o.y + dy + 'px'; });
+    if (files.length) {
+      const t = dropAt(ev.clientX, ev.clientY, group);
       if (over && (!t || t.el !== over)) over.classList.remove('drop-hot');
       over = t && t.el;
       if (over) over.classList.add('drop-hot');
@@ -229,17 +235,20 @@ function iconDown(it, e) {
     it.el.removeEventListener('pointerup', up);
     it.el.removeEventListener('pointercancel', up);
     if (over) over.classList.remove('drop-hot');
-    if (ghost) {
-      ghost.remove();
+    if (ghosts) {
+      ghosts.forEach(g => g.remove());
       if (ev.type !== 'pointerup') return;
-      const t = it.file && dropAt(ev.clientX, ev.clientY, it);
-      if (t) { drop([it.node], t.folder, ev.ctrlKey); return; }
-      it.x = clamp(it.x + ev.clientX - sx, 0, desktopEl.clientWidth - CELL_W);
-      it.y = clamp(it.y + ev.clientY - sy, 0, desktopEl.clientHeight - CELL_H);
-      place(it);
+      const t = files.length && dropAt(ev.clientX, ev.clientY, group);
+      if (t) { drop(files, t.folder, ev.ctrlKey); return; }
+      for (const o of group) {
+        o.x = clamp(o.x + ev.clientX - sx, 0, desktopEl.clientWidth - CELL_W);
+        o.y = clamp(o.y + ev.clientY - sy, 0, desktopEl.clientHeight - CELL_H);
+        place(o);
+      }
       moved = true;
-    } else if (touch && ev.type === 'pointerup') {
-      it.open(); // a tap opens on touch screens; double-click is a mouse habit
+    } else if (ev.type === 'pointerup') {
+      if (wasSel) select(it); // a click without a drag picks just this one out of the selection
+      if (touch) it.open(); // a tap opens on touch screens; double-click is a mouse habit
     }
   };
   it.el.addEventListener('pointermove', move);
