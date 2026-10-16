@@ -807,7 +807,7 @@ async function start(game) {
   if (game.beforeRun) await game.beforeRun();
   canvas.focus();
   M.callMain(['--root', GAMEDIR, '--font', GAMEDIR + '/' + game.font, '--save-dir', savedir, '--enc:' + encoding,
-    '--dump-vars', VARS_FILE, '--trace', '/dev/null', ...(game.args || [])]); // the records go to consTrace
+    '--dump-vars', VARS_FILE, ...(game.args || [])]);
 }
 </script>
 </body>

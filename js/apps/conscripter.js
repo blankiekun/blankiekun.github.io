@@ -23,6 +23,7 @@ const ENGINE_VERSION = 'v0.25.3';
 const FLAG_LIST = [
   { flag: '--edit', label: '&Edit Variables with Z' },
   { flag: '--debug:1', label: '&Debug Output (Engine Log)' },
+  { flag: '--trace', label: '&Trace (Dump Game State, Save Trace)' },
   { flag: '--force-button-shortcut', label: 'Ignore &Key Locks' },
   { flag: '--enable-wheeldown-advance', label: '&Wheel Down Advances Text' },
   '-',
@@ -308,6 +309,7 @@ function open() {
   let chain = Promise.resolve(), waiting = null;
 
   const player = () => frame && frame.contentWindow && frame.contentWindow.listSaves ? frame.contentWindow : null;
+  const tracing = () => player() && player().traceLines.length; // the running game was started with Trace
 
   // Welcome page, drawn like a 95 Setup wizard.
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
@@ -568,9 +570,9 @@ function open() {
       '-',
       { label: 'Save &Editor...', disabled: !player(), action: saveEditor },
       { label: 'Dump &Variables', disabled: !player(), action: dumpVars },
-      { label: 'Dump &Game State', disabled: !player(), action: dumpState },
+      { label: 'Dump &Game State', disabled: !tracing(), action: dumpState },
       { label: 'Engine L&og', disabled: !player(), action: engineLog },
-      { label: 'Save Tr&ace', disabled: !player(), action: saveTrace },
+      { label: 'Save Tr&ace', disabled: !tracing(), action: saveTrace },
       { label: 'Show &Text Overlay', checked: showText, disabled: !player(), action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
       '-',
       { label: 'Storage &Used...', action: storageUsed },
@@ -649,7 +651,7 @@ function open() {
       w.onSaved = () => { if (frame === me) savedSoon(); };
       w.showText(showText);
       w.start({
-        files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags, ...args],
+        files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags].flatMap(f => f === '--trace' ? [f, '/dev/null'] : f).concat(args), // the trace's records go to the page
         keepLines: g.jp && anki.settings().on,
         recordLines: g.jp && anki.settings().on && anki.settings().audio,
         beforeRun: () => frame === me && syncSaves({ w, starting: true }),
