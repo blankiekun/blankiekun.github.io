@@ -4,7 +4,8 @@
 import { h, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { msgbox } from '../dialogs.js';
-import { screenSaverTab } from './screensaver.js';
+import { screenSaverTab, setScreenSaver, loadScreenSaver, SAVERS } from './screensaver.js';
+import { setSoundMap } from './control.js';
 
 const KEY = 'w95.display';
 
@@ -223,5 +224,63 @@ function open() {
   applyBtn.disabled = true;
   return win;
 }
+
+// ---------- Desktop Themes ----------
+// Plus!-style themes made from what's already here: one pick sets the colours,
+// wallpaper, pattern, event sounds and screen saver together.
+const THEMES = {
+  'Windows Default': { scheme: 'Windows Standard', color: '#008080', wallpaper: '(None)', pattern: '(None)', saver: 'flying', sounds: null },
+  'Inside Your Computer': { scheme: 'Slate', color: '#3a5070', wallpaper: '(None)', pattern: 'Circuits', saver: 'pipes',
+    sounds: { 'Default sound': 'Ding', 'Asterisk': 'Chord', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' } },
+  'Mystery': { scheme: 'Storm', color: '#000000', wallpaper: '(None)', pattern: '(None)', saver: 'mystify',
+    sounds: { 'Default sound': 'Ding', 'Asterisk': 'Chimes', 'Critical Stop': 'Chord', 'Exclamation': 'Chimes', 'Start Windows': 'Chimes', 'Exit Windows': 'Chord' } },
+  'Science': { scheme: 'Marine', color: '#004060', wallpaper: 'Blue Rivets', pattern: '(None)', saver: 'stars',
+    sounds: { 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'Chord', 'Exit Windows': 'Chimes', 'Empty Recycle Bin': 'Recycle' } },
+  "The 60's USA": { scheme: 'Rose', color: '#9f6070', wallpaper: '(None)', pattern: 'Paisley', saver: 'marquee',
+    sounds: { 'Asterisk': 'Chimes', 'Exclamation': 'Ding', 'Start Windows': 'Tada', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' } },
+};
+const CURRENT = '(Current Windows settings)';
+
+function themes() {
+  const screen = h('div', { class: 'dp-screen' }, h('div', { class: 'dp-win' }, h('div', { class: 'dp-tb' }), h('div', { class: 'dp-wb' })));
+  const monitor = h('div', { class: 'dp-monitor', 'aria-hidden': 'true' }, screen, h('div', { class: 'dp-stand' }));
+  const sel = h('select', { class: 'field', id: 'dt-theme' }, ...[CURRENT, ...Object.keys(THEMES)].map(t => h('option', { value: t }, t)));
+  const saverName = h('b');
+  const applyBtn = h('button', { class: 'btn', type: 'button', disabled: true, html: '<u>A</u>pply', onclick: () => commit() });
+  function preview() {
+    const t = THEMES[sel.value];
+    const d = t ? { ...current(), ...t } : current();
+    for (const [k, v] of Object.entries(varsFor(d))) screen.style.setProperty(k, v);
+    saverName.textContent = SAVERS[t ? t.saver : loadScreenSaver().saver] || '(None)';
+    applyBtn.disabled = !t;
+  }
+  function commit() {
+    const t = THEMES[sel.value];
+    if (!t) return;
+    const { saver, sounds, ...look } = t;
+    const s = { ...current(), ...look };
+    store.set(KEY, { ...s, vars: varsFor(s) });
+    applyDisplay(s);
+    setScreenSaver(saver);
+    setSoundMap(sounds);
+    applyBtn.disabled = true;
+  }
+  sel.addEventListener('change', preview);
+  const body = h('div', { class: 'dlg dp' },
+    h('label', { class: 'dp-row', for: 'dt-theme' }, h('span', { html: '<u>T</u>heme:' }), sel),
+    monitor,
+    h('div', { class: 'dp-row' }, h('span', null, 'Screen saver:'), saverName),
+    h('p', { class: 'dp-note' }, 'A theme sets the window colours, desktop, sound events and screen saver all at once.'),
+    h('div', { class: 'btns right' },
+      h('button', { class: 'btn default', type: 'button', onclick: () => { commit(); win.close(); } }, 'OK'),
+      h('button', { class: 'btn', type: 'button', onclick: () => win.close() }, 'Cancel'),
+      applyBtn));
+  body.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); win.close(); } });
+  const win = createWindow({ app: 'themes', title: 'Desktop Themes', icon: 'i-display', body, dialog: true, taskbar: true, resizable: false, width: 'auto', route: 'themes', help: () => launch('help') });
+  preview();
+  return win;
+}
+
+export const themesApp = { id: 'themes', title: 'Desktop Themes', icon: 'i-display', single: true, open: themes };
 
 export default { id: 'display', title: 'Display Properties', icon: 'i-display', single: true, open };

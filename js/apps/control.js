@@ -843,6 +843,9 @@ const DEFAULT_MAP = { 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation
 const SCHEMES = { 'No Sounds': {}, 'blankiekun 95 Default': DEFAULT_MAP };
 const soundSettings = () => ({ scheme: 'blankiekun 95 Default', map: DEFAULT_MAP, custom: {}, ...(store.get(SKEY, null) || {}) });
 
+// Desktop Themes swap the whole set of event sounds; null puts the default ones back.
+export function setSoundMap(map) { store.set(SKEY, { ...soundSettings(), scheme: map ? '' : 'blankiekun 95 Default', map: map || DEFAULT_MAP }); }
+
 let actx = null, playing = null;
 
 // One voice: an oscillator through a decaying envelope.
