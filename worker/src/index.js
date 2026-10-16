@@ -1,5 +1,5 @@
-// Receives drawings from Paint and notes from Notepad on blankiekun 95 and posts
-// them to a private Discord channel. Turnstile keeps bots out; a rate limit per IP
+// Receives drawings from Paint, notes from Notepad and CONscripter's bug reports on
+// blankiekun 95 and posts them to a private Discord channel. Turnstile keeps bots out; a rate limit per IP
 // keeps people from flooding it.
 //
 // Each message gets Ban/Unban link buttons. The links carry a random id that maps
@@ -9,11 +9,13 @@
 // Vars (wrangler.toml): ALLOWED_ORIGINS, comma-separated
 // KV (wrangler.toml): BANS
 
-const MAX_BODY = 2_000_000;
+const MAX_BODY = 9_500_000; // a bug report's trace; Discord takes 10 MB a message
 const MAX_PNG = 1_500_000;
 const MAX_NOTE = 2000;
 const MAX_CAPTION = 200;
 const MAX_NAME = 40;
+const BUG_FILES = ['report.json', 'log.txt', 'trace.jsonl.gz'];
+const BUG_KINDS = { engine: 'Engine', port: 'Port', site: 'Website', text: 'Text', unsure: 'Unsorted' };
 const BAN_TTL = 30 * 86400; // bans and ban links both last 30 days
 
 export default {
@@ -68,6 +70,16 @@ export default {
         attachments: [{ id: 0, filename: 'drawing.png' }],
       };
       fd.append('files[0]', new Blob([bytes], { type: 'image/png' }), 'drawing.png');
+    } else if (kind === 'bug') {
+      const text = String(form.get('message') || '').replace(/\r\n/g, '\n').slice(0, MAX_NOTE);
+      const game = clean(form.get('game'), 100);
+      const files = form.getAll('files').filter(f => f instanceof File && BUG_FILES.includes(f.name));
+      payload = {
+        embeds: [{ title: `${BUG_KINDS[form.get('category')] || 'Unsorted'} bug from ${name}`, description: text || undefined,
+          fields: game ? [{ name: 'Game', value: game }] : undefined, color: 0x800000, footer: { text: 'blankiekun 95 · CONscripter' }, timestamp: new Date().toISOString() }],
+        attachments: files.map((f, i) => ({ id: i, filename: f.name })),
+      };
+      files.forEach((f, i) => fd.append(`files[${i}]`, f, f.name));
     } else {
       return json(400, { error: 'Unknown kind of message.' });
     }

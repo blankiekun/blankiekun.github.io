@@ -58,8 +58,7 @@ var g_cons_module = { canvas, locateFile: (p, dir) => dir + p + location.search,
 var traceLines = []; // var: the parent reads it
 let traceWaiter = null;
 function consTrace(line) {
-  traceLines.push(line);
-  if (traceLines.length > 20000) traceLines.splice(1, 5000); // keep [0], the meta record
+  traceLines.push(line); // all of it, for Help > Report a Bug: even a long run is only tens of MB
   if (traceWaiter && line.startsWith('{"t":"dump"')) traceWaiter(line);
 }
 var g_cons_index = {};

@@ -1,5 +1,5 @@
-// "Send to blankiekun": Paint drawings and Notepad notes go to the worker in
-// worker/, which posts them to a private Discord channel.
+// "Send to blankiekun": Paint drawings, Notepad notes and CONscripter bug reports go
+// to the worker in worker/, which posts them to a private Discord channel.
 
 import { h, icon, store } from './util.js';
 import { createWindow } from './wm.js';
@@ -64,13 +64,14 @@ export function tipLater(btn, host, id, text, isWorthIt, delay = 20_000) {
 }
 function hideTip(btn) { if (btn.tip) btn.tip.remove(); }
 
-// kind: 'drawing' (blob is a PNG) or 'note' (text).
-export async function sendDialog({ kind, parent, blob, text }) {
+// kind: 'drawing' (blob is a PNG), 'note' (text), or 'bug' (fields: the form's own rows;
+// fill(fd), awaited on Send, adds the report).
+export async function sendDialog({ kind, parent, blob, text, fields, fill }) {
   if (cooldownLeft()) {
     msgbox({ title: 'Send', icon: 'info', parent, text: `You just sent something. You can send again in ${Math.ceil(cooldownLeft() / 1000)} seconds.` });
     return;
   }
-  const what = kind === 'drawing' ? 'drawing' : 'note';
+  const what = kind === 'drawing' ? 'drawing' : kind === 'bug' ? 'bug report' : 'note';
   const name = h('input', { class: 'field', id: 'send-name', maxlength: 40, autocomplete: 'nickname', value: store.get(NAME, ''), placeholder: 'Anonymous' });
   const caption = h('input', { class: 'field', id: 'send-caption', maxlength: 200, autocomplete: 'off' });
   const status = h('div', { class: 'send-status', role: 'status' }, 'Loading the "are you human" check...');
@@ -83,6 +84,8 @@ export async function sendDialog({ kind, parent, blob, text }) {
   if (kind === 'drawing') {
     url = URL.createObjectURL(blob);
     preview = h('div', { class: 'send-preview' }, h('img', { src: url, alt: 'Your drawing' }));
+  } else if (kind === 'bug') {
+    preview = fields;
   } else {
     preview = h('pre', { class: 'send-preview note' }, text.length > 400 ? text.slice(0, 400) + '…' : text);
   }
@@ -105,13 +108,15 @@ export async function sendDialog({ kind, parent, blob, text }) {
     fd.append('name', name.value.trim());
     fd.append('token', token);
     if (kind === 'drawing') { fd.append('message', caption.value.trim()); fd.append('file', blob, 'drawing.png'); }
-    else fd.append('message', text);
+    else if (kind === 'note') fd.append('message', text);
     sendBtn.disabled = cancelBtn.disabled = true;
     status.replaceChildren('Sending...', h('div', { class: 'send-progress' }, h('i')));
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), TIMEOUT);
     let error = null;
-    try {
+    if (fill) await fill(fd).catch(() => { error = 'The report could not be put together. Try again.'; });
+    // a bug report can be several MB, which takes a while on a slow connection
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), kind === 'bug' ? TIMEOUT * 8 : TIMEOUT);
+    if (!error) try {
       const r = await fetch(SEND_ENDPOINT, { method: 'POST', body: fd, signal: ctl.signal });
       if (!r.ok) error = (await r.json().catch(() => ({}))).error || `The server said no (error ${r.status}).`;
     } catch (err) {

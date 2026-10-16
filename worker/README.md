@@ -1,6 +1,6 @@
 # Send worker
 
-Receives drawings from Paint and notes from Notepad and posts them to a private
+Receives drawings from Paint, notes from Notepad and CONscripter bug reports and posts them to a private
 Discord channel. Turnstile blocks bots, and each visitor can send 3 messages a minute
 (the site also makes people wait a minute between sends).
 

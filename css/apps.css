@@ -341,6 +341,9 @@
 .send-preview img { max-width: 100%; max-height: 140px; image-rendering: pixelated; }
 .send-preview.note { display: block; place-items: initial; font: 12px/1.35 "Courier New", monospace; white-space: pre-wrap; overflow: auto; max-height: 110px; padding: 4px 6px; }
 .send-dlg .dp-row > span:first-child { min-width: 72px; }
+.cons-bug { display: flex; flex-direction: column; gap: 4px; }
+.cons-bug textarea { width: 100%; resize: vertical; font: inherit; }
+.cons-bug p { margin: 2px 0 0; line-height: 1.35; }
 .send-turnstile { min-height: 65px; display: flex; justify-content: center; }
 .send-turnstile:empty { min-height: 0; }
 .send-status { min-height: 16px; display: flex; flex-direction: column; gap: 4px; }
