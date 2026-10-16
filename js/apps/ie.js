@@ -10,6 +10,7 @@ export const PAGES = {
   home: { file: 'sites/home.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/', label: "blankiekun's Homepage", icon: 'i-htm' },
   chimimouryou: { file: 'sites/chimimouryou.html', url: 'http://www.geocities.com/Tokyo/Pagoda/1995/chimimouryou.html', label: 'chimimouryou', icon: 'i-book' },
   convert: { file: 'sites/convert.html', url: 'http://www.angelfire.com/tech/blankiekun/convert.html', label: 'conscripter-convert', icon: 'i-convert' },
+  'convert-metrics': { file: 'sites/convert-metrics.html', url: 'http://www.angelfire.com/tech/blankiekun/convert-metrics.html', label: 'Convert completion', icon: 'i-convert' },
   conscripter: { file: 'sites/conscripter.html', url: 'http://www.geocities.com/TimesSquare/Arcade/1995/conscripter.html', label: 'CONscripter', icon: 'i-game' },
   guestbook: { file: 'sites/guestbook.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/guestbook.html', label: 'Guestbook', icon: 'i-htm' },
 };

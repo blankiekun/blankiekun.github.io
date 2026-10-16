@@ -86,7 +86,7 @@ Writing 0.txt, arc.nsa .. <i>ok</i>
     <h2>How it works</h2>
     <ul class="how">
       <li>Each source engine is a separate reader that feeds the same output stage. Only the output stage knows about NScripter.</li>
-      <li>Anything it can't convert yet stays in <code>0.txt</code> as a comment naming the source instruction, and each run prints a ranked list of what was left out.</li>
+      <li>Anything it can't convert yet stays in <code>0.txt</code> as a comment naming the source instruction, and each run prints a ranked list of what was left out. <a href="convert-metrics.html">How much of each game converts</a> is counted per command call and updated with every change.</li>
       <li>When a game needs something NScripter can't do, the feature is added to <a href="conscripter.html">CONscripter</a> rather than approximated: screen filters, shakes, new transitions and text sizes all came from here.</li>
       <li>Converted games are tested by letting CONscripter play every route by itself and checking its debug trace for errors, missing files and stray sprites.</li>
     </ul>
@@ -96,6 +96,7 @@ Writing 0.txt, arc.nsa .. <i>ok</i>
     <a href="https://github.com/blankiekun/conscripter-convert">Repository</a>
     <a href="https://github.com/blankiekun/conscripter-convert#converting-a-game">Usage</a>
     <a href="https://github.com/blankiekun/conscripter-convert/blob/main/docs/new-game.md">Converting a new game</a>
+    <a href="convert-metrics.html">How much converts</a>
     <a href="https://github.com/blankiekun/conscripter-convert/blob/main/PLAN.md">Design notes</a>
   </div>
 
