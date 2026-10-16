@@ -115,7 +115,7 @@ export const root = {
         {
           name: 'WINDOWS', kind: 'folder', children: [
             { name: 'COMMAND', kind: 'folder', children: [app('COMMAND.COM', 'dos', 'i-dos', 92870)] },
-            { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [] },
+            { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [{ name: 'My Briefcase', kind: 'folder', icon: 'i-briefcase', briefcase: true, dos: 'MYBRIE~1', children: [] }] },
             { name: 'MEDIA', kind: 'folder', children: [app('BLANKIEKUN.AVI', 'mplayer', 'i-mplayer', 1048576, 'demo')] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
@@ -254,6 +254,7 @@ export function walk(fn, node = root, path = '') {
 
 export function kindLabel(n) {
   if (n.kind === 'drive') return n.letter === 'A' ? '3½ Inch Floppy Disk' : n.letter === 'E' ? 'CD-ROM Disc' : 'Local Disk';
+  if (n.briefcase) return 'Briefcase';
   if (n.kind === 'folder') return n.virtual ? 'System Folder' : 'File Folder';
   if (n.printer) return n.isDefault ? 'Printer (default)' : 'Printer';
   if (n.app === 'addprinter') return 'Printer Wizard';
