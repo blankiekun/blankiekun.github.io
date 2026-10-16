@@ -221,11 +221,11 @@ const JACK_OPEN = [
 const JACK_PAL = { k: '#000', r: '#ff0000', y: '#ffff00', m: '#800000', b: '#0000ff', w: '#fff' };
 
 const POINTERS = [
-  ['Normal Select', 'default', '↖'], ['Help Select', 'help', '↖?'], ['Working In Background', 'progress', '↖⌛'],
-  ['Busy', 'wait', '⌛'], ['Precision Select', 'crosshair', '+'], ['Text Select', 'text', 'I'],
-  ['Handwriting', 'default', '✎'], ['Unavailable', 'not-allowed', '⊘'], ['Vertical Resize', 'ns-resize', '↕'],
-  ['Horizontal Resize', 'ew-resize', '↔'], ['Diagonal Resize 1', 'nwse-resize', '⤡'], ['Diagonal Resize 2', 'nesw-resize', '⤢'],
-  ['Move', 'move', '✥'],
+  ['Normal Select', 'var(--arrow)', '↖'], ['Help Select', 'help', '↖?'], ['Working In Background', 'var(--busy)', '↖⌛'],
+  ['Busy', 'var(--wait)', '⌛'], ['Precision Select', 'crosshair', '+'], ['Text Select', 'var(--ibeam)', 'I'],
+  ['Handwriting', 'var(--arrow)', '✎'], ['Unavailable', 'not-allowed', '⊘'], ['Vertical Resize', 'var(--ns)', '↕'],
+  ['Horizontal Resize', 'var(--ew)', '↔'], ['Diagonal Resize 1', 'var(--nwse)', '⤡'], ['Diagonal Resize 2', 'var(--nesw)', '⤢'],
+  ['Move', 'var(--move)', '✥'],
 ];
 const POINTER_SCHEMES = ['(None)', 'Windows Standard', 'Animated hourglasses'];
 
@@ -837,8 +837,8 @@ function addremove() {
 // ---------- Sounds ----------
 
 const SKEY = 'w95.sounds';
-const EVENTS = ['Default sound', 'Asterisk', 'Critical Stop', 'Exclamation', 'Question', 'Start Windows', 'Exit Windows', 'Empty Recycle Bin', 'Maximize', 'Minimize', 'Open program', 'Close program'];
-const DEFAULT_MAP = { 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' };
+const EVENTS = ['Default sound', 'Asterisk', 'Critical Stop', 'Exclamation', 'Question', 'Start Windows', 'Exit Windows', 'Empty Recycle Bin', 'Maximize', 'Minimize', 'Menu popup', 'Open program', 'Close program'];
+const DEFAULT_MAP = { 'Default sound': 'Ding', 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' };
 const SCHEMES = { 'No Sounds': {}, 'blankiekun 95 Default': DEFAULT_MAP };
 const soundSettings = () => ({ scheme: 'blankiekun 95 Default', map: DEFAULT_MAP, custom: {}, ...(store.get(SKEY, null) || {}) });
 

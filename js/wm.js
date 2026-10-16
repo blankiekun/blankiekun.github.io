@@ -1,7 +1,7 @@
 // The window manager: overlapping windows, focus and z-order, outline dragging and
 // resizing, minimize/maximize/close, taskbar buttons, and the URL hash.
 
-import { h, icon, clamp, small } from './util.js';
+import { h, icon, clamp, small, reducedMotion, sound } from './util.js';
 import { closeMenus, openMenu } from './menu.js';
 
 const layer = document.getElementById('windows');
@@ -11,6 +11,7 @@ const wins = [];            // bottom to top
 let active = null;
 let cascade = 0;
 let routeListener = null;
+let busyTimer = 0;
 
 export function register(app) { apps.set(app.id, app); }
 export function appInfo(id) { return apps.get(id); }
@@ -26,6 +27,11 @@ export function launch(id, arg) {
     const w = wins.find(w => w.app === id);
     if (w) { if (app.reopen) app.reopen(w, arg); focus(w); return w; }
   }
+  // The arrow-and-hourglass while a program "loads".
+  document.body.classList.add('busy');
+  clearTimeout(busyTimer);
+  busyTimer = setTimeout(() => document.body.classList.remove('busy'), 300);
+  sound('Open program');
   return app.open(arg);
 }
 
@@ -102,7 +108,7 @@ export function createWindow(o) {
   });
   bar.addEventListener('dblclick', e => { if (!e.target.closest('.tbtn') && !maxBtn.disabled && !o.dialog) toggleMax(win); });
   el.addEventListener('pointerdown', e => {
-    if (win.modal) { e.preventDefault(); e.stopPropagation(); focus(win.modal); flash(win.modal); return; }
+    if (win.modal) { e.preventDefault(); e.stopPropagation(); focus(win.modal); flash(win.modal); sound('Default sound'); return; }
     if (active !== win) focus(win);
   }, true);
 
@@ -163,6 +169,7 @@ export function focus(win) {
   if (win.state === 'min') {
     win.el.classList.remove('min');
     win.state = win.wasMax ? 'max' : 'normal';
+    zoom(win, false);
   }
   wins.splice(wins.indexOf(win), 1);
   wins.push(win);
@@ -205,7 +212,20 @@ function blurAll() {
   syncRoute();
 }
 
+// Like Windows 95, a title bar flies between the window and its taskbar button.
+function zoom(win, down) {
+  if (reducedMotion.matches || !win.task) return;
+  const at = q => ({ left: q.left + 'px', top: q.top + 'px', width: q.width + 'px', height: q.height + 'px' });
+  const frames = [at(win.bar.getBoundingClientRect()), at(win.task.getBoundingClientRect())];
+  if (!down) { frames.reverse(); win.el.classList.add('zooming'); }
+  const box = h('div', { class: 'zoom-caption' });
+  document.body.append(box);
+  box.animate(frames, 200).onfinish = () => { box.remove(); win.el.classList.remove('zooming'); };
+}
+
 export function minimize(win) {
+  zoom(win, true);
+  sound('Minimize');
   win.wasMax = win.state === 'max';
   win.state = 'min';
   win.el.classList.add('min');
@@ -232,7 +252,7 @@ export function restore(win) {
 }
 
 export function toggleMax(win) {
-  if (win.state === 'max') restore(win); else maximize(win);
+  if (win.state === 'max') restore(win); else { maximize(win); sound('Maximize'); }
 }
 
 export async function close(win, force) {
@@ -246,7 +266,7 @@ export async function close(win, force) {
   wins.splice(wins.indexOf(win), 1);
   if (win.opts.parent && win.opts.parent.modal === win) win.opts.parent.modal = null;
   win.el.remove();
-  if (win.task) win.task.remove();
+  if (win.task) { win.task.remove(); sound('Close program'); }
   if (win.opts.onClosed) win.opts.onClosed();
   if (active === win) {
     active = null;
@@ -353,7 +373,7 @@ function outlineDrag(win, e, mode) {
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
     if (cancel) return;
-    if (snap) { maximize(win); return; }
+    if (snap) { maximize(win); sound('Maximize'); return; }
     win.el.style.left = Math.round(box.x - A.left) + 'px';
     win.el.style.top = Math.round(box.y - A.top) + 'px';
     if (mode !== 'move') {
@@ -429,7 +449,7 @@ function keyMove(win, mode) {
   document.body.append(outline);
   const draw = () => Object.assign(outline.style, { left: box.x + 'px', top: box.y + 'px', width: box.w + 'px', height: box.h + 'px' });
   draw();
-  document.body.style.cursor = mode === 'move' ? 'move' : 'nwse-resize';
+  document.body.style.cursor = mode === 'move' ? 'var(--move)' : 'var(--nwse)';
   let mx = null, my = null;
   function end(ok) {
     document.removeEventListener('keydown', key, true);

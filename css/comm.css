@@ -3,7 +3,7 @@
 /* ---------- HyperTerminal ---------- */
 .ht { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ht-tools, .ix-tools { display: flex; flex-wrap: wrap; align-items: center; padding: 2px 0; box-shadow: var(--thin-out); margin-bottom: 2px; flex: none; }
-.ht-tb, .ix-tb { width: 24px; height: 22px; padding: 0; display: inline-grid; place-items: center; background: none; border: 0; cursor: default; flex: none; }
+.ht-tb, .ix-tb { width: 24px; height: 22px; padding: 0; display: inline-grid; place-items: center; background: none; border: 0; cursor: var(--arrow); flex: none; }
 .ht-tb svg, .ix-tb svg { width: 16px; height: 16px; }
 .ht-tb:hover:not(:disabled), .ix-tb:hover:not(:disabled) { box-shadow: var(--thin-out); }
 .ht-tb:active:not(:disabled), .ix-tb:active:not(:disabled) { box-shadow: var(--thin-in); }
@@ -15,7 +15,7 @@
 .ht-screen {
   flex: 1; min-width: 0; overflow: auto; background: #fff; color: #000; box-shadow: var(--sunken);
   padding: 4px 6px; font: 19px/1.1 var(--font-dos); white-space: pre-wrap; overflow-wrap: anywhere;
-  cursor: text; user-select: text; -webkit-user-select: text;
+  cursor: var(--ibeam); user-select: text; -webkit-user-select: text;
 }
 .ht-line { min-height: 1.1em; }
 .ht-screen a { color: #0000ff; }
@@ -52,7 +52,7 @@
 .ht-head b { font-weight: normal; }
 .ht-col { display: flex; flex-direction: column; gap: 4px; }
 .ht-icons { display: flex; gap: 2px; overflow-x: auto; padding: 4px; background: var(--paper); box-shadow: var(--sunken); }
-.ht-ic { flex: none; padding: 4px 6px; cursor: default; }
+.ht-ic { flex: none; padding: 4px 6px; cursor: var(--arrow); }
 .ht-ic svg { width: 32px; height: 32px; }
 .ht-ic.sel { background: var(--select); }
 .ht-icons:focus-visible .ht-ic.sel { outline: 1px dotted var(--select-ink); outline-offset: -2px; }
@@ -86,11 +86,11 @@
 .ix-list { background: var(--paper); box-shadow: var(--sunken); overflow: auto; padding: 2px; display: flex; flex-direction: column; }
 .ix-row { display: grid; grid-template-columns: 14px 20px minmax(90px, 1fr) minmax(120px, 2fr) 150px; align-items: center; min-width: 440px; }
 .ix-head { position: sticky; top: -2px; z-index: 1; }
-.ix-col { background: var(--face); box-shadow: var(--raised-btn); border: 0; padding: 1px 4px; height: 18px; text-align: left; white-space: nowrap; overflow: hidden; display: flex; align-items: center; cursor: default; }
+.ix-col { background: var(--face); box-shadow: var(--raised-btn); border: 0; padding: 1px 4px; height: 18px; text-align: left; white-space: nowrap; overflow: hidden; display: flex; align-items: center; cursor: var(--arrow); }
 .ix-col:active { box-shadow: var(--thin-in); }
 .ix-col.c-imp { justify-content: center; padding: 0; font-weight: bold; }
 .ix-col svg { width: 14px; height: 14px; }
-.ix-item { height: 18px; cursor: default; }
+.ix-item { height: 18px; cursor: var(--arrow); }
 .ix-item > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
 .ix-item > .c-imp, .ix-item > .c-ic { padding: 0; display: grid; place-items: center; }
 .ix-item svg { width: 16px; height: 16px; }
@@ -118,7 +118,7 @@
 .ix-hrow input[readonly] { background: var(--face); }
 .ix-compose .ix-hrow input:not([readonly]) { background: var(--paper); }
 .ix-addr { box-shadow: var(--raised-btn); text-align: center !important; padding: 2px 0; }
-.ix-body { flex: 1; min-height: 0; overflow: auto; background: var(--paper); box-shadow: var(--sunken); padding: 6px 8px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; cursor: text; }
+.ix-body { flex: 1; min-height: 0; overflow: auto; background: var(--paper); box-shadow: var(--sunken); padding: 6px 8px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; cursor: var(--ibeam); }
 .ix-compose-body { flex: 1; min-height: 80px; font: inherit; padding: 6px 8px; }
 .ix-over { color: #c00000; }
 .ix-deliver { width: min(320px, calc(100vw - 16px)); }

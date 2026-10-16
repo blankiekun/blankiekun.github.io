@@ -1,7 +1,7 @@
 // The desktop surface: icons, right-click menu, Start menu, tray clock,
 // and the boot / shut down / log off screens.
 
-import { h, icon, clamp, wait, reducedMotion, store } from './util.js';
+import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
 import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel } from './wm.js';
 import { msgbox } from './dialogs.js';
@@ -180,13 +180,11 @@ function lineUp() {
   });
 }
 
-function select(it) {
-  ICONS.forEach(o => {
-    const on = o === it;
-    o.el.classList.toggle('sel', on);
-    o.el.setAttribute('aria-selected', String(on));
-    o.el.tabIndex = on ? 0 : -1;
-  });
+function select(it) { ICONS.forEach(o => mark(o, o === it)); }
+function mark(o, on) {
+  o.el.classList.toggle('sel', on);
+  o.el.setAttribute('aria-selected', String(on));
+  o.el.tabIndex = on ? 0 : -1;
 }
 
 // Where a dragged icon would land: a folder or the Recycle Bin, else just the desktop.
@@ -288,7 +286,7 @@ function iconKey(it, e) {
   else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1); }
   else if (e.key === 'ArrowRight' && !moved) { e.preventDefault(); go(i + rows); }
   else if (e.key === 'ArrowLeft' && !moved) { e.preventDefault(); go(i - rows); }
-  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del([it.node]); }
+  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del(ICONS.filter(o => o.file && o.el.classList.contains('sel')).map(o => o.node)); }
   else if (e.key === 'F2' && it.file) { e.preventDefault(); startRename(it); }
   else if (ctrl && e.key.toLowerCase() === 'c' && it.file) { e.preventDefault(); copyNodes([it.node]); }
   else if (ctrl && e.key.toLowerCase() === 'x' && it.file) { e.preventDefault(); cut([it.node]); }
@@ -304,6 +302,11 @@ desktopEl.addEventListener('pointerdown', e => {
   if (e.target !== desktopEl && e.target !== iconsEl) return;
   select(null);
   deactivate();
+  if (e.button === 0) marquee(e, r => {
+    ICONS.forEach(o => mark(o, [...o.el.children].some(c => overlaps(c, r)))); // the picture and label, not the whole cell
+    const first = ICONS.find(o => o.el.classList.contains('sel'));
+    if (first) first.el.focus({ preventScroll: true });
+  });
 });
 
 function newThing(fn) {
@@ -458,6 +461,8 @@ function recentDocs() {
 
 function toggleStart(keyboard) {
   if (startBtn.getAttribute('aria-expanded') === 'true') { closeMenus('toggle'); return; }
+  document.querySelector('.begin-hint')?.remove();
+  store.set(BEGUN, true);
   openMenu(startItems(), { rect: startBtn.getBoundingClientRect(), above: true }, {
     className: 'startmenu' + (taskbarPrefs().small ? ' small' : ''), banner, focusFirst: keyboard,
     onClose: () => startBtn.setAttribute('aria-expanded', 'false'),
@@ -619,11 +624,6 @@ export async function boot() {
   sound('Start Windows');
 }
 
-// Sounds come from the Sounds applet; nothing plays if it didn't load.
-export function sound(event) {
-  import('./apps/control.js').then(m => m.playSound && m.playSound(event)).catch(() => {});
-}
-
 // ---------- taskbar ----------
 
 const taskbarEl = document.getElementById('taskbar');
@@ -758,7 +758,7 @@ function clock() {
     const d = new Date();
     t.textContent = formatTime(d);
     t.dateTime = d.toISOString();
-    tray.title = formatDate(d);
+    tray.dataset.tip = formatDate(d);
   };
   tick();
   setInterval(tick, 10000);
@@ -778,6 +778,41 @@ function clock() {
   spk.setAttribute('aria-label', 'Volume');
   spk.addEventListener('click', () => volumePopup(false));
   spk.addEventListener('dblclick', () => { if (volEl) { volEl.remove(); volEl = null; } volumeControl(); });
+}
+
+// ---------- tooltips ----------
+
+// title= hints in the shell show as Windows 95's yellow tooltips instead of the browser's.
+let tipFor = null, tipEl = null, tipTimer = 0, tipX = 0, tipY = 0;
+function hideTip() { clearTimeout(tipTimer); if (tipEl) tipEl.remove(); tipEl = tipFor = null; }
+document.addEventListener('pointermove', e => { tipX = e.clientX; tipY = e.clientY; }, { passive: true });
+document.addEventListener('pointerover', e => {
+  const el = e.pointerType === 'mouse' && e.target.closest ? e.target.closest('[title], [data-tip]') : null;
+  if (el === tipFor) return;
+  hideTip();
+  if (!el) return;
+  if (el.title) { el.dataset.tip = el.title; el.removeAttribute('title'); }
+  tipFor = el;
+  tipTimer = setTimeout(() => {
+    if (!el.isConnected || !el.dataset.tip) return;
+    tipEl = h('div', { class: 'tooltip', role: 'tooltip' }, el.dataset.tip);
+    document.body.append(tipEl);
+    const r = tipEl.getBoundingClientRect();
+    tipEl.style.left = clamp(tipX, 0, innerWidth - r.width) + 'px';
+    tipEl.style.top = (tipY + 20 + r.height > innerHeight ? tipY - r.height - 2 : tipY + 20) + 'px';
+  }, 500);
+});
+document.addEventListener('pointerout', e => { if (!e.relatedTarget) hideTip(); });
+document.addEventListener('pointerdown', hideTip, true);
+document.addEventListener('keydown', hideTip, true);
+
+// Until Start has been clicked once, a hint slides out beside it, as on a new Windows 95 PC.
+const BEGUN = 'w95.begun';
+function beginHint() {
+  if (store.get(BEGUN, false)) return;
+  const hint = h('div', { class: 'tooltip begin-hint', 'aria-hidden': 'true' }, '\u25c4 Click here to begin');
+  hint.style.left = startBtn.getBoundingClientRect().right + 4 + 'px';
+  document.body.append(hint);
 }
 
 // ---------- quick launch ----------
@@ -820,7 +855,7 @@ function renderQuick() {
       const up = () => {
         document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
         if (!b.dragged) return;
-        const order = [...quickEl.children].map(o => o.title);
+        const order = [...quickEl.children].map(o => o.getAttribute('aria-label'));
         pins.sort((a, c) => order.indexOf(a.label) - order.indexOf(c.label));
         store.set(QUICK, pins);
         setTimeout(() => { b.dragged = false; });
@@ -844,4 +879,5 @@ export function initDesktop() {
   renderIcons();
   lastH = desktopEl.clientHeight;
   clock();
+  beginHint();
 }

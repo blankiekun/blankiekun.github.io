@@ -15,8 +15,8 @@
 /* the picture and what floats over it */
 .pt-holder > canvas.pt-float { position: absolute; left: 0; top: 0; pointer-events: none; }
 .pt-holder[data-tool="magnifier"] { cursor: zoom-in; }
-.pt-holder[data-tool="text"] { cursor: text; }
-.pt-holder.over-sel { cursor: move; }
+.pt-holder[data-tool="text"] { cursor: var(--ibeam); }
+.pt-holder.over-sel { cursor: var(--move); }
 .pt-grid {
   position: absolute; left: 0; top: 0; pointer-events: none;
   background-image: linear-gradient(to right, rgba(128, 128, 128, .75) 1px, transparent 1px), linear-gradient(to bottom, rgba(128, 128, 128, .75) 1px, transparent 1px);
@@ -33,7 +33,7 @@
   resize: none; overflow: hidden; white-space: pre-wrap; overflow-wrap: break-word;
   outline: 1px dashed var(--select); outline-offset: 0;
   -webkit-font-smoothing: none; font-smooth: never; caret-color: currentColor;
-  touch-action: auto; cursor: text;
+  touch-action: auto; cursor: var(--ibeam);
 }
 
 /* Fonts toolbar */
@@ -42,7 +42,7 @@
 .pt-fb-title { padding-right: 4px; }
 .pt-fb-face { width: 150px; }
 .pt-fb-size { width: 56px; }
-.pt-fb-btn { width: 23px; height: 22px; border: 0; padding: 0; background: var(--face); box-shadow: var(--raised-btn); color: var(--ink); font: 13px/1 var(--font-ui); cursor: default; }
+.pt-fb-btn { width: 23px; height: 22px; border: 0; padding: 0; background: var(--face); box-shadow: var(--raised-btn); color: var(--ink); font: 13px/1 var(--font-ui); cursor: var(--arrow); }
 .pt-fb-btn[aria-pressed="true"] { box-shadow: var(--sunken); background: repeating-conic-gradient(var(--face) 0 25%, var(--hilite) 0 50%) 0 0 / 2px 2px; }
 
 /* Thumbnail */
@@ -52,7 +52,7 @@
 .pt-thumb canvas { display: block; image-rendering: pixelated; box-shadow: var(--thin-in); }
 
 /* View Bitmap */
-.pt-view { position: fixed; inset: 0; z-index: 100000; background: #000; display: grid; place-items: center; cursor: default; outline: none; }
+.pt-view { position: fixed; inset: 0; z-index: 100000; background: #000; display: grid; place-items: center; cursor: var(--arrow); outline: none; }
 .pt-view img { image-rendering: pixelated; max-width: 100vw; max-height: 100vh; width: auto; height: auto; object-fit: contain; }
 
 /* dialogs */
@@ -67,11 +67,11 @@
 .pt-ec { max-width: calc(100vw - 24px); }
 .pt-ec-cols { display: flex; gap: 14px; flex-wrap: wrap; }
 .pt-ec-grid { display: grid; grid-template-columns: repeat(8, 20px); grid-auto-rows: 17px; gap: 4px 5px; margin-top: 4px; }
-.pt-ec-sw { border: 0; padding: 0; box-shadow: var(--sunken); cursor: default; }
+.pt-ec-sw { border: 0; padding: 0; box-shadow: var(--sunken); cursor: var(--arrow); }
 .pt-ec-sw.sel { outline: 1px solid var(--ink); outline-offset: 2px; }
 .pt-ec-custom { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
-.pt-ec-pick { position: relative; display: inline-flex; align-items: center; justify-content: center; height: 23px; padding: 0 10px; background: var(--face); box-shadow: var(--raised-btn); cursor: default; }
-.pt-ec-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: default; border: 0; padding: 0; }
+.pt-ec-pick { position: relative; display: inline-flex; align-items: center; justify-content: center; height: 23px; padding: 0 10px; background: var(--face); box-shadow: var(--raised-btn); cursor: var(--arrow); }
+.pt-ec-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: var(--arrow); border: 0; padding: 0; }
 .pt-ec-prev { height: 40px; box-shadow: var(--sunken); }
 .pt-ec-cap { text-align: center; margin-top: -4px; }
 
