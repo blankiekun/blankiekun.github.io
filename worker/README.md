@@ -22,6 +22,37 @@ Discord channel. Turnstile blocks bots, and each visitor can send 3 messages a m
 4. **Turn on the Send buttons.** In `js/config.js`, set `SEND_ENDPOINT` to that
    address plus `/send`, and `TURNSTILE_SITE_KEY` to the site key. Commit and push.
 
+## Fix with Claude
+
+Each bug report's message also has a **Fix with Claude** button. Its page picks the repo
+(CONscripter, conscripter-convert or this site; the player's guess is picked first)
+and takes notes for Claude, and its button starts `.github/workflows/claude-fix.yml`
+in that repo. Claude reads the report there and the workflow opens a pull request.
+Reports are kept in the `BANS` KV namespace for 30 days.
+
+Setting it up, once:
+
+1. A fine-grained GitHub token with **Contents: Read and write** on the three repos
+   (that is what starting a workflow needs): `npx wrangler secret put GITHUB_TOKEN`.
+2. A shared secret the workflows download reports with, and a Claude token for them:
+   ```sh
+   s=$(openssl rand -hex 32); echo "$s" | npx wrangler secret put REPORT_SECRET
+   claude setup-token   # copy the token it prints
+   for r in CONscripter conscripter-convert blankiekun.github.io; do
+     gh secret set REPORT_SECRET -R blankiekun/$r --body "$s"
+     gh secret set CLAUDE_CODE_OAUTH_TOKEN -R blankiekun/$r   # paste the token
+     gh api -X PUT repos/blankiekun/$r/actions/permissions/workflow \
+       -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true
+   done
+   ```
+   The last line lets the workflow open pull requests.
+3. `claude-fix.yml` has to be on each repo's default branch before the button works.
+
+The player's comment and files reach Claude, so read the report before you start it.
+Claude can't run general shell commands or use the web there, only grep, zcat, jq,
+head, tail and wc on the report, so its fixes are untested; and the workflow publishes
+nothing if either secret turns up in Claude's change.
+
 ## Banning a sender
 
 Every message in Discord has **Ban sender** and **Unban** buttons. Each one opens a
