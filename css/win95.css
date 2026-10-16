@@ -36,14 +36,14 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; overflow: hidden; }
-input, textarea, [contenteditable] { user-select: text; }
+input, textarea, [contenteditable] { user-select: text; -webkit-user-select: text; }
 html { background: var(--desktop); }
 body {
   margin: 0;
   background: var(--desktop);
   color: var(--ink);
   font: 12px/1.35 var(--font-ui);
-  user-select: none; /* UI chrome isn't text; reading panes opt back in with user-select: text */
+  user-select: none; -webkit-user-select: none; /* UI chrome isn't text; reading panes opt back in with user-select: text */
   -webkit-font-smoothing: none;
   font-smooth: never;
   -webkit-tap-highlight-color: transparent;
