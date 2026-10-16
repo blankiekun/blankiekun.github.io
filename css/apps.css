@@ -618,6 +618,7 @@ body:has(.win.cons-full) .taskbar { display: none; }
 .ex-twist { width: 9px; height: 9px; padding: 0; border: 1px solid var(--shadow); background: var(--paper); font: 9px/7px var(--font-ui); display: grid; place-items: center; flex: none; cursor: default; }
 .ex-twist[hidden] { display: grid !important; visibility: hidden; }
 @media (max-width: 640px) { .ex-panes, .ex-heads { grid-template-columns: 120px 1fr; } .ex-where { width: 120px; } }
+.regedit .ex-list.v-details .ex-head, .regedit .ex-list.v-details .ex-item { grid-template-columns: 20px minmax(100px, 1fr) minmax(140px, 2fr); }
 .ex-opt { align-items: center; margin: 6px 0; }
 .ex-opt span { flex: 1; }
 .ex-optpic { width: 50px; height: 34px; position: relative; flex: none; }
@@ -701,3 +702,14 @@ body.dragging-files iframe { pointer-events: none; }
 .pq-row > span { padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
 .pq-row svg { width: 16px; height: 16px; }
 .pq-head > span { background: var(--face); box-shadow: var(--raised-btn); }
+
+/* ---------- System Monitor and Resource Meter ---------- */
+.sm-pane { display: flex; gap: 4px; padding: 6px 8px 2px; }
+.sm-scale { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; text-align: right; }
+.sm-chart { box-shadow: var(--sunken); padding: 2px; background: #fff; }
+.sm-label { padding: 2px 8px 6px 36px; }
+.rm { width: 260px; }
+.rm-row { display: flex; flex-direction: column; gap: 3px; }
+.rm-bar { height: 16px; box-shadow: var(--thin-in); padding: 2px; background: var(--paper); }
+.rm-bar i { display: block; height: 100%; background: repeating-linear-gradient(90deg, #008000 0 8px, transparent 8px 10px); }
+.tray .resmeter { margin-right: 4px; }

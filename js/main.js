@@ -6,7 +6,7 @@ import { store } from './util.js';
 
 const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'conscripter', 'paint', 'calc', 'dos', 'display', 'system',
   'freecell', 'hearts', 'wordpad', 'charmap', 'sndrec', 'cdplayer', 'screensaver', 'control', 'taskman', 'disktools',
-  'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers'];
+  'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers', 'regedit', 'dialer', 'winpopup', 'sysmon'];
 
 // Older links to this site used #welcome, #chimimouryou, #convert and #conscripter.
 const LEGACY = { welcome: 'ie/home', chimimouryou: 'ie/chimimouryou', convert: 'ie/convert', conscripter: 'ie/conscripter' };

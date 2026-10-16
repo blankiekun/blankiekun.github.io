@@ -115,7 +115,7 @@ export const root = {
         {
           name: 'WINDOWS', kind: 'folder', children: [
             { name: 'COMMAND', kind: 'folder', children: [app('COMMAND.COM', 'dos', 'i-dos', 92870)] },
-            { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [] },
+            { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [{ name: 'My Briefcase', kind: 'folder', icon: 'i-briefcase', briefcase: true, dos: 'MYBRIE~1', children: [] }] },
             { name: 'MEDIA', kind: 'folder', children: [app('BLANKIEKUN.AVI', 'mplayer', 'i-mplayer', 1048576, 'demo')] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
@@ -132,6 +132,11 @@ export const root = {
             app('TASKMAN.EXE', 'taskman', 'i-exe', 14848),
             app('MPLAYER.EXE', 'mplayer', 'i-mplayer', 33280),
             app('CLIPBRD.EXE', 'clipbrd', 'i-clipbrd', 16896),
+            app('DIALER.EXE', 'dialer', 'i-dialer', 39936),
+            app('WINPOPUP.EXE', 'winpopup', 'i-winpopup', 28672),
+            app('SYSMON.EXE', 'sysmon', 'i-sysmon', 64000),
+            app('RSRCMTR.EXE', 'resmeter', 'i-resmeter', 7680),
+            app('REGEDIT.EXE', 'regedit', 'i-regedit', 77824),
             app('WELCOME.EXE', 'welcome', 'i-flag', 21504),
             app('EXPLORER.EXE', 'explorer', 'i-folder-open', 204288, 'C:\\'),
           ],
@@ -249,6 +254,7 @@ export function walk(fn, node = root, path = '') {
 
 export function kindLabel(n) {
   if (n.kind === 'drive') return n.letter === 'A' ? '3½ Inch Floppy Disk' : n.letter === 'E' ? 'CD-ROM Disc' : 'Local Disk';
+  if (n.briefcase) return 'Briefcase';
   if (n.kind === 'folder') return n.virtual ? 'System Folder' : 'File Folder';
   if (n.printer) return n.isDefault ? 'Printer (default)' : 'Printer';
   if (n.app === 'addprinter') return 'Printer Wizard';

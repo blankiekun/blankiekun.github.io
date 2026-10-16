@@ -24,6 +24,7 @@ export const ALIASES = {
     mplayer: 'mplayer', mplay32: 'mplayer', clipbrd: 'clipbrd', printers: 'mycomputer:Printers', 'control printers': 'mycomputer:Printers',
     taskman: 'taskman', welcome: 'welcome', sndvol32: 'volume', network: 'network', 'net view': 'network',
   sysdm: 'sysprops', 'sysdm.cpl': 'sysprops', winver: 'about', help: 'help', winhelp: 'help', find: 'find',
+  regedit: 'regedit', regedt32: 'regedit', dialer: 'dialer', winpopup: 'winpopup', sysmon: 'sysmon', rsrcmtr: 'resmeter',
 };
 
 export const PROJECTS = { chimimouryou: 'chimimouryou', convert: 'convert', 'conscripter-convert': 'convert', conscripter: 'conscripter', home: 'home', index: 'home' };
@@ -37,6 +38,12 @@ export function open(node, parentWin) {
       return launch('explorer', node.letter + ':\\');
     case 'folder':
       if (node === recycle) return launch('recycle');
+      if (node.briefcase && !store.get('w95.briefcase', false)) {
+        store.set('w95.briefcase', true);
+        return msgbox({ title: 'Welcome to the Windows Briefcase', icon: 'i-briefcase', buttons: ['&Finish'], parent: parentWin,
+          text: 'Use Briefcase to keep copies of your files up to date when you work on two computers.\n\n1. Copy files to Briefcase.\n2. Take Briefcase with you on a floppy disk, and edit the files there.\n3. When you come back, use Update All on the Briefcase menu to update the original files.' })
+          .then(() => open(node, parentWin));
+      }
       return launch('explorer', node.virtual || !pathOf(node) ? { node } : pathOf(node));
     case 'app':
       if (node.app === 'setup') return msgbox({ title: 'Setup', icon: 'info', text: 'blankiekun 95 is already installed on this computer.', parent: parentWin });

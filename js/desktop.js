@@ -392,7 +392,9 @@ function startItems() {
     { label: 'System Tools', icon: 'i-programs', submenu: some([
       prog('Character Map', 'charmap', 'i-charmap'),
       prog('Disk Defragmenter', 'defrag', 'i-defrag'),
+      prog('Resource Meter', 'resmeter', 'i-resmeter'),
       prog('ScanDisk', 'scandisk', 'i-drive'),
+      prog('System Monitor', 'sysmon', 'i-sysmon'),
     ]) },
     '-',
     { label: 'HyperTerminal', icon: 'i-programs', submenu: some([prog('HyperTerminal', 'hyperterm', 'i-hyperterm')]) },
@@ -401,6 +403,8 @@ function startItems() {
     prog('Clipboard Viewer', 'clipbrd', 'i-clipbrd'),
     prog('Notepad', 'notepad', 'i-notepad'),
     prog('Paint', 'paint', 'i-paint'),
+    prog('Phone Dialer', 'dialer', 'i-dialer'),
+    prog('WinPopup', 'winpopup', 'i-winpopup'),
     prog('WordPad', 'wordpad', 'i-wordpad'),
   ]);
   const projects = [
