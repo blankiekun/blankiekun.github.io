@@ -639,7 +639,7 @@ function open() {
   bar.addEventListener('pointerleave', () => { hideTimer = setTimeout(() => root.classList.remove('reveal'), 400); });
 
   // Touch screens have no right-click or Ctrl, so the game's menu and skip get buttons
-  // under the game, in place of the status bar (CSS shows it only for touch, while playing).
+  // beside the game, in place of the status bar (CSS shows it while playing, on every device).
   function toggleSkip() { skip = !skip; player().setSkip(skip); skipBtn.classList.toggle('on', skip); frame.focus(); }
   const skipBtn = h('button', { class: 'btn', type: 'button', onclick: () => player() && toggleSkip() }, 'Skip');
   const touchFs = h('button', { class: 'btn', type: 'button', onclick: fullScreen, hidden: !canFull }, 'Full Screen');
