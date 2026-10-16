@@ -79,7 +79,7 @@ a { color: var(--link); }
   background-image: var(--wallpaper), var(--pattern);
   background-size: var(--wallpaper-size, cover), auto;
   background-position: center, 0 0;
-  background-repeat: no-repeat, repeat;
+  background-repeat: var(--wallpaper-repeat, no-repeat), repeat;
   image-rendering: pixelated;
   overflow: hidden;
 }
@@ -92,7 +92,7 @@ a { color: var(--link); }
   touch-action: none;
 }
 .icon svg, .icon img { width: 32px; height: 32px; }
-.icon span { padding: 1px 2px; max-width: 86px; overflow-wrap: break-word; }
+.icon span { padding: 1px 2px; max-width: 86px; overflow-wrap: break-word; background: var(--desktop); }
 .icon.sel svg { filter: brightness(.55) sepia(1) hue-rotate(185deg) saturate(5); }
 .icon.sel span { background: var(--select); color: var(--select-ink); }
 .icon:focus-visible { outline: none; }

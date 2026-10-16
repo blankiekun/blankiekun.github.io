@@ -352,6 +352,9 @@ function open(arg) {
       { label: 'Save &As...', action: () => save(true) },
       ...(sendEnabled() ? ['-', { label: 'S&end to blankiekun...', icon: 'i-mail', action: sendDrawing }] : []),
       '-',
+      { label: 'Set As Wallpaper (&Tiled)', action: () => wallpaper(true) },
+      { label: 'Set As Wallpaper (C&entered)', action: () => wallpaper(false) },
+      '-',
       { label: 'E&xit', action: () => win.close() },
     ] },
     { label: '&Edit', items: () => [
@@ -391,6 +394,10 @@ function open(arg) {
       if (blob.size > 1_500_000) { msgbox({ title: 'Paint', icon: 'warn', parent: win, text: 'This picture is too big to send. Make it smaller with Image > Attributes.' }); return; }
       sendDialog({ kind: 'drawing', parent: win, blob });
     }, 'image/png');
+  }
+
+  function wallpaper(tile) {
+    import('./display.js').then(m => m.setWallpaper(canvas.toDataURL('image/png'), tile));
   }
 
   // Pictures are kept on the pretend disk as PNG data, whatever the name says.

@@ -29,9 +29,14 @@ Getting around
     and the window moves when you let go.
   * Drag a window's edge or corner to resize it.
   * Right-click the desktop for more options.
-  * Start > Settings > Display changes the colours and wallpaper.
+  * Start > Settings > Display changes the colours, wallpaper and
+    screen saver.
+  * Right-click the taskbar to cascade, tile or minimize windows.
+  * Notepad, WordPad and Paint save on drive C:. Save to 3½ Floppy
+    (A:) to download a file to your real computer.
 
-Everything else (Minesweeper, Solitaire, Paint...) is here for fun.
+Everything else (Minesweeper, FreeCell, Hearts, Paint...) is here
+for fun.
 
 Source code: https://github.com/blankiekun
 `;

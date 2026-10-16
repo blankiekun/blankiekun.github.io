@@ -2,7 +2,7 @@
 
 import { h } from '../util.js';
 import { createWindow, launch, toggleMax } from '../wm.js';
-import { resolve, dosName, drive } from '../fs.js';
+import { resolve, dosName, drive, pathOf, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
 import { run, open as shellOpen, ALIASES, PROJECTS } from '../shell.js';
 
 const STAMP = '08-24-95  11:11a';
@@ -47,6 +47,12 @@ function open(arg) {
       if (seg === '..') { if (parts.length > 1) parts.pop(); } else parts.push(seg);
     }
     return parts.length === 1 ? parts[0] + '\\' : parts.join('\\');
+  }
+  // 'NOTES\\A.TXT' -> [folder node, 'A.TXT'], relative to the current directory.
+  function split(arg) {
+    const p = abs(arg);
+    const i = p.lastIndexOf('\\');
+    return [resolve(i === 2 ? p.slice(0, 3) : p.slice(0, i)), p.slice(i + 1)];
   }
   function canonical(path) {
     // Rebuild a path with the names as stored, so `cd windows` shows C:\WINDOWS.
@@ -100,6 +106,9 @@ function open(arg) {
     '  CD [path]       Change directory (CD.. goes up, CD\\ to the root)',
     '  C: D: E:        Change drive (D: has the projects)',
     '  TYPE file       Show a text file, e.g. TYPE README.TXT',
+    '  MD, RD          Make or remove a directory',
+    '  COPY, REN, DEL  Copy, rename or delete a file',
+    '  EDIT file       Edit a text file in Notepad',
     '  START name      Open a program or project page',
     '  CLS             Clear the screen',
     '  VER, DATE, TIME, MEM, ECHO',
@@ -153,7 +162,7 @@ function open(arg) {
       }
       case 'edit': {
         const n = argStr ? resolve(abs(argStr)) : null;
-        launch('notepad', n && n.text != null ? { name: n.name, text: n.text } : argStr ? { name: argStr.toUpperCase(), text: '' } : null);
+        launch('notepad', n && n.text != null ? { name: n.name, text: n.text, path: n.user ? pathOf(n) : null } : argStr ? { name: argStr.toUpperCase(), text: '' } : null);
         return;
       }
       case 'start': {
@@ -166,7 +175,48 @@ function open(arg) {
       case 'exit': win.close(); return;
       case 'win': print('You are already running blankiekun 95.'); return;
       case 'format': print('Nice try.'); return;
-      case 'deltree': case 'del': case 'erase': print('Access denied'); return;
+      case 'md': case 'mkdir': {
+        if (!argStr) { print('Required parameter missing'); return; }
+        const [folder, name] = split(argStr);
+        if (!folder || !folder.children) { print('Invalid path'); return; }
+        try { mkdir(folder, name); } catch { print('Unable to create directory'); }
+        return;
+      }
+      case 'rd': case 'rmdir': {
+        const n = argStr && resolve(abs(argStr));
+        if (!n || !n.children || n.children.length) { print('Invalid path, not directory,'); print('or directory not empty'); return; }
+        try { remove(n); } catch { print('Access denied'); }
+        if (abs('.').toUpperCase().startsWith(abs(argStr).toUpperCase())) cwd = abs('..');
+        return;
+      }
+      case 'del': case 'erase': {
+        if (!argStr) { print('Required parameter missing'); return; }
+        const n = resolve(abs(argStr));
+        if (!n || n.children) { print('File not found'); return; }
+        try { remove(n); } catch { print('Access denied'); }
+        return;
+      }
+      case 'ren': case 'rename': {
+        if (rest.length < 2) { print('Required parameter missing'); return; }
+        const n = resolve(abs(rest[0]));
+        if (!n) { print('File not found'); return; }
+        try { rename(n, rest[1]); } catch (e) { print(e instanceof FsError && /exists/.test(e.message) ? 'Duplicate file name or file not found' : 'Access denied'); }
+        return;
+      }
+      case 'copy': {
+        if (!rest.length) { print('Required parameter missing'); return; }
+        const n = resolve(abs(rest[0]));
+        if (!n || n.children) { print('File not found - ' + rest[0].toUpperCase()); return; }
+        // COPY file folder keeps the name; COPY file name makes a new file next to it.
+        const to = rest[1] ? resolve(abs(rest[1])) : resolve(abs('.'));
+        try {
+          if (to && to.children) copy(n, to);
+          else { const [folder, name] = split(rest[1]); createFile(folder, name, n.data ? { data: n.data } : { text: n.text || '' }); }
+          print('        1 file(s) copied');
+        } catch { print('Access denied'); print('        0 file(s) copied'); }
+        return;
+      }
+      case 'deltree': print('Access denied'); return;
     }
     // A program name, an alias, or a file in the current directory.
     const local = resolve(abs(cmd0)) || resolve(abs(cmd0 + '.exe')) || resolve(abs(cmd0 + '.htm'));

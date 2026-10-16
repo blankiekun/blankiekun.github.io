@@ -70,7 +70,9 @@ function mix(hex, to, t) {
 
 function varsFor(s) {
   const sc = SCHEMES[s.scheme] || SCHEMES['Windows Standard'];
-  const wp = WALLPAPERS[s.wallpaper];
+  const wp = s.wallpaper === PAINTED && s.painted
+    ? { url: `url("${s.painted}")`, size: 'auto', repeat: s.paintedTile ? 'repeat' : 'no-repeat' }
+    : WALLPAPERS[s.wallpaper];
   return {
     '--desktop': s.color,
     '--pattern': patternUrl(PATTERNS[s.pattern]),
@@ -87,8 +89,17 @@ function varsFor(s) {
   };
 }
 
+// Paint's Set As Wallpaper puts the picture here.
+const PAINTED = 'Paint Wallpaper';
+
 const DEFAULTS = { pattern: '(None)', wallpaper: '(None)', color: '#008080', scheme: 'Windows Standard' };
 function current() { return { ...DEFAULTS, ...(store.get(KEY, null) || {}) }; }
+
+export function setWallpaper(dataUrl, tile) {
+  const s = { ...current(), wallpaper: PAINTED, painted: dataUrl, paintedTile: tile };
+  store.set(KEY, { ...s, vars: varsFor(s) });
+  applyDisplay(s);
+}
 
 export function applyDisplay(s = current()) {
   const vars = varsFor(s);
@@ -138,7 +149,7 @@ function open() {
   const bgPanel = h('div', { class: 'dp-panel' },
     h('div', { class: 'dp-lists' },
       h('fieldset', { class: 'group' }, h('legend', null, 'Pattern'), listbox(Object.keys(PATTERNS), draft.pattern, v => { draft.pattern = v; preview(); }, 'Pattern')),
-      h('fieldset', { class: 'group' }, h('legend', null, 'Wallpaper'), listbox(Object.keys(WALLPAPERS), draft.wallpaper, v => { draft.wallpaper = v; preview(); }, 'Wallpaper'))),
+      h('fieldset', { class: 'group' }, h('legend', null, 'Wallpaper'), listbox(Object.keys(WALLPAPERS).concat(draft.painted ? [PAINTED] : []), draft.wallpaper, v => { draft.wallpaper = v; preview(); }, 'Wallpaper'))),
     h('fieldset', { class: 'group' }, h('legend', null, 'Desktop color'), swatches));
 
   const schemeSel = h('select', { class: 'field', id: 'dp-scheme', 'aria-label': 'Scheme' }, ...Object.keys(SCHEMES).map(s => h('option', { value: s, selected: s === draft.scheme }, s)));
