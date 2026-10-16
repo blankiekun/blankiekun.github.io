@@ -1,0 +1,79 @@
+/* ---------- Screen savers ---------- */
+
+/* Full screen, above the taskbar, menus and the drag outline. */
+.ss-full {
+  position: fixed; inset: 0; z-index: 200000; background: #000;
+  cursor: none; touch-action: none; outline: none; user-select: none;
+}
+.ss-full.asking { cursor: default; }
+.ss-canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+/* The password box drawn over a running saver. */
+.ss-dlg {
+  position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+  width: min(380px, calc(100vw - 16px)); cursor: default;
+}
+.ss-dlg .dlg .msg { padding-top: 2px; }
+.ss-pwrow { display: flex; align-items: center; gap: 8px; padding-left: 44px; }
+.ss-pwrow .field { flex: 1; min-width: 0; }
+
+/* The little running preview inside the Display Properties monitor. */
+.ss-mon { display: none; position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.dp-screen.ss-on .ss-mon { display: block; }
+.dp-screen.ss-on .dp-win { display: none; }
+
+/* Screen Saver tab */
+.ss-panel .group { display: flex; flex-direction: column; gap: 8px; }
+.ss-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ss-row select.field { flex: 1 1 140px; min-width: 0; }
+.ss-row .btn { min-width: 0; padding: 0 8px; }
+.ss-check { display: inline-flex; align-items: center; gap: 0; }
+.ss-check.off { color: var(--shadow); text-shadow: 1px 1px var(--hilite); gap: 6px; }
+.ss-wait { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+
+.ss-spin { display: inline-flex; box-shadow: var(--sunken); background: var(--paper); padding: 2px; height: 21px; }
+.ss-spin .field { width: 30px; height: 17px; box-shadow: none; padding: 0 2px; background: transparent; }
+.ss-spin .ss-arrows { display: flex; flex-direction: column; width: 16px; }
+.ss-spin .ss-arrows button {
+  flex: 1; border: 0; padding: 0; background: var(--face); box-shadow: var(--raised-btn); position: relative; cursor: default;
+}
+.ss-spin .ss-arrows button::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 5px; height: 3px; transform: translate(-50%, -50%);
+  background: var(--ink); clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.ss-spin .ss-arrows button + button::after { clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.ss-spin .ss-arrows button:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--shadow); }
+.ss-spin.off { background: var(--face); }
+.ss-spin.off .field { color: var(--shadow); }
+.ss-spin.off .ss-arrows button::after { background: var(--shadow); }
+
+.ss-energy .row { display: flex; gap: 10px; align-items: flex-start; }
+.ss-energy .row > svg { width: 32px; height: 32px; flex: none; opacity: .6; }
+.ss-energy-rows { display: flex; flex-direction: column; gap: 6px; }
+.ss-energy-rows .ss-check input[type="checkbox"] { margin-right: 0; }
+
+/* Per-saver settings dialogs */
+.ss-set { width: min(320px, calc(100vw - 16px)); }
+.ss-set .group { display: flex; flex-direction: column; gap: 6px; }
+.ss-mini-wrap { align-self: center; box-shadow: var(--sunken); padding: 2px; background: #000; line-height: 0; }
+.ss-mini { width: 144px; height: 88px; image-rendering: pixelated; }
+.ss-set .dp-row > span:first-child { min-width: 120px; }
+.ss-track { display: flex; align-items: center; gap: 8px; }
+.ss-track input { flex: 1; min-width: 0; }
+.ss-color { width: 48px; height: 21px; padding: 2px; border: 0; background: var(--face); box-shadow: var(--sunken); }
+
+/* Win95 trackbar: a sunken groove and a raised pointer. */
+.ss-set input[type="range"] { appearance: none; -webkit-appearance: none; background: transparent; height: 24px; margin: 0; }
+.ss-set input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--paper); box-shadow: var(--sunken); }
+.ss-set input[type="range"]::-moz-range-track { height: 4px; background: var(--paper); box-shadow: var(--sunken); }
+.ss-set input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 11px; height: 21px; margin-top: -9px; border: 0; border-radius: 0;
+  background: var(--face); box-shadow: var(--raised-btn);
+}
+.ss-set input[type="range"]::-moz-range-thumb { width: 11px; height: 21px; border: 0; border-radius: 0; background: var(--face); box-shadow: var(--raised-btn); }
+.ss-set input[type="range"]:focus-visible { outline: 1px dotted var(--ink); }
+
+.ss-pwd { width: min(360px, calc(100vw - 16px)); }
+.ss-pwd .row > div { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.ss-pwd .dp-row > span:first-child { min-width: 140px; }
+.ss-pwd .dp-row .field { min-width: 100px; }

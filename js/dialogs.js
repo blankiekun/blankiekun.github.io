@@ -11,9 +11,9 @@ export function msgbox({ title = 'blankiekun 95', text, icon: kind = 'info', but
     let done = false;
     const finish = v => { if (done) return; done = true; resolve(v); win.close(true); };
     const btns = buttons.map((b, i) => h('button', {
-      class: 'btn' + (i === 0 ? ' default' : ''), type: 'button', html: accel(b).html,
+      class: 'btn' + (i === 0 ? ' default' : ''), type: 'button',
       onclick: () => finish(b.replace('&', '')),
-    }));
+    }, h('span', { html: accel(b).html })));
     const msg = h('div', { class: 'msg' });
     if (html) msg.innerHTML = html; else msg.textContent = text;
     const body = h('div', { class: 'dlg' },
@@ -30,6 +30,8 @@ export function msgbox({ title = 'blankiekun 95', text, icon: kind = 'info', but
       icon: null, onClose: () => { if (!done) { done = true; resolve(null); } },
     });
     btns[0].focus();
+    const ev = { error: 'Critical Stop', warn: 'Exclamation', info: 'Asterisk', question: 'Question', 'i-warn': 'Exclamation' }[kind];
+    if (ev) import('./apps/control.js').then(m => m.playSound && m.playSound(ev)).catch(() => {});
   });
 }
 

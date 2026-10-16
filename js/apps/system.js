@@ -1,6 +1,6 @@
 // System Properties, Help, Find and Date/Time.
 
-import { h, icon } from '../util.js';
+import { h, icon, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { about } from '../dialogs.js';
 import { walk, kindLabel, sizeLabel } from '../fs.js';
@@ -94,6 +94,8 @@ const TOPICS = [
     ['Open a program', `<p>Double-click its icon on the desktop. On a touch screen, tap it once.</p><p>Or click <b>Start</b> and choose it from the menu. If you know its name, click <b>Start</b>, click <b>Run</b>, and type it (try <code>winmine</code>, <code>notepad</code> or <code>command</code>).</p>`],
     ['Move or resize a window', `<p>Drag the window's title bar. An outline follows the pointer and the window moves when you release the button. Press <b>Esc</b> while dragging to cancel.</p><p>To resize, drag any edge or corner of the window.</p><p>Double-click the title bar to maximize or restore the window.</p>`],
     ['Switch between windows', `<p>Each open window has a button on the taskbar. Click it to bring the window to the front. Click the button of the window that is already in front to minimize it.</p>`],
+    ['Arrange your windows', `<p>Right-click an empty part of the taskbar to <b>Cascade</b> or <b>Tile</b> the open windows, or to <b>Minimize All Windows</b>. The same menu can undo it.</p><p>Click the icon in the top-left corner of a window for its <b>system menu</b>. <b>Move</b> and <b>Size</b> there work with the arrow keys: press <b>Enter</b> when the outline is where you want it. Double-click the icon to close the window.</p><p>To change the taskbar itself, right-click it and click <b>Properties</b>.</p>`],
+    ['Save and organize files', `<p>Notepad, WordPad and Paint save files on drive <b>C:</b>, in <b>My Documents</b> or any folder you make. They stay in this browser until you delete them or clear its site data.</p><p>To keep a copy on your real computer, save it to <b>3½ Floppy (A:)</b>, or right-click a file and point to <b>Send To</b>. Opening a file from A: picks one from your real computer.</p><p>In a folder window or on the desktop, right-click to make a <b>New</b> folder or document. Drag files between folders to move them; hold <b>Ctrl</b> to copy. Press <b>F2</b> to rename and <b>Delete</b> to send to the <b>Recycle Bin</b>, where <b>Restore</b> puts things back.</p><p>Files that came with blankiekun 95 are read-only, but you can copy them.</p>`],
     ...(sendEnabled() ? [['Send blankiekun a drawing or note', `<p>Draw something in <b>Paint</b> or write something in <b>Notepad</b>, then click <b>Send to blankiekun...</b> in the bottom-right corner of the window (it's also on the <b>File</b> menu).</p><p>Add your name if you like, tick the "are you human" check, and click <b>Send</b>. It goes to a private channel that only blankiekun reads.</p><p>You can send once a minute.</p>`]] : []),
     ['Change the desktop', `<p>Right-click an empty part of the desktop and click <b>Properties</b>, or click <b>Start</b>, point to <b>Settings</b>, and click <b>Display</b>.</p><p>You can choose a pattern, a wallpaper, a desktop colour, and a colour scheme for windows. Your choices are saved in this browser.</p>`],
   ] },
@@ -103,7 +105,7 @@ const TOPICS = [
     ['Solitaire', `<p>Move all the cards onto the four suit stacks in the top right, from Ace to King.</p><ul><li>In the seven columns, build down in alternating colours.</li><li>Only a King can fill an empty column.</li><li>Click the deck to turn cards over.</li><li>Double-click a card to send it to its suit stack. Right-click the table to send every card that can go.</li></ul>`],
   ] },
   { book: 'Tips', pages: [
-    ['Keyboard shortcuts', `<table><tr><td><b>Ctrl+Esc</b></td><td>Open the Start menu</td></tr><tr><td><b>Esc</b></td><td>Close a menu, or cancel a drag</td></tr><tr><td><b>Alt+Left</b></td><td>Back, in Internet Explorer</td></tr><tr><td><b>F5</b></td><td>Refresh, in Internet Explorer</td></tr><tr><td><b>F2</b></td><td>New game, in Minesweeper and Solitaire</td></tr><tr><td><b>Enter</b></td><td>Open the selected icon</td></tr></table>`],
+    ['Keyboard shortcuts', `<table><tr><td><b>Ctrl+Esc</b></td><td>Open the Start menu</td></tr><tr><td><b>Esc</b></td><td>Close a menu, or cancel a drag</td></tr><tr><td><b>Alt+Left</b></td><td>Back, in Internet Explorer</td></tr><tr><td><b>F5</b></td><td>Refresh, in Internet Explorer</td></tr><tr><td><b>F2</b></td><td>New game, in Minesweeper and Solitaire</td></tr><tr><td><b>Enter</b></td><td>Open the selected icon</td></tr><tr><td><b>Alt+Enter</b></td><td>Properties of the selected icon</td></tr><tr><td><b>F2</b></td><td>Rename the selected file</td></tr><tr><td><b>Delete</b></td><td>Send the selected files to the Recycle Bin</td></tr><tr><td><b>Ctrl+X, C, V</b></td><td>Cut, copy and paste files</td></tr><tr><td><b>Backspace</b></td><td>Up one folder</td></tr><tr><td><b>Ctrl+Alt+End</b></td><td>Close Program (press again to restart)</td></tr></table>`],
     ['Links to this desktop', `<p>The address bar of your real browser follows the window in front, so you can share a link to it. For example, <code>#ie/chimimouryou</code> opens the chimimouryou page and <code>#minesweeper</code> opens Minesweeper.</p>`],
   ] },
 ];
@@ -239,6 +241,52 @@ function datetime() {
   return win;
 }
 
+// ---------- Welcome ----------
+
+const TIPS = [
+  'To open a program, double-click its icon on the desktop. On a touch screen, tap it once.',
+  'chimimouryou is a self-hosted e-book reader for your Calibre library, made for reading Japanese. Open Internet Explorer to read about it.',
+  'CONscripter plays NScripter visual novels right in the browser. It\'s on the desktop: drop a game folder on its window.',
+  'You can save files on drive C:. Saving to 3½ Floppy (A:) downloads the file to your real computer.',
+  'Right-click the taskbar to Cascade or Tile your windows, or to minimize them all at once.',
+  'Click the icon in the top-left corner of a window for the system menu. Double-click it to close the window.',
+  'Drag files onto the Recycle Bin to delete them. If you change your mind, open the Recycle Bin and choose Restore.',
+  'To see the folders on your computer as a tree, click Start, point to Programs, and click Windows Explorer.',
+  'Press Ctrl+Alt+End to open Close Program. Pressing it again restarts the computer.',
+  'Display Properties has screen savers. Right-click the desktop, click Properties, and look under the Screen Saver tab.',
+  'Draw something in Paint or write a note in Notepad, and you can send it straight to blankiekun.',
+  'conscripter-convert turns games made with other engines into games CONscripter can play.',
+];
+
+function welcome() {
+  let i = Math.floor(Math.random() * TIPS.length);
+  const tip = h('p', { class: 'wl-tip' });
+  const show = () => { tip.textContent = TIPS[i % TIPS.length]; };
+  show();
+  const again = h('input', { type: 'checkbox', id: 'wl-again', checked: store.get('w95.welcome', true) });
+  again.addEventListener('change', () => store.set('w95.welcome', again.checked));
+  const btn = (label, fn) => h('button', { class: 'btn', type: 'button', onclick: fn }, h('span', { html: label }));
+  const body = h('div', { class: 'dlg wl' },
+    h('div', { class: 'wl-head' }, h('span', null, 'Welcome to '), h('b', null, 'blankiekun'), h('sup', null, '95')),
+    h('div', { class: 'wl-main' },
+      h('div', { class: 'wl-box' }, h('div', { class: 'wl-did' }, icon('i-info'), h('b', null, 'Did you know...')), tip),
+      h('div', { class: 'wl-btns' },
+        btn('<u>W</u>indows Tour', () => { win.close(); launch('ie', 'home'); }),
+        btn('What\'s <u>N</u>ew', () => launch('help', 'Welcome')),
+        btn('<u>O</u>nline Registration', () => window.open(GITHUB, '_blank', 'noopener')),
+        h('hr', { class: 'pr-sep' }),
+        btn('Next <u>T</u>ip', () => { i++; show(); }),
+        h('button', { class: 'btn default', type: 'button', onclick: () => win.close() }, 'Close'))),
+    h('label', { class: 'pr-check', for: 'wl-again' }, again, 'Show this Welcome Screen next time you start blankiekun 95'));
+  body.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); win.close(); }
+    if (e.key.toLowerCase() === 't' && !e.ctrlKey) { i++; show(); }
+  });
+  const win = createWindow({ app: 'welcome', title: 'Welcome', body, dialog: true, resizable: false, width: 'auto', taskbar: true });
+  body.querySelector('.btn.default').focus();
+  return win;
+}
+
 const aboutApp = { id: 'about', title: 'About', icon: 'i-flag', open: () => about('Windows', 'i-computer') };
 
 export const sysApp = { id: 'sysprops', title: 'System Properties', icon: 'i-computer', single: true, open: sysprops };
@@ -246,3 +294,4 @@ export const helpApp = { id: 'help', title: 'Help', icon: 'i-helpbook', single: 
 export const findApp = { id: 'find', title: 'Find', icon: 'i-find', single: true, open: find };
 export const dtApp = { id: 'datetime', title: 'Date/Time', icon: 'i-ctrl', single: true, open: datetime };
 export { aboutApp };
+export const welcomeApp = { id: 'welcome', title: 'Welcome', icon: 'i-flag', single: true, open: welcome };

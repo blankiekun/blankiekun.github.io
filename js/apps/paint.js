@@ -1,10 +1,11 @@
 // Paint. Everything is drawn pixel by pixel so fills and colour picks stay exact,
 // the way the real thing never anti-aliased anything.
 
-import { h, clamp, download } from '../util.js';
+import { h, clamp } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
+import { saveAs, openFile, saveTo } from '../filedlg.js';
 import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
 
 const PALETTE = [
@@ -28,8 +29,9 @@ const TOOLS = [
 const SIZES = { brush: [1, 2, 3, 5], eraser: [4, 6, 8, 10], line: [1, 2, 3, 5], airbrush: [4, 8, 12] };
 const SHAPES = ['rect', 'ellipse', 'rrect'];
 
-function open() {
+function open(arg) {
   let W = 480, H = 320;
+  let name = 'untitled', path = null, edits = 0, savedAt = 0;
   let fg = '#000000', bg = '#ffffff';
   let tool = 'pencil', prevTool = 'pencil';
   const size = { brush: 2, eraser: 6, line: 1, airbrush: 8 };
@@ -187,6 +189,7 @@ function open() {
   }
 
   function pushUndo() {
+    edits++;
     undoStack.push(ctx.getImageData(0, 0, W, H));
     if (undoStack.length > 3) undoStack.shift();
   }
@@ -308,32 +311,45 @@ function open() {
     const d = createWindow({ title: 'Attributes', body: form, dialog: true, resizable: false, width: 'auto', parent: win, taskbar: false });
     wIn.select();
   }
-  const fileIn = h('input', { type: 'file', accept: 'image/*', hidden: true });
-  fileIn.addEventListener('change', () => {
-    const f = fileIn.files[0];
-    if (!f) return;
+  const IMG = [{ label: 'Bitmap Files (*.bmp)', exts: ['.bmp'] }, { label: 'Pictures (*.png;*.jpg;*.gif)', exts: ['.png', '.jpg', '.jpeg', '.gif'] }, { label: 'All Files (*.*)', exts: [] }];
+  const setName = (n, p) => { name = n; path = p || null; win.setTitle(name + ' - Paint'); };
+  function loadImage(src, n, p, revoke) {
     const img = new Image();
     img.onload = () => {
       pushUndo();
       resize(Math.min(img.width, 2000), Math.min(img.height, 2000), false);
       ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(img.src);
-      win.setTitle(f.name + ' - Paint');
+      if (revoke) URL.revokeObjectURL(src);
+      setName(n, p);
+      savedAt = edits;
     };
-    img.src = URL.createObjectURL(f);
-    fileIn.value = '';
-  });
-
+    img.onerror = () => msgbox({ title: 'Paint', icon: 'error', parent: win, text: `Paint cannot read this file.\nThis is not a valid bitmap file, or its format is not currently supported.` });
+    img.src = src;
+  }
+  async function openDialog() {
+    if (!(await confirmSave())) return;
+    const r = await openFile({ filters: IMG, parent: win, accept: 'image/*' });
+    if (!r) return;
+    if (r.file) loadImage(URL.createObjectURL(r.file), r.file.name, null, true);
+    else if (r.node.data) loadImage(r.node.data, r.node.name, r.node.user ? r.path : null);
+    else msgbox({ title: 'Paint', icon: 'error', parent: win, text: `Paint cannot read ${r.name}.\nThis is not a valid bitmap file, or its format is not currently supported.` });
+  }
+  const modified = () => edits !== savedAt;
+  async function confirmSave() {
+    if (!modified()) return true;
+    const b = await msgbox({ title: 'Paint', icon: 'warn', parent: win, buttons: ['&Yes', '&No', 'Cancel'], text: `Save changes to ${name}?` });
+    if (b === 'Yes') return save();
+    return b === 'No';
+  }
   const bar = menubar([
     { label: '&File', items: () => [
       { label: '&New', key: 'Ctrl+N', action: async () => {
-        const b = await msgbox({ title: 'Paint', icon: 'warn', parent: win, buttons: ['&Yes', '&No', 'Cancel'], text: 'Save changes to untitled?' });
-        if (b === 'Cancel' || b == null) return;
-        if (b === 'Yes') save();
-        undoStack.length = 0; resize(480, 320, false); win.setTitle('untitled - Paint');
+        if (!(await confirmSave())) return;
+        resize(480, 320, false); undoStack.length = 0; edits = savedAt = 0; drew = false; setName('untitled');
       } },
-      { label: '&Open...', key: 'Ctrl+O', action: () => fileIn.click() },
-      { label: '&Save', key: 'Ctrl+S', action: save },
+      { label: '&Open...', key: 'Ctrl+O', action: openDialog },
+      { label: '&Save', key: 'Ctrl+S', action: () => save() },
+      { label: 'Save &As...', action: () => save(true) },
       ...(sendEnabled() ? ['-', { label: 'S&end to blankiekun...', icon: 'i-mail', action: sendDrawing }] : []),
       '-',
       { label: 'E&xit', action: () => win.close() },
@@ -377,11 +393,22 @@ function open() {
     }, 'image/png');
   }
 
-  function save() {
-    canvas.toBlob(b => b && download('untitled.png', b), 'image/png');
+  // Pictures are kept on the pretend disk as PNG data, whatever the name says.
+  async function save(as) {
+    const data = canvas.toDataURL('image/png');
+    if (!path || as) {
+      const r = await saveAs({ name: /\.[a-z0-9]+$/i.test(name) ? name : name + '.bmp', filters: IMG, parent: win });
+      if (!r) return false;
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const n = saveTo(r, { data }, () => blob, win);
+      if (!n && !r.floppy) return false;
+      setName(r.name, n ? r.path : null);
+    } else if (!saveTo({ path }, { data }, null, win)) return false;
+    savedAt = edits;
+    return true;
   }
 
-  const root = h('div', { class: 'pt' }, bar, h('div', { class: 'pt-main' }, toolbox, area), colorbox, status, fileIn);
+  const root = h('div', { class: 'pt' }, bar, h('div', { class: 'pt-main' }, toolbox, area), colorbox, status);
   if (sendEnabled()) {
     const btn = sendButton('Send to blankiekun...', sendDrawing);
     colorbox.append(btn);
@@ -397,8 +424,9 @@ function open() {
 
   const win = createWindow({
     app: 'paint', title: 'untitled - Paint', icon: 'i-paint', body: root,
-    width: 640, height: 500, minW: 260, minH: 240, route: 'paint',
+    width: 640, height: 500, minW: 260, minH: 240, route: 'paint', onClose: confirmSave,
   });
+  if (arg && arg.data) loadImage(arg.data, arg.name, arg.path);
   setTool('pencil');
   updateColors();
   return win;

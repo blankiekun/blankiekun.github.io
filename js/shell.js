@@ -1,8 +1,9 @@
 // Opening things: files, folders, pages, programs and Run... commands.
 
-import { launch } from './wm.js';
+import { launch, appInfo } from './wm.js';
+import { store } from './util.js';
 import { msgbox } from './dialogs.js';
-import { resolve, pathOf, recycle } from './fs.js';
+import { resolve, pathOf, recycle, openerFor } from './fs.js';
 
 // Program names that Run... and the DOS prompt understand.
 export const ALIASES = {
@@ -14,6 +15,12 @@ export const ALIASES = {
   calc: 'calc', calculator: 'calc',
   command: 'dos', cmd: 'dos', 'command.com': 'dos', dos: 'dos',
   control: 'mycomputer:Control Panel', 'desk.cpl': 'display', display: 'display',
+  freecell: 'freecell', hearts: 'hearts', mshearts: 'hearts',
+  write: 'wordpad', wordpad: 'wordpad', charmap: 'charmap',
+  sndrec32: 'sndrec', sndrec: 'sndrec', soundrec: 'sndrec', cdplayer: 'cdplayer', cdplay: 'cdplayer',
+  scrnsave: 'screensaver', screensaver: 'screensaver', defrag: 'defrag', scandisk: 'scandisk', scandskw: 'scandisk',
+  'main.cpl': 'mouse', mouse: 'mouse', 'intl.cpl': 'regional', 'appwiz.cpl': 'addremove', 'mmsys.cpl': 'sounds',
+  taskman: 'taskman', welcome: 'welcome', sndvol32: 'volume', network: 'network', 'net view': 'network',
   sysdm: 'sysprops', 'sysdm.cpl': 'sysprops', winver: 'about', help: 'help', winhelp: 'help', find: 'find',
 };
 
@@ -28,7 +35,7 @@ export function open(node, parentWin) {
       return launch('explorer', node.letter + ':\\');
     case 'folder':
       if (node === recycle) return launch('recycle');
-      return launch('explorer', node.virtual ? node.name : pathOf(node));
+      return launch('explorer', node.virtual || !pathOf(node) ? { node } : pathOf(node));
     case 'app':
       if (node.app === 'setup') return msgbox({ title: 'Setup', icon: 'info', text: 'blankiekun 95 is already installed on this computer.', parent: parentWin });
       return launch(node.app, node.arg);
@@ -37,11 +44,23 @@ export function open(node, parentWin) {
     case 'link':
       window.open(node.href, '_blank', 'noopener');
       return;
-    case 'file':
-      return launch('notepad', { name: node.name, text: node.text });
+    case 'file': {
+      const app = openerFor(node);
+      remember(node);
+      return launch(appInfo(app) ? app : 'notepad', { name: node.name, text: node.text, data: node.data, path: node.user ? pathOf(node) : null });
+    }
     case 'joke':
       return msgbox({ title: node.name, icon: 'warn', text: 'This file is in the Recycle Bin for a reason.\n\nTo use it, you would first have to drag it out. Please don\'t.', parent: parentWin });
   }
+}
+
+// Start > Documents lists the last files opened.
+export const RECENT = 'w95.recent';
+function remember(node) {
+  const p = node.user ? pathOf(node) : node.name === 'README.TXT' || node.name === 'TODO.TXT' ? pathOf(node) : null;
+  if (!p) return;
+  const list = store.get(RECENT, ['C:\\My Documents\\README.TXT', 'C:\\My Documents\\TODO.TXT']).filter(x => x !== p);
+  store.set(RECENT, [p, ...list].slice(0, 15));
 }
 
 // Start > Run and the DOS prompt's fallback. Returns false when nothing matched.

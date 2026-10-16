@@ -85,14 +85,14 @@ a { color: var(--link); }
 }
 .icons { position: absolute; inset: 0; }
 .icon {
-  position: absolute; width: 78px;
+  position: absolute; width: 86px; margin-left: -5px;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 2px 0; border: 0; background: none; cursor: default;
   color: #fff; text-align: center; font-size: 12px; line-height: 1.2;
   touch-action: none;
 }
 .icon svg, .icon img { width: 32px; height: 32px; }
-.icon span { padding: 1px 2px; max-width: 78px; overflow-wrap: break-word; }
+.icon span { padding: 1px 2px; max-width: 86px; overflow-wrap: break-word; }
 .icon.sel svg { filter: brightness(.55) sepia(1) hue-rotate(185deg) saturate(5); }
 .icon.sel span { background: var(--select); color: var(--select-ink); }
 .icon:focus-visible { outline: none; }
@@ -357,3 +357,20 @@ body.shutting .taskbar::after { content: ""; position: absolute; inset: 0; backg
   .win.opening { animation: open .16s steps(4) both; }
   @keyframes open { from { clip-path: inset(0 100% 100% 0); } to { clip-path: inset(0 0 0 0); } }
 }
+.menu .mi.bold .lbl { font-weight: bold; }
+
+/* ---------- Taskbar Properties: auto hide, not on top, small Start menu ---------- */
+.taskbar { transition: transform .15s steps(4); }
+body.tb-autohide .desktop { bottom: 2px; }
+body.tb-autohide .taskbar { transform: translateY(calc(100% - 3px)); }
+body.tb-autohide .taskbar.peek, body.tb-autohide .taskbar:focus-within { transform: none; }
+body.tb-under .desktop { bottom: 0; }
+body.tb-under .taskbar { z-index: 5; }
+.menu.startmenu.small .side { display: none; }
+.startmenu.small .mi { grid-template-columns: 18px 1fr auto 14px; min-height: 20px; padding: 1px 4px; }
+.startmenu.small .mi .ic, .startmenu.small .mi .ic svg { width: 16px; height: 16px; }
+.startmenu.small .mi.account .ic, .startmenu.small .mi.account .ic img { width: 20px; height: 20px; }
+.titlebar > svg.sysicon { cursor: default; }
+.tray .spk { cursor: default; }
+.tray .spk.muted { opacity: .6; }
+.tray .spk.muted use { filter: none; }

@@ -1,6 +1,9 @@
 // The pretend disk: what My Computer, MS-DOS Prompt, Find and Notepad see.
 //
-// Node: { name, kind: 'drive'|'folder'|'file'|'app'|'page'|'link', children?, text?, app?, arg?, href?, icon?, size? }
+// Node: { name, kind: 'drive'|'folder'|'file'|'app'|'page'|'link', children?, text?, data?, app?, arg?, href?, icon?, size? }
+//
+// The files that ship with the site are read-only. Anything the visitor makes on C:
+// (folders, notes, drawings, copies) is marked `user` and kept in localStorage.
 
 const README = `blankiekun 95 - README.TXT
 ==========================
@@ -96,18 +99,30 @@ export const root = {
         {
           name: 'Program Files', kind: 'folder', dos: 'PROGRA~1', children: [
             { name: 'Internet Explorer', kind: 'folder', dos: 'INTERN~1', children: [app('IEXPLORE.EXE', 'ie', 'i-ie', 1012736)] },
-            { name: 'Accessories', kind: 'folder', dos: 'ACCESS~1', children: [app('MSPAINT.EXE', 'paint', 'i-paint', 344064)] },
+            { name: 'Accessories', kind: 'folder', dos: 'ACCESS~1', children: [
+              app('MSPAINT.EXE', 'paint', 'i-paint', 344064), app('WORDPAD.EXE', 'wordpad', 'i-wordpad', 183296),
+            ] },
             { name: 'CONscripter', kind: 'folder', dos: 'CONSCR~1', children: [app('CONSCRIPTER.EXE', 'cons', 'i-game', 4767101)] },
           ],
         },
         {
           name: 'WINDOWS', kind: 'folder', children: [
             { name: 'COMMAND', kind: 'folder', children: [app('COMMAND.COM', 'dos', 'i-dos', 92870)] },
+            { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
             app('SOL.EXE', 'solitaire', 'i-sol', 180736),
             app('WINMINE.EXE', 'minesweeper', 'i-mine', 24064),
             app('DESK.CPL', 'display', 'i-display', 222208),
+            app('CHARMAP.EXE', 'charmap', 'i-charmap', 15872),
+            app('FREECELL.EXE', 'freecell', 'i-freecell', 30208),
+            app('MSHEARTS.EXE', 'hearts', 'i-hearts', 30720),
+            app('SNDREC32.EXE', 'sndrec', 'i-sndrec', 51200),
+            app('CDPLAYER.EXE', 'cdplayer', 'i-cdplayer', 106496),
+            app('DEFRAG.EXE', 'defrag', 'i-defrag', 222720),
+            app('SCANDSKW.EXE', 'scandisk', 'i-drive', 189952),
+            app('TASKMAN.EXE', 'taskman', 'i-exe', 14848),
+            app('WELCOME.EXE', 'welcome', 'i-flag', 21504),
             app('EXPLORER.EXE', 'explorer', 'i-folder-open', 204288, 'C:\\'),
           ],
         },
@@ -129,9 +144,14 @@ export const root = {
       app('SETUP.EXE', 'setup', 'i-exe', 61440),
     ] },
     { name: 'Control Panel', kind: 'folder', icon: 'i-ctrl', virtual: true, children: [
-      app('Display', 'display', 'i-display'),
-      app('System', 'sysprops', 'i-computer'),
+      app('Add/Remove Programs', 'addremove', 'i-addremove'),
       app('Date/Time', 'datetime', 'i-ctrl'),
+      app('Display', 'display', 'i-display'),
+      app('Mouse', 'mouse', 'i-mouse'),
+      app('Regional Settings', 'regional', 'i-globe'),
+      app('Sounds', 'sounds', 'i-speaker'),
+      app('System', 'sysprops', 'i-computer'),
+      app('Taskbar', 'taskbarprops', 'i-taskbar'),
     ] },
     { name: 'Printers', kind: 'folder', icon: 'i-printer', virtual: true, children: [] },
   ],
@@ -145,6 +165,21 @@ export const recycle = {
   ],
 };
 
+// Network Neighborhood: blankiekun's computer shares the projects.
+const repo = name => ({ name, kind: 'link', href: 'https://github.com/blankiekun/' + name, icon: 'i-github' });
+export const network = {
+  name: 'Network Neighborhood', kind: 'folder', icon: 'i-network', virtual: true, children: [
+    { name: 'Entire Network', kind: 'folder', icon: 'i-network', virtual: true, children: [
+      { name: 'Workgroup', kind: 'folder', icon: 'i-network', virtual: true, children: [] },
+    ] },
+    { name: 'Blankiekun', kind: 'folder', icon: 'i-pc', virtual: true, comment: 'blankiekun\'s computer', children: [
+      repo('chimimouryou'), repo('CONscripter'), repo('conscripter-convert'),
+      { name: 'Homepage', kind: 'page', page: 'home', icon: 'i-htm' },
+    ] },
+    { name: 'Geocities', kind: 'folder', icon: 'i-pc', virtual: true, offline: true, comment: 'closed in 2009', children: [] },
+  ],
+};
+
 export function drive(letter) {
   return root.children.find(n => n.letter === letter.toUpperCase());
 }
@@ -153,6 +188,11 @@ export function drive(letter) {
 export function resolve(path) {
   if (!path || path === 'My Computer') return root;
   if (path === 'Recycle Bin') return recycle;
+  if (path === 'Network Neighborhood') return network;
+  if (path.startsWith('\\\\')) {
+    const node = network.children[1].name.toUpperCase() === path.slice(2).split('\\')[0].toUpperCase() ? network.children[1] : network.children.find(c => '\\\\' + c.name.toUpperCase() === path.toUpperCase());
+    return node || null;
+  }
   if (path === 'Control Panel' || path === 'Printers') return root.children.find(n => n.name === path);
   const m = /^([a-z]):\\?(.*)$/i.exec(path);
   if (!m) return null;
@@ -213,3 +253,251 @@ export function sizeLabel(n) {
   if (n.size == null) return '';
   return Math.max(1, Math.ceil(n.size / 1024)).toLocaleString('en-US') + 'KB';
 }
+
+// ---------- the visitor's files ----------
+
+const KEY = 'w95.fs';
+const BAD = /[\\/:*?"<>|]/;
+const listeners = new Set();
+
+export class FsError extends Error {}
+
+export const desktopFolder = () => resolve('C:\\WINDOWS\\Desktop');
+export const docsFolder = () => resolve('C:\\My Documents');
+
+export function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+
+// Which program opens a file, and its icon, go by the extension like on the real thing.
+export function iconForName(name) {
+  const ext = (/\.([a-z0-9]+)$/i.exec(name) || [])[1]?.toLowerCase();
+  if (ext === 'htm' || ext === 'html') return 'i-htm';
+  if (ext === 'doc' || ext === 'wri' || ext === 'rtf') return 'i-doc';
+  if (ext === 'bmp' || ext === 'png' || ext === 'gif' || ext === 'jpg') return 'i-bmp';
+  return 'i-txt';
+}
+
+export function openerFor(node) {
+  if (/\.(doc|wri|rtf)$/i.test(node.name)) return 'wordpad';
+  if (/\.(bmp|png|gif|jpe?g)$/i.test(node.name) || node.data) return 'paint';
+  return 'notepad';
+}
+
+function sizeOf(n) {
+  if (n.children) return undefined;
+  if (n.data) return Math.round(n.data.length * 0.75);
+  if (n.text != null) return new Blob([n.text]).size;
+  return n.size;
+}
+
+export function parentOf(node, from = root) {
+  if (node === root || node === recycle) return null;
+  if (from === root && recycle.children.includes(node)) return recycle;
+  for (const c of from.children || []) {
+    if (c === node) return from;
+    if (c.children) { const r = parentOf(node, c); if (r) return r; }
+  }
+  return null;
+}
+
+// Folders on C: take new files. The other drives and the system folders don't.
+export function canWrite(folder) {
+  if (!folder || !folder.children || folder.virtual || folder === recycle) return false;
+  const p = pathOf(folder);
+  return !!p && p.startsWith('C:');
+}
+
+export function checkName(name) {
+  const n = name.trim();
+  if (!n) throw new FsError('You must type a filename.');
+  if (BAD.test(n)) throw new FsError('A filename cannot contain any of the following characters:\n\\ / : * ? " < > |');
+  return n;
+}
+
+export function child(folder, name) {
+  return (folder.children || []).find(c => c.name.toUpperCase() === name.toUpperCase());
+}
+
+export function uniqueName(folder, base) {
+  if (!child(folder, base)) return base;
+  const dot = base.lastIndexOf('.');
+  const stem = dot > 0 ? base.slice(0, dot) : base, ext = dot > 0 ? base.slice(dot) : '';
+  for (let i = 2; ; i++) if (!child(folder, `${stem} (${i})${ext}`)) return `${stem} (${i})${ext}`;
+}
+
+function make(props) {
+  const n = { ...props, user: true, mtime: props.mtime || Date.now() };
+  if (n.kind === 'file' && !n.icon) n.icon = iconForName(n.name);
+  if (n.children) n.children = n.children.map(make);
+  n.size = sizeOf(n);
+  return n;
+}
+
+function guard(folder) {
+  if (!canWrite(folder)) {
+    const p = folder === recycle ? 'the Recycle Bin' : pathOf(folder) || folder.name;
+    throw new FsError(`Cannot create or replace files in ${p}: Access is denied.\n\nMake sure the disk is not full or write-protected.`);
+  }
+}
+
+function readOnly(node, verb) {
+  if (!node.user) throw new FsError(`Cannot ${verb} ${node.name}: Access is denied.\n\nIt's one of the files that came with blankiekun 95, so it can't be changed.`);
+}
+
+export function mkdir(folder, name = 'New Folder') {
+  guard(folder);
+  const n = make({ name: uniqueName(folder, checkName(name)), kind: 'folder', children: [] });
+  folder.children.push(n);
+  changed();
+  return n;
+}
+
+export function createFile(folder, name, props = {}) {
+  guard(folder);
+  const n = make({ text: '', ...props, name: uniqueName(folder, checkName(name)), kind: 'file' });
+  folder.children.push(n);
+  changed();
+  return n;
+}
+
+// Save: makes the file, or replaces what's in it.
+export function writeFile(path, props) {
+  const i = path.lastIndexOf('\\');
+  const folder = resolve(i === 2 ? path.slice(0, 3) : path.slice(0, i));
+  const name = checkName(path.slice(i + 1));
+  if (!folder) throw new FsError(`The folder for ${path} does not exist.`);
+  guard(folder);
+  const old = child(folder, name);
+  if (old) {
+    if (old.children) throw new FsError(`Cannot save ${name}: there is already a folder with that name.`);
+    readOnly(old, 'replace');
+    delete old.text; delete old.data;
+    Object.assign(old, props, { mtime: Date.now() });
+    old.size = sizeOf(old);
+    changed();
+    return old;
+  }
+  const n = make({ ...props, name, kind: 'file' });
+  folder.children.push(n);
+  changed();
+  return n;
+}
+
+export function rename(node, name) {
+  readOnly(node, 'rename');
+  const n = checkName(name);
+  const folder = parentOf(node);
+  const other = folder && child(folder, n);
+  if (other && other !== node) throw new FsError(`Cannot rename ${node.name}: A file with the name you specified already exists. Specify a different filename.`);
+  node.name = n;
+  if (node.kind === 'file' && node.icon && /^i-(txt|htm|doc|bmp)$/.test(node.icon)) node.icon = iconForName(n);
+  changed();
+}
+
+// Delete sends things to the Recycle Bin. Deleting from the bin is for good.
+export function remove(node) {
+  const folder = parentOf(node);
+  if (folder === recycle) {
+    recycle.children.splice(recycle.children.indexOf(node), 1);
+    if (!node.user) gone.add(node.name);
+    changed();
+    return;
+  }
+  readOnly(node, 'delete');
+  folder.children.splice(folder.children.indexOf(node), 1);
+  node.from = pathOf(folder) || 'C:\\';
+  node.deleted = Date.now();
+  recycle.children.push(node);
+  changed();
+}
+
+export function restore(node) {
+  if (!node.user) throw new FsError(`${node.name} is happier in the Recycle Bin.\n\nIt will stay here.`);
+  let folder = resolve(node.from);
+  if (!canWrite(folder)) folder = docsFolder();
+  recycle.children.splice(recycle.children.indexOf(node), 1);
+  node.name = uniqueName(folder, node.name);
+  delete node.from; delete node.deleted;
+  folder.children.push(node);
+  changed();
+}
+
+export function emptyBin() {
+  for (const n of recycle.children) if (!n.user) gone.add(n.name);
+  recycle.children.length = 0;
+  changed();
+}
+
+function inside(node, folder) {
+  for (let f = folder; f; f = parentOf(f)) if (f === node) return true;
+  return false;
+}
+
+export function copy(node, folder) {
+  guard(folder);
+  if (node.children && inside(node, folder)) throw new FsError(`Cannot copy ${node.name}: The destination folder is a subfolder of the source folder.`);
+  const clone = n => { const { el, from, deleted, ...rest } = n; return { ...rest, mtime: Date.now(), children: n.children && n.children.map(clone) }; };
+  const c = clone(node);
+  if (child(folder, c.name)) c.name = child(folder, 'Copy of ' + c.name) ? uniqueName(folder, 'Copy of ' + c.name) : 'Copy of ' + c.name;
+  const n = make(c);
+  folder.children.push(n);
+  changed();
+  return n;
+}
+
+export function move(node, folder) {
+  const from = parentOf(node);
+  if (from === folder) return node;
+  if (from === recycle) { node.from = pathOf(folder); restore(node); return node; }
+  readOnly(node, 'move');
+  guard(folder);
+  if (node.children && inside(node, folder)) throw new FsError(`Cannot move ${node.name}: The destination folder is a subfolder of the source folder.`);
+  if (child(folder, node.name)) throw new FsError(`Cannot move ${node.name}: A file with the name you specified already exists.`);
+  from.children.splice(from.children.indexOf(node), 1);
+  folder.children.push(node);
+  changed();
+  return node;
+}
+
+export function folderStats(folder) {
+  let files = 0, folders = 0, bytes = 0;
+  const go = f => { for (const c of f.children || []) { if (c.children) { folders++; go(c); } else { files++; bytes += c.size || 0; } } };
+  go(folder);
+  return { files, folders, bytes };
+}
+
+// ---------- saving to localStorage ----------
+
+const gone = new Set();   // shipped Recycle Bin files the visitor emptied
+
+function ser(n) {
+  const { el, user, size, children, ...rest } = n;
+  return children ? { ...rest, children: children.map(ser) } : rest;
+}
+
+function changed() {
+  const out = { at: [], bin: recycle.children.filter(n => n.user).map(ser), gone: [...gone] };
+  const go = (folder, path) => {
+    for (const c of folder.children || []) {
+      const p = c.kind === 'drive' ? c.letter + ':\\' : path + (path.endsWith('\\') ? '' : '\\') + c.name;
+      if (c.user) out.at.push({ at: path, node: ser(c) });
+      else if (c.children && !c.virtual && !c.notReady) go(c, p);
+    }
+  };
+  go(root, '');
+  let full = false;
+  try { localStorage.setItem(KEY, JSON.stringify(out)); } catch { full = true; }
+  for (const fn of listeners) { try { fn(); } catch (e) { console.error(e); } }
+  if (full) throw new FsError('There is not enough free disk space.\n\nDelete some files (Paint pictures take the most room) and empty the Recycle Bin, then try again.');
+}
+
+(function load() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
+  if (!d) return;
+  for (const { at, node } of d.at || []) {
+    const folder = resolve(at);
+    if (folder && folder.children && !child(folder, node.name)) folder.children.push(make(node));
+  }
+  for (const name of d.gone || []) { gone.add(name); const i = recycle.children.findIndex(n => !n.user && n.name === name); if (i >= 0) recycle.children.splice(i, 1); }
+  for (const n of d.bin || []) recycle.children.push(make(n));
+})();

@@ -1,0 +1,46 @@
+/* FreeCell and Hearts. The cards themselves are .cd in apps.css. */
+
+/* ---------- FreeCell ---------- */
+.fc { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.fc .menubar { align-items: center; }
+.fc-left { margin-left: auto; padding: 0 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fc-board { position: relative; flex: 1; min-height: 0; overflow: auto; overflow-x: hidden; background: #008000; touch-action: manipulation; user-select: none; -webkit-user-select: none; box-shadow: var(--thin-in); }
+.fc-board:focus-visible { outline: none; }
+.fc-board .cd { transition: none; }
+.fc-board .cd.sel { filter: invert(1); }
+.fc-cell { position: absolute; width: var(--cw); height: var(--ch); box-shadow: inset 1px 1px #000, inset -1px -1px #00ff00; }
+.fc-base { position: absolute; width: var(--cw); }
+.fc-king { position: absolute; box-shadow: inset 1px 1px #000, inset -1px -1px #00ff00; padding: 3px; }
+.fc-king svg { width: 100%; height: 100%; }
+.fc-king.right svg { transform: scaleX(-1); }
+.fc-stats table { border-collapse: collapse; }
+.fc-stats td { padding: 1px 8px 1px 0; white-space: nowrap; }
+.fc-stats td.num { text-align: right; }
+.fc-stats .group { margin: 0; }
+.fc-opts { display: flex; flex-direction: column; gap: 6px; padding: 2px 4px; }
+.fc-opt { display: flex; align-items: center; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .fc-board.anim .cd { transition: left .12s linear, top .12s linear; }
+}
+
+/* ---------- Hearts ---------- */
+.hr { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.hr-board { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #008000; touch-action: manipulation; user-select: none; -webkit-user-select: none; box-shadow: var(--thin-in); }
+.hr-board:focus-visible { outline: none; }
+.hr-board .cd.focus::after { content: ""; position: absolute; inset: 2px; outline: 1px dotted #000; pointer-events: none; }
+.hr-name { position: absolute; color: #fff; white-space: nowrap; line-height: 16px; pointer-events: none; }
+.hr-pass { position: absolute; transform: translate(-50%, -50%); z-index: 300; min-width: 96px; }
+.hr-score { min-width: min(320px, 86vw); }
+.hr-moon { margin: 0; font-weight: bold; }
+.hr-sheet { max-height: 220px; overflow: auto; background: var(--paper); box-shadow: var(--sunken); padding: 2px; }
+.hr-sheet table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.hr-sheet th { position: sticky; top: 0; background: var(--face); box-shadow: var(--thin-out); padding: 1px 8px; font-weight: normal; text-align: right; white-space: nowrap; }
+.hr-sheet td { padding: 1px 8px; text-align: right; }
+.hr-sheet tbody tr:last-child td { font-weight: bold; }
+.hr-opts .group { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.hr-of { display: flex; align-items: center; gap: 8px; }
+.hr-of > span { width: 52px; flex: none; }
+.hr-of .field { flex: 1; min-width: 0; width: 180px; }
+@media (prefers-reduced-motion: no-preference) {
+  .hr-board .cd { transition: left .25s ease-out, top .25s ease-out, width .25s, height .25s; }
+}

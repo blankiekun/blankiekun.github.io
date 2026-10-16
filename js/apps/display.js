@@ -3,6 +3,7 @@
 
 import { h, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
+import { screenSaverTab } from './screensaver.js';
 
 const KEY = 'w95.display';
 
@@ -157,12 +158,16 @@ function open() {
     h('div', { class: 'dp-row' }, h('span', null, 'Desktop area:'), h('b', { class: 'dp-res' }, `${innerWidth} by ${innerHeight} pixels`)),
     h('div', { class: 'dp-row' }, h('span', null, 'Font size:'), h('select', { class: 'field', disabled: true }, h('option', null, 'Small Fonts'))));
 
-  const panels = [bgPanel, apPanel, setPanel];
-  const tabs = h('div', { class: 'tabs', role: 'tablist' }, ...['Background', 'Appearance', 'Settings'].map((t, i) => {
+  // The Screen Saver tab keeps its own draft and draws into the monitor.
+  const ss = screenSaverTab({ screen, getWin: () => win, dirty: () => { applyBtn.disabled = false; } });
+
+  const panels = [bgPanel, ss.panel, apPanel, setPanel];
+  const tabs = h('div', { class: 'tabs', role: 'tablist' }, ...['Background', 'Screen Saver', 'Appearance', 'Settings'].map((t, i) => {
     const b = h('button', { type: 'button', role: 'tab', 'aria-selected': String(i === 0) }, t);
     b.addEventListener('click', () => {
       tabs.querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
       panels.forEach((p, j) => { p.hidden = j !== i; });
+      ss.show(panels[i] === ss.panel);
     });
     return b;
   }));
@@ -170,6 +175,7 @@ function open() {
   function commit() {
     store.set(KEY, { ...draft, vars: varsFor(draft) });
     applyDisplay(draft);
+    ss.commit();
     applyBtn.disabled = true;
   }
 
@@ -185,6 +191,7 @@ function open() {
   const win = createWindow({
     app: 'display', title: 'Display Properties', icon: 'i-display', body, dialog: true, taskbar: true,
     resizable: false, width: 'auto', route: 'display', help: () => launch('help'),
+    onClosed: () => ss.destroy(),
   });
   preview();
   applyBtn.disabled = true;
