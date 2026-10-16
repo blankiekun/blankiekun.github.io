@@ -11,6 +11,7 @@ export const PAGES = {
   chimimouryou: { file: 'sites/chimimouryou.html', url: 'http://www.geocities.com/Tokyo/Pagoda/1995/chimimouryou.html', label: 'chimimouryou', icon: 'i-book' },
   convert: { file: 'sites/convert.html', url: 'http://www.angelfire.com/tech/blankiekun/convert.html', label: 'conscripter-convert', icon: 'i-convert' },
   conscripter: { file: 'sites/conscripter.html', url: 'http://www.geocities.com/TimesSquare/Arcade/1995/conscripter.html', label: 'CONscripter', icon: 'i-game' },
+  guestbook: { file: 'sites/guestbook.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/guestbook.html', label: 'Guestbook', icon: 'i-htm' },
 };
 const GITHUB = 'https://github.com/blankiekun';
 const FILES = Object.fromEntries(Object.entries(PAGES).map(([k, p]) => [p.file.split('/').pop(), k]));
