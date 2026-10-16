@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>conscripter-convert :: completion</title>
+<link rel="stylesheet" href="retro.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<style>
+/* The convert page's look: black background, phosphor green, bordered tables. */
+body { background: #000; color: #33ff33; font: 15px/1.5 "Courier New", Courier, monospace; }
+a { color: #00ffff; } a:visited { color: #ff66ff; }
+pre.ascii { margin: 0; color: #33ff33; font: 13px/1.2 "Courier New", monospace; text-align: center; text-shadow: 0 0 6px #00ff0099; overflow-x: auto; }
+.tag { text-align: center; color: #ffff00; }
+h2 { margin: 0 0 8px; font: 28px/1 "VT323", "Courier New", monospace; color: #ffff00; }
+h2::before { content: "[ "; color: #33ff33; } h2::after { content: " ]"; color: #33ff33; }
+h2 small { font-size: 18px; color: #1aaa1a; }
+p { margin: 0 0 8px; }
+p:last-child { margin: 0; }
+code { color: #fff; }
+.box { border: 1px dashed #33ff33; padding: 12px; }
+.bar { font: 22px/1.1 "VT323", "Courier New", monospace; color: #c0c0c0; white-space: nowrap; overflow: hidden; }
+.bar i { color: #33ff33; font-style: normal; } .bar b { color: #ffff00; font-weight: normal; }
+.nums { color: #c0c0c0; } .nums b { color: #fff; font-weight: normal; }
+.err { color: #ff3333; }
+summary { cursor: pointer; color: #ffff00; }
+.scroll { overflow-x: auto; margin-top: 6px; }
+table.kinds { width: 100%; border: 2px solid #33ff33; font-size: 13px; }
+.kinds th, .kinds td { border: 1px solid #1a801a; padding: 3px 6px; text-align: left; vertical-align: top; }
+.kinds th { background: #003300; color: #ffff00; }
+.kinds td.n { text-align: right; white-space: nowrap; }
+.kinds td:last-child { min-width: 18em; }
+.kinds ul { margin: 0; padding: 0; list-style: none; color: #c0c0c0; }
+#games { display: flex; flex-direction: column; gap: 18px; }
+.small { font-size: 12px; color: #1aaa1a; }
+footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; color: #1aaa1a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<pre class="ascii" aria-label="conscripter-convert completion">
++==========================================+
+|                                          |
+|   c o n v e r t  ::  c o m p l e t i o n |
+|                                          |
++==========================================+
+</pre>
+  <div class="tag">::: how much of each game converts, live from the repository :::</div>
+
+  <div class="box">
+    <p>Every command call in a game's scripts counts as either <b>fully converted</b> or <b>with a gap</b>: the converter dropped it, approximated it, or left an argument it was given unread. These numbers come from the converter's dry run and are updated in the same pull request as every change to a conversion.</p>
+  </div>
+
+  <div id="games"></div>
+
+  <p class="small">Fetched from the <a href="https://github.com/blankiekun/conscripter-convert/tree/main/tests/snapshots">main branch</a> on each load. GitHub's raw file server can be up to 5 minutes behind a merge. The commit is the one the numbers were measured on; "+ its PR" means plus the change that updated them.</p>
+
+  <footer>
+    <div>---------------------------------------------</div>
+    <div><a href="convert.html">&lt;&lt; conscripter-convert</a> | <a href="home.html">home</a></div>
+  </footer>
+</div>
+<script>
+const BASE = "https://raw.githubusercontent.com/blankiekun/conscripter-convert/main/tests/snapshots/";
+const REPO = "https://github.com/blankiekun/conscripter-convert";
+const GAMES = [
+  ["saihate-no-ima", "最果てのイマ COMPLETE", "Xuse"],
+  ["oretsuba", "俺たちに翼はない (PS Vita)", "5pb./MAGES"],
+  ["muramasa", "装甲悪鬼村正", "Nitroplus NSS"],
+  ["muramasa-en", "Full Metal Daemon Muramasa (English)", "Nitroplus NSS + the English port"],
+  ["django", "続・殺戮のジャンゴ", "Nitroplus NSS"],
+];
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text != null) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+const fmt = n => n.toLocaleString("en-US");
+
+function render(box, m) {
+  const t = m.totals;
+  const pct = t.calls ? 100 * t.full / t.calls : 0;
+  // Floor, so a game with any gap never shows 100.0.
+  const shown = (Math.floor(pct * 10) / 10).toFixed(1);
+  const width = 24, filled = Math.round(pct / 100 * width);
+  const bar = el("div", null, "bar");
+  bar.setAttribute("role", "img");
+  bar.setAttribute("aria-label", shown + "% fully converted");
+  bar.append("[", el("i", "#".repeat(filled)), ".".repeat(width - filled), "] ", el("b", shown + "%"));
+  box.append(bar);
+
+  const nums = el("p", null, "nums");
+  nums.append(el("b", fmt(t.calls)), " calls: ", el("b", fmt(t.full)), " fully converted, ", el("b", fmt(t.gaps)), " with gaps");
+  box.append(nums);
+
+  const dirty = m.commit.endsWith("-dirty");
+  const sha = m.commit.replace(/-dirty$/, "");
+  const src = el("p", "measured on ", "small");
+  const link = el("a", sha);
+  link.href = REPO + "/commit/" + sha;
+  src.append(link, (dirty ? " + its PR" : "") + " (" + m.commit_date + ")");
+  box.append(src);
+
+  const kinds = Object.entries(m.kinds).sort((a, b) => b[1].gaps - a[1].gaps || b[1].calls - a[1].calls);
+  const det = el("details");
+  det.append(el("summary", Object.keys(m.kinds).length + " command kinds, by gaps"));
+  const table = el("table", null, "kinds");
+  const head = table.createTHead().insertRow();
+  for (const h of ["Command", "Calls", "Gaps", "Top reasons"]) {
+    const th = el("th", h);
+    th.scope = "col";
+    head.append(th);
+  }
+  const body = table.createTBody();
+  for (const [name, k] of kinds) {
+    const row = body.insertRow();
+    row.append(el("td", name), el("td", fmt(k.calls), "n"), el("td", fmt(k.gaps), "n"));
+    const ul = el("ul");
+    for (const [why, n] of k.reasons) ul.append(el("li", fmt(n) + "  " + why));
+    const td = el("td");
+    td.append(ul);
+    row.append(td);
+  }
+  const scroll = el("div", null, "scroll");
+  scroll.append(table);
+  det.append(scroll);
+  box.append(det);
+}
+
+const list = document.getElementById("games");
+for (const [id, name, engine] of GAMES) {
+  const box = el("div", null, "box");
+  const h = el("h2", name + " ");
+  h.lang = /[^\x00-\x7f]/.test(name) ? "ja" : "en";
+  const sub = el("small", engine);
+  sub.lang = "en";
+  h.append(sub);
+  box.append(h);
+  const wait = el("p", "loading...", "small");
+  box.append(wait);
+  list.append(box);
+  fetch(BASE + id + ".metrics.json", { cache: "no-store" })
+    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(m => { wait.remove(); render(box, m); })
+    .catch(e => { wait.className = "err"; wait.textContent = "No numbers for this game yet (" + e.message + ")."; });
+}
+</script>
+</body>
+</html>
