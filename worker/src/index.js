@@ -5,9 +5,14 @@
 // Each message gets Ban/Unban link buttons. The links carry a random id that maps
 // to the sender's IP in KV, so the IP itself never shows up in Discord.
 //
-// Secrets (wrangler secret put ...): TURNSTILE_SECRET, DISCORD_WEBHOOK_URL
+// A bug report's files are kept in KV for 30 days, and its Discord message gets a Fix with
+// Claude button: that page starts the claude-fix workflow in the repo picked there, which
+// downloads the report from /report with REPORT_SECRET and opens a pull request.
+//
+// Secrets (wrangler secret put ...): TURNSTILE_SECRET, DISCORD_WEBHOOK_URL,
+//   GITHUB_TOKEN (fine-grained, Contents: read and write on the REPOS), REPORT_SECRET
 // Vars (wrangler.toml): ALLOWED_ORIGINS, comma-separated
-// KV (wrangler.toml): BANS
+// KV (wrangler.toml): BANS, which also holds the bug reports
 
 const MAX_BODY = 9_500_000; // a bug report's trace; Discord takes 10 MB a message
 const MAX_PNG = 1_500_000;
@@ -16,6 +21,10 @@ const MAX_CAPTION = 200;
 const MAX_NAME = 40;
 const BUG_FILES = ['report.json', 'log.txt', 'trace.jsonl.gz'];
 const BUG_KINDS = { engine: 'Engine', port: 'Port', site: 'Website', text: 'Text', unsure: 'Unsorted' };
+// Where Fix with Claude can send a report, and the one each kind of bug starts on.
+const OWNER = 'blankiekun';
+const REPOS = ['CONscripter', 'conscripter-convert', 'blankiekun.github.io'];
+const BUG_REPO = { engine: 'CONscripter', port: 'conscripter-convert', site: 'blankiekun.github.io', text: 'conscripter-convert', unsure: 'conscripter-convert' };
 const BAN_TTL = 30 * 86400; // bans and ban links both last 30 days
 
 export default {
@@ -30,6 +39,8 @@ export default {
     }
     const url = new URL(req.url);
     if (url.pathname === '/ban' || url.pathname === '/unban') return banPage(req, url, env);
+    if (url.pathname === '/fix') return fixPage(req, url, env);
+    if (url.pathname === '/report') return reportFile(req, url, env);
     if (req.method !== 'POST' || url.pathname !== '/send') return json(404, { error: 'Not found.' });
     if (!cors['Access-Control-Allow-Origin']) return json(403, { error: 'This address only accepts messages from blankiekun 95.' });
     if (+(req.headers.get('Content-Length') || 0) > MAX_BODY) return json(413, { error: 'That is too big to send. Try a smaller picture.' });
@@ -52,7 +63,7 @@ export default {
     const kind = form.get('kind');
     const name = clean(form.get('name'), MAX_NAME) || 'Anonymous';
     const fd = new FormData();
-    let payload;
+    let payload, report = null;
 
     if (kind === 'note') {
       const text = String(form.get('message') || '').replace(/\r\n/g, '\n').slice(0, MAX_NOTE);
@@ -80,6 +91,14 @@ export default {
         attachments: files.map((f, i) => ({ id: i, filename: f.name })),
       };
       files.forEach((f, i) => fd.append(`files[${i}]`, f, f.name));
+      if (env.BANS) {
+        report = crypto.randomUUID();
+        const category = BUG_KINDS[form.get('category')] ? form.get('category') : 'unsure';
+        await Promise.all([
+          env.BANS.put(`report:${report}`, JSON.stringify({ category, game, comment: text, name }), { expirationTtl: BAN_TTL }),
+          ...files.map(async f => env.BANS.put(`report:${report}:${f.name}`, await f.arrayBuffer(), { expirationTtl: BAN_TTL })),
+        ]);
+      }
     } else {
       return json(400, { error: 'Unknown kind of message.' });
     }
@@ -91,6 +110,7 @@ export default {
       payload.components = [{ type: 1, components: [
         { type: 2, style: 5, label: 'Ban sender', url: `${url.origin}/ban?id=${id}` },
         { type: 2, style: 5, label: 'Unban', url: `${url.origin}/unban?id=${id}` },
+        ...(report ? [{ type: 2, style: 5, label: 'Fix with Claude', url: `${url.origin}/fix?id=${report}` }] : []),
       ] }];
     }
     fd.append('payload_json', JSON.stringify(payload));
@@ -112,6 +132,47 @@ async function banPage(req, url, env) {
   if (ban) await env.BANS.put('ban:' + ip, '1', { expirationTtl: BAN_TTL });
   else await env.BANS.delete('ban:' + ip);
   return page(ban ? 'Banned. They can\'t send you anything for 30 days.' : 'Unbanned.');
+}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+
+// Fix with Claude: a page to pick the repo and add notes, whose button starts that repo's
+// claude-fix workflow. As with bans, opening the link alone starts nothing.
+async function fixPage(req, url, env) {
+  const page = body => new Response(`<!doctype html><meta name="viewport" content="width=device-width"><title>blankiekun 95</title><body style="font:16px sans-serif;margin:2em;max-width:40em">${body}`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  const id = url.searchParams.get('id') || '';
+  const meta = env.BANS && /^[0-9a-f-]{36}$/.test(id) ? await env.BANS.get(`report:${id}`, 'json') : null;
+  if (!meta) return page('That report is gone (they are kept for 30 days) or the link is wrong.');
+  if (req.method !== 'POST') {
+    const options = REPOS.map(r => `<option${r === BUG_REPO[meta.category] ? ' selected' : ''}>${r}</option>`).join('');
+    return page(`<h2>Fix with Claude</h2><p><b>${esc(BUG_KINDS[meta.category])} bug${meta.game ? ' in ' + esc(meta.game) : ''}</b></p>
+<blockquote style="white-space:pre-wrap">${esc(meta.comment || '(no comment)')}</blockquote>
+<form method="post"><p><label>Repo <select name="repo">${options}</select></label></p>
+<p><label>Notes for Claude (optional)<br><textarea name="notes" rows="5" style="width:100%"></textarea></label></p>
+<button style="font-size:1.2em;padding:.4em 1em">Start Claude</button></form>`);
+  }
+  const form = await req.formData();
+  const repo = String(form.get('repo'));
+  if (!REPOS.includes(repo)) return page('Pick one of the repos.');
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${repo}/dispatches`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'blankiekun95-send', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_type: 'bug-report', client_payload: { id, notes: String(form.get('notes') || '').slice(0, 4000) } }),
+  });
+  if (!r.ok) return page(`GitHub said no (${r.status}): ${esc(await r.text())}`);
+  const runs = `https://github.com/${OWNER}/${repo}/actions/workflows/claude-fix.yml`;
+  return page(`Started. Claude is working on it in <a href="${runs}">${repo}</a>, and opens a pull request when it has a fix.`);
+}
+
+// The claude-fix workflow downloads the report's files here, with REPORT_SECRET.
+async function reportFile(req, url, env) {
+  const auth = new TextEncoder().encode(req.headers.get('Authorization') || '');
+  const want = new TextEncoder().encode('Bearer ' + (env.REPORT_SECRET || ''));
+  if (!env.REPORT_SECRET || auth.length !== want.length || !crypto.subtle.timingSafeEqual(auth, want)) return new Response('Not allowed.', { status: 403 });
+  const id = url.searchParams.get('id') || '', file = url.searchParams.get('file') || '';
+  if (!/^[0-9a-f-]{36}$/.test(id) || !['meta.json', ...BUG_FILES].includes(file)) return new Response('Not found.', { status: 404 });
+  const body = await env.BANS.get(file === 'meta.json' ? `report:${id}` : `report:${id}:${file}`, 'arrayBuffer');
+  return body ? new Response(body) : new Response('Not found.', { status: 404 });
 }
 
 async function turnstileOk(token, ip, secret) {
