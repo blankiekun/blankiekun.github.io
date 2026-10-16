@@ -419,7 +419,7 @@ function open() {
     win.focus();
     document.documentElement.requestFullscreen().then(() => {
       win.el.classList.add('cons-full');
-      fsBtn.lastChild.textContent = 'Exit Full Screen';
+      fsBtn.lastChild.textContent = touchFs.textContent = 'Exit Full Screen';
       frame && frame.focus();
     }, () => {});
   }
@@ -427,7 +427,7 @@ function open() {
     if (document.fullscreenElement || !isFull()) return;
     win.el.classList.remove('cons-full');
     root.classList.remove('reveal');
-    fsBtn.lastChild.textContent = 'Full Screen';
+    fsBtn.lastChild.textContent = touchFs.textContent = 'Full Screen';
   }
   document.addEventListener('fullscreenchange', leftFull);
 
@@ -560,7 +560,7 @@ function open() {
     ] },
     { label: '&Game', items: () => [
       { label: 'Game &Menu', key: 'Esc', disabled: !player(), action: () => { player().pressEsc(); frame.focus(); } },
-      { label: '&Skip Text', key: 'Ctrl', checked: skip, disabled: !player(), action: () => { skip = !skip; player().setSkip(skip); frame.focus(); } },
+      { label: '&Skip Text', key: 'Ctrl', checked: skip, disabled: !player(), action: toggleSkip },
       '-',
       { label: '&Restart', disabled: !game, action: () => game && boot(game) },
       { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
@@ -607,7 +607,15 @@ function open() {
   bar.addEventListener('pointerenter', () => clearTimeout(hideTimer));
   bar.addEventListener('pointerleave', () => { hideTimer = setTimeout(() => root.classList.remove('reveal'), 400); });
 
-  const root = h('div', { class: 'cons' }, hot, bar, view, status);
+  // Touch screens have no right-click or Ctrl, so the game's menu and skip get buttons
+  // under the game, in place of the status bar (CSS shows it only for touch, while playing).
+  function toggleSkip() { skip = !skip; player().setSkip(skip); skipBtn.classList.toggle('on', skip); frame.focus(); }
+  const skipBtn = h('button', { class: 'btn', type: 'button', onclick: () => player() && toggleSkip() }, 'Skip');
+  const touchFs = h('button', { class: 'btn', type: 'button', onclick: fullScreen, hidden: !canFull }, 'Full Screen');
+  const touchBar = h('div', { class: 'cons-touch' },
+    h('button', { class: 'btn', type: 'button', onclick: () => { if (player()) { player().pressEsc(); frame.focus(); } } }, 'Menu'),
+    skipBtn, touchFs);
+  const root = h('div', { class: 'cons' }, hot, bar, view, touchBar, status);
 
   // Ask the browser not to evict saves on its own. Clearing site data still erases them.
   function showKeep(kept, refused) {
@@ -628,7 +636,7 @@ function open() {
 
   function stop(msg) {
     if (frame) frame.remove();
-    frame = null; skip = false;
+    frame = null; skip = false; skipBtn.classList.remove('on');
     ankiWatch();
     view.classList.remove('playing');
     fsBtn.disabled = true;
@@ -645,7 +653,7 @@ function open() {
   // args: engine options for this run only (--goto, --load).
   function boot(g, args = []) {
     if (frame) frame.remove();
-    game = g; skip = false;
+    game = g; skip = false; skipBtn.classList.remove('on');
     frame = h('iframe', { class: 'cons-frame', title: g.title, src: 'cons/player.html?' + ENGINE_VERSION, allow: 'fullscreen; autoplay' });
     const me = frame;
     frame.addEventListener('load', () => {
