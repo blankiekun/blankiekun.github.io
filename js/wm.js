@@ -1,7 +1,7 @@
 // The window manager: overlapping windows, focus and z-order, outline dragging and
 // resizing, minimize/maximize/close, taskbar buttons, and the URL hash.
 
-import { h, icon, clamp, small, reducedMotion } from './util.js';
+import { h, icon, clamp, small, reducedMotion, sound } from './util.js';
 import { closeMenus, openMenu } from './menu.js';
 
 const layer = document.getElementById('windows');
@@ -31,6 +31,7 @@ export function launch(id, arg) {
   document.body.classList.add('busy');
   clearTimeout(busyTimer);
   busyTimer = setTimeout(() => document.body.classList.remove('busy'), 300);
+  sound('Open program');
   return app.open(arg);
 }
 
@@ -107,7 +108,7 @@ export function createWindow(o) {
   });
   bar.addEventListener('dblclick', e => { if (!e.target.closest('.tbtn') && !maxBtn.disabled && !o.dialog) toggleMax(win); });
   el.addEventListener('pointerdown', e => {
-    if (win.modal) { e.preventDefault(); e.stopPropagation(); focus(win.modal); flash(win.modal); return; }
+    if (win.modal) { e.preventDefault(); e.stopPropagation(); focus(win.modal); flash(win.modal); sound('Default sound'); return; }
     if (active !== win) focus(win);
   }, true);
 
@@ -224,6 +225,7 @@ function zoom(win, down) {
 
 export function minimize(win) {
   zoom(win, true);
+  sound('Minimize');
   win.wasMax = win.state === 'max';
   win.state = 'min';
   win.el.classList.add('min');
@@ -250,7 +252,7 @@ export function restore(win) {
 }
 
 export function toggleMax(win) {
-  if (win.state === 'max') restore(win); else maximize(win);
+  if (win.state === 'max') restore(win); else { maximize(win); sound('Maximize'); }
 }
 
 export async function close(win, force) {
@@ -264,7 +266,7 @@ export async function close(win, force) {
   wins.splice(wins.indexOf(win), 1);
   if (win.opts.parent && win.opts.parent.modal === win) win.opts.parent.modal = null;
   win.el.remove();
-  if (win.task) win.task.remove();
+  if (win.task) { win.task.remove(); sound('Close program'); }
   if (win.opts.onClosed) win.opts.onClosed();
   if (active === win) {
     active = null;
@@ -371,7 +373,7 @@ function outlineDrag(win, e, mode) {
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
     if (cancel) return;
-    if (snap) { maximize(win); return; }
+    if (snap) { maximize(win); sound('Maximize'); return; }
     win.el.style.left = Math.round(box.x - A.left) + 'px';
     win.el.style.top = Math.round(box.y - A.top) + 'px';
     if (mode !== 'move') {

@@ -837,8 +837,8 @@ function addremove() {
 // ---------- Sounds ----------
 
 const SKEY = 'w95.sounds';
-const EVENTS = ['Default sound', 'Asterisk', 'Critical Stop', 'Exclamation', 'Question', 'Start Windows', 'Exit Windows', 'Empty Recycle Bin', 'Maximize', 'Minimize', 'Open program', 'Close program'];
-const DEFAULT_MAP = { 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' };
+const EVENTS = ['Default sound', 'Asterisk', 'Critical Stop', 'Exclamation', 'Question', 'Start Windows', 'Exit Windows', 'Empty Recycle Bin', 'Maximize', 'Minimize', 'Menu popup', 'Open program', 'Close program'];
+const DEFAULT_MAP = { 'Default sound': 'Ding', 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' };
 const SCHEMES = { 'No Sounds': {}, 'blankiekun 95 Default': DEFAULT_MAP };
 const soundSettings = () => ({ scheme: 'blankiekun 95 Default', map: DEFAULT_MAP, custom: {}, ...(store.get(SKEY, null) || {}) });
 

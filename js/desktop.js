@@ -1,7 +1,7 @@
 // The desktop surface: icons, right-click menu, Start menu, tray clock,
 // and the boot / shut down / log off screens.
 
-import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps } from './util.js';
+import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
 import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel } from './wm.js';
 import { msgbox } from './dialogs.js';
@@ -618,11 +618,6 @@ export async function boot() {
   removeEventListener('keydown', onKey);
   splash.remove();
   sound('Start Windows');
-}
-
-// Sounds come from the Sounds applet; nothing plays if it didn't load.
-export function sound(event) {
-  import('./apps/control.js').then(m => m.playSound && m.playSound(event)).catch(() => {});
 }
 
 // ---------- taskbar ----------

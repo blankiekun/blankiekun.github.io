@@ -3,7 +3,7 @@
 // Like Win95's default, each folder opens in its own window; View > Options can
 // switch to browsing in one window.
 
-import { h, icon, small, store, marquee, overlaps } from '../util.js';
+import { h, icon, small, store, marquee, overlaps, sound } from '../util.js';
 import { createWindow, find, launch, appInfo } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
@@ -12,7 +12,6 @@ import {
   canWrite, mkdir, createFile, restore, emptyBin, FsError, desktopFolder,
 } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
-import { sound } from '../desktop.js';
 import { properties, iconOf } from '../props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, startDrag, toFloppy, onClip, isCut, undo, undoLabel, renameNode, makeShortcut } from '../fileops.js';
 

@@ -3,7 +3,7 @@
 // An item is { label: '&Open', icon, action, submenu, checked, radio, disabled, key, href }
 // or '-' for a separator. `submenu` may be an array or a function returning one.
 
-import { h, icon, accel } from './util.js';
+import { h, icon, accel, sound } from './util.js';
 
 let stack = []; // open menus, outermost first: { el, items, hot, parentItem, onClose }
 let rootOpts = null;
@@ -27,6 +27,7 @@ export function openMenu(items, at, opts = {}) {
   closeMenus('replaced');
   rootOpts = opts;
   push(items, at, opts.className, opts.banner);
+  sound('Menu popup');
   if (opts.focusFirst) setHot(stack[0], firstEnabled(stack[0]));
 }
 

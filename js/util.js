@@ -64,6 +64,11 @@ export const small = matchMedia('(max-width: 640px), (max-height: 420px)');
 export const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 export const wait = ms => new Promise(r => setTimeout(r, ms));
 
+// Sounds come from the Sounds applet; nothing plays if it didn't load.
+export function sound(event) {
+  import('./apps/control.js').then(m => m.playSound && m.playSound(event)).catch(() => {});
+}
+
 // Dragging across empty space draws a dotted box; onRect gets it in client coordinates as it grows.
 export function marquee(e, onRect) {
   const sx = e.clientX, sy = e.clientY, id = e.pointerId;
