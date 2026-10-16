@@ -11,6 +11,7 @@ const wins = [];            // bottom to top
 let active = null;
 let cascade = 0;
 let routeListener = null;
+let busyTimer = 0;
 
 export function register(app) { apps.set(app.id, app); }
 export function appInfo(id) { return apps.get(id); }
@@ -26,6 +27,10 @@ export function launch(id, arg) {
     const w = wins.find(w => w.app === id);
     if (w) { if (app.reopen) app.reopen(w, arg); focus(w); return w; }
   }
+  // The arrow-and-hourglass while a program "loads".
+  document.body.classList.add('busy');
+  clearTimeout(busyTimer);
+  busyTimer = setTimeout(() => document.body.classList.remove('busy'), 300);
   return app.open(arg);
 }
 
@@ -429,7 +434,7 @@ function keyMove(win, mode) {
   document.body.append(outline);
   const draw = () => Object.assign(outline.style, { left: box.x + 'px', top: box.y + 'px', width: box.w + 'px', height: box.h + 'px' });
   draw();
-  document.body.style.cursor = mode === 'move' ? 'move' : 'nwse-resize';
+  document.body.style.cursor = mode === 'move' ? 'var(--move)' : 'var(--nwse)';
   let mx = null, my = null;
   function end(ok) {
     document.removeEventListener('keydown', key, true);
