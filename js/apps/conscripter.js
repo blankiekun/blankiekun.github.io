@@ -8,6 +8,7 @@ import { h, icon, download, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
+import { sendEnabled, sendDialog } from '../send.js';
 import { openSaveEditor } from './conssave.js';
 import * as drive from './consdrive.js';
 import * as anki from './consanki.js';
@@ -36,7 +37,26 @@ const FLAG_LIST = [
   { flag: '--fontcache', label: '&Cache Font' },
   { flag: '--no-vsync', label: 'No &VSync' },
 ];
+// Help > Report a Bug: where the visitor thinks the bug is.
+const BUG_KINDS = [
+  ['engine', 'The engine (CONscripter itself)'],
+  ['port', 'The port (how this game was converted)'],
+  ['site', 'This window (saves, Drive, Anki, buttons)'],
+  ['text', 'The text or translation'],
+  ['unsure', 'Not sure'],
+];
+const REPORT_MAX = 8_000_000; // a Discord message holds 10 MB in all
 let tipShown = false;
+
+// The trace gzipped; if that's still too big to send, its oldest half goes (but not [0],
+// the meta record) until it fits.
+async function gzipTrace(lines) {
+  for (let keep = lines.length; ; keep = Math.ceil(keep / 2)) {
+    const part = [lines[0]].concat(lines.slice(Math.max(1, lines.length - keep + 1)));
+    const gz = await new Response(new Blob([part.join('\n') + '\n']).stream().pipeThrough(new CompressionStream('gzip'))).blob();
+    if (gz.size < REPORT_MAX || keep <= 2) return gz;
+  }
+}
 
 // The Setup picture: a little monitor with a visual novel on it.
 const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="crispEdges">
@@ -385,7 +405,7 @@ function open() {
   let frame = null;     // the running player
   let skip = false;
   let showText = false;
-  const flags = new Set(store.get(FLAGS, []));
+  const flags = new Set(store.get(FLAGS, ['--debug:1', '--trace'])); // on at first, so a bug report has them
 
   // Google Drive sync (further down)
   let syncState = '';   // '', 'busy', 'ok', 'signin' (waiting for a sign-in), 'error'
@@ -398,6 +418,7 @@ function open() {
 
   const player = () => frame && frame.contentWindow && frame.contentWindow.listSaves ? frame.contentWindow : null;
   const tracing = () => player() && player().traceLines.length; // the running game was started with Trace
+  let lastRun = null;   // the log and trace of the game that last stopped, for a report about how it stopped
 
   // Welcome page, drawn like a 95 Setup wizard.
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
@@ -577,6 +598,40 @@ function open() {
     download(game.title + ' trace.jsonl', new Blob([p.traceLines.join('\n') + '\n'], { type: 'application/x-ndjson' }));
   }
 
+  // Help > Report a Bug: a comment, where the bug seems to be, and everything Debug can
+  // show about the game playing now (or the one that just stopped), sent to blankiekun.
+  function reportBug() {
+    const kindSel = h('select', { class: 'field', id: 'cons-bug-kind' }, ...BUG_KINDS.map(([v, l]) => h('option', { value: v }, l)));
+    const comment = h('textarea', { class: 'field', id: 'cons-bug-comment', rows: 5, maxlength: 2000, placeholder: 'What happened, and what you expected to happen' });
+    const p = player();
+    const run = p ? { title: game.title, log: p.engineLog, trace: p.traceLines } : lastRun;
+    const also = run
+      ? `Also sent: the engine log and trace of ${run.title}${run.trace.length ? '' : ' (Trace is off in Engine Flags, so there is none)'}${p && tracing() ? ', the game\'s state right now' : ''}, the engine flags, and this browser's name and window size.`
+      : 'No game has run yet, so only the engine flags and this browser\'s name and window size go with it. Report from the game with the bug for its log and trace.';
+    sendDialog({
+      kind: 'bug', parent: win,
+      fields: h('div', { class: 'cons-bug' },
+        h('label', { class: 'dp-row', for: 'cons-bug-kind' }, h('span', { html: '<u>W</u>here is the bug?' }), kindSel),
+        h('label', { for: 'cons-bug-comment', html: '<u>C</u>omment (optional):' }), comment,
+        h('p', null, also)),
+      fill: async fd => {
+        const live = player() === p ? p : null; // the game may have stopped while the dialog was open
+        const state = live && tracing() ? await live.dumpState() : null;
+        fd.append('category', kindSel.value);
+        fd.append('message', comment.value.trim());
+        fd.append('game', run ? run.title : '');
+        const info = {
+          engine: ENGINE_VERSION, site: location.href, game: run ? run.title : null, running: !!live,
+          jp: game ? !!game.jp : null, encoding: game ? game.encoding || null : null, flags: [...flags],
+          browser: navigator.userAgent, window: `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, time: new Date().toISOString(), state,
+        };
+        fd.append('files', new Blob([JSON.stringify(info, null, 2)], { type: 'application/json' }), 'report.json');
+        if (run) fd.append('files', new Blob([run.log.join('\n')], { type: 'text/plain' }), 'log.txt');
+        if (run && run.trace.length) fd.append('files', await gzipTrace(run.trace), 'trace.jsonl.gz');
+      },
+    });
+  }
+
   function engineLog() {
     const p = player();
     if (!p) return;
@@ -732,6 +787,7 @@ function open() {
     ] },
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help', 'CONscripter') }, '-',
+      ...(sendEnabled() ? [{ label: '&Report a Bug...', action: reportBug }] : []),
       { label: '&About CONscripter', action: () => aboutCons(win) },
     ] },
   ]);
@@ -788,6 +844,8 @@ function open() {
   }
 
   function stop(msg) {
+    const p = player();
+    if (p) lastRun = { title: game.title, log: p.engineLog, trace: p.traceLines };
     if (frame) frame.remove();
     frame = null; skip = false; skipBtn.classList.remove('on');
     ankiWatch();
