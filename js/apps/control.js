@@ -633,6 +633,7 @@ let notReadyCount = 0;
 async function notReady(parent) {
   const lines = ['The device is not ready.', 'The device is still not ready.', 'The device is not ready, and frankly, neither are we.'];
   for (;;) {
+    playSound('Floppy');
     const r = await msgbox({ title: 'Error', text: 'A:\\ is not accessible.\n\n' + lines[Math.min(notReadyCount++, lines.length - 1)], icon: 'error', buttons: ['&Retry', 'Cancel'], parent });
     if (r !== 'Retry') return;
     await wait(500);
@@ -866,6 +867,16 @@ function noise(c, dur, fill) {
 
 // Every sound is made on the spot; each returns its length in seconds.
 const SYNTH = {
+  // The A: drive looking for a disk: the head stepping out and back over a motor hum.
+  'Floppy'(c, out, t) {
+    for (let i = 0; i < 14; i++) {
+      const k = noise(c, 0.012, d => { for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * (1 - j / d.length); });
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 3;
+      k.connect(bp).connect(out); k.start(t + i * 0.035 + (i >= 7 ? 0.25 : 0));
+    }
+    tone(c, out, t, 95, 0.9, { type: 'square', peak: 0.05, attack: 0.05 });
+    return 1;
+  },
   'Ding'(c, out, t) { bell(c, out, t, 1318.5, 0.9, 0.35); return 0.9; },
   'Chord'(c, out, t) {
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => { tone(c, out, t + i * 0.025, f, 1.2, { type: 'triangle', peak: 0.16 }); tone(c, out, t + i * 0.025, f * 2, 0.5, { peak: 0.04 }); });

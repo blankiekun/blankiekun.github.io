@@ -93,6 +93,7 @@ function open(arg) {
   }
 
   function notReady(letter) {
+    import('./control.js').then(m => m.playSound('Floppy')).catch(() => {});
     print('');
     print(`Not ready reading drive ${letter}`);
     print('Abort, Retry, Fail?');

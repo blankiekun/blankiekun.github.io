@@ -48,8 +48,11 @@ export function open(node, parentWin) {
   if (!node) return;
   switch (node.kind) {
     case 'drive':
-      if (node.notReady) return msgbox({ title: 'A:\\', icon: 'error', text: 'A:\\ is not accessible.\n\nThe device is not ready.', buttons: ['&Retry', 'Cancel'], parent: parentWin })
-        .then(b => { if (b === 'Retry') open(node, parentWin); });
+      if (node.notReady) {
+        import('./apps/control.js').then(m => m.playSound('Floppy')).catch(() => {});
+        return msgbox({ title: 'A:\\', icon: 'error', text: 'A:\\ is not accessible.\n\nThe device is not ready.', buttons: ['&Retry', 'Cancel'], parent: parentWin })
+          .then(b => { if (b === 'Retry') open(node, parentWin); });
+      }
       return launch('explorer', node.letter + ':\\');
     case 'folder':
       if (node === recycle) return launch('recycle');
