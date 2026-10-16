@@ -383,3 +383,15 @@ body.tb-under .taskbar { z-index: 5; }
 .tray .spk { cursor: default; }
 .tray .spk.muted { opacity: .6; }
 .tray .spk.muted use { filter: none; }
+
+/* Alt+Tab */
+.alttab {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 100000;
+  background: var(--face); box-shadow: var(--raised); padding: 12px 14px; max-width: calc(100vw - 32px);
+  font: 11px var(--font-ui); color: var(--ink);
+}
+.alttab-icons { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.alttab-icons span { display: grid; place-items: center; width: 42px; height: 42px; border: 2px solid transparent; }
+.alttab-icons span.on { border-color: var(--ink); }
+.alttab-icons svg { width: 32px; height: 32px; }
+.alttab-t { margin-top: 10px; padding: 3px 6px; box-shadow: var(--sunken); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

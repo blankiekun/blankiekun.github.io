@@ -275,7 +275,7 @@ function open(arg = 'My Computer') {
   function restoreSel() {
     for (const n of selected()) { try { restore(n); } catch (e) { fail(e); break; } }
   }
-  const delSel = () => del(selected(), win);
+  const delSel = shift => del(selected(), win, shift === true);
   const props = () => { const s = selected(); properties(s.length ? s[0] : here(), win); };
   const setView = v => { prefs.view = v; savePrefs(); refreshAll(); };
 
@@ -427,7 +427,7 @@ function open(arg = 'My Computer') {
     else if (e.key === 'End') j = all.length - 1;
     else if (e.key === 'Enter' && sel.size) { e.preventDefault(); if (e.altKey) props(); else selected().forEach(activate); return; }
     else if (e.key === 'Backspace') { e.preventDefault(); up(); return; }
-    else if (e.key === 'Delete' && sel.size) { e.preventDefault(); delSel(); return; }
+    else if (e.key === 'Delete' && sel.size) { e.preventDefault(); delSel(e.shiftKey); return; }
     else if (e.key === 'F2' && lead) { e.preventDefault(); startRename(lead); return; }
     else if (e.key === 'F5') { e.preventDefault(); render(); return; }
     else if (ctrl && e.key.toLowerCase() === 'a') { e.preventDefault(); sel = new Set(all); paint(); return; }
