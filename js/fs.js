@@ -114,6 +114,7 @@ export const root = {
           name: 'WINDOWS', kind: 'folder', children: [
             { name: 'COMMAND', kind: 'folder', children: [app('COMMAND.COM', 'dos', 'i-dos', 92870)] },
             { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [] },
+            { name: 'MEDIA', kind: 'folder', children: [app('BLANKIEKUN.AVI', 'mplayer', 'i-mplayer', 1048576, 'demo')] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
             app('SOL.EXE', 'solitaire', 'i-sol', 180736),
@@ -127,6 +128,8 @@ export const root = {
             app('DEFRAG.EXE', 'defrag', 'i-defrag', 222720),
             app('SCANDSKW.EXE', 'scandisk', 'i-drive', 189952),
             app('TASKMAN.EXE', 'taskman', 'i-exe', 14848),
+            app('MPLAYER.EXE', 'mplayer', 'i-mplayer', 33280),
+            app('CLIPBRD.EXE', 'clipbrd', 'i-clipbrd', 16896),
             app('WELCOME.EXE', 'welcome', 'i-flag', 21504),
             app('EXPLORER.EXE', 'explorer', 'i-folder-open', 204288, 'C:\\'),
           ],
@@ -247,6 +250,7 @@ export function kindLabel(n) {
   if (n.kind === 'folder') return n.virtual ? 'System Folder' : 'File Folder';
   if (n.printer) return n.isDefault ? 'Printer (default)' : 'Printer';
   if (n.app === 'addprinter') return 'Printer Wizard';
+  if (n.app === 'mplayer' && n.arg === 'demo') return 'Video Clip';
   if (n.kind === 'app' || n.kind === 'joke') return /\.CPL$/i.test(n.name) || !/\./.test(n.name) ? 'Control Panel extension' : 'Application';
   if (n.kind === 'page') return 'HTML Document';
   if (n.kind === 'link') return 'Internet Shortcut';
@@ -258,6 +262,7 @@ export function kindLabel(n) {
   if (/\.rtf$/i.test(n.name)) return 'Rich Text Format';
   if (/\.(bmp|png|gif|jpe?g)$/i.test(n.name)) return 'Bitmap Image';
   if (/\.(wav|mp3|ogg)$/i.test(n.name)) return 'Wave Sound';
+  if (/\.(avi|mp4|webm)$/i.test(n.name)) return 'Video Clip';
   return 'Text Document';
 }
 
@@ -286,12 +291,14 @@ export function iconForName(name) {
   if (ext === 'doc' || ext === 'wri' || ext === 'rtf') return 'i-doc';
   if (ext === 'bmp' || ext === 'png' || ext === 'gif' || ext === 'jpg') return 'i-bmp';
   if (ext === 'wav' || ext === 'mp3' || ext === 'ogg') return 'i-sndrec';
+  if (ext === 'avi' || ext === 'mp4' || ext === 'webm') return 'i-mplayer';
   return 'i-txt';
 }
 
 export function openerFor(node) {
   if (/\.(doc|wri|rtf)$/i.test(node.name)) return 'wordpad';
   if (/\.(wav|mp3|ogg)$/i.test(node.name)) return 'sndrec';
+  if (/\.(avi|mp4|webm|mid|rmi)$/i.test(node.name)) return 'mplayer';
   if (/\.(bmp|png|gif|jpe?g)$/i.test(node.name) || node.data) return 'paint';
   return 'notepad';
 }

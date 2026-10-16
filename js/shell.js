@@ -20,7 +20,8 @@ export const ALIASES = {
   sndrec32: 'sndrec', sndrec: 'sndrec', soundrec: 'sndrec', cdplayer: 'cdplayer', cdplay: 'cdplayer',
   scrnsave: 'screensaver', screensaver: 'screensaver', defrag: 'defrag', scandisk: 'scandisk', scandskw: 'scandisk',
   'main.cpl': 'mouse', mouse: 'mouse', 'intl.cpl': 'regional', 'appwiz.cpl': 'addremove', 'mmsys.cpl': 'sounds',
-  taskman: 'taskman', welcome: 'welcome', sndvol32: 'volume', network: 'network', 'net view': 'network',
+  mplayer: 'mplayer', mplay32: 'mplayer', clipbrd: 'clipbrd', printers: 'mycomputer:Printers', 'control printers': 'mycomputer:Printers',
+    taskman: 'taskman', welcome: 'welcome', sndvol32: 'volume', network: 'network', 'net view': 'network',
   sysdm: 'sysprops', 'sysdm.cpl': 'sysprops', winver: 'about', help: 'help', winhelp: 'help', find: 'find',
 };
 

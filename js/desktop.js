@@ -375,6 +375,7 @@ function startItems() {
     ]) },
     { label: 'Multimedia', icon: 'i-programs', submenu: some([
       prog('CD Player', 'cdplayer', 'i-cdplayer'),
+      prog('Media Player', 'mplayer', 'i-mplayer'),
       prog('Sound Recorder', 'sndrec', 'i-sndrec'),
       { label: 'Volume Control', icon: 'i-speaker', action: () => volumePopup(true) },
     ]) },
@@ -385,6 +386,7 @@ function startItems() {
     ]) },
     '-',
     prog('Calculator', 'calc', 'i-calc'),
+    prog('Clipboard Viewer', 'clipbrd', 'i-clipbrd'),
     prog('Notepad', 'notepad', 'i-notepad'),
     prog('Paint', 'paint', 'i-paint'),
     prog('WordPad', 'wordpad', 'i-wordpad'),
