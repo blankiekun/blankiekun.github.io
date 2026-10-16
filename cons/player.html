@@ -24,7 +24,7 @@ body.show-text #overlay div div { color: rgba(255, 64, 64, .9); background: rgba
 <div id="overlay" lang="ja"><div id="page-text"></div><div id="sprite-text"></div><div id="choices"></div></div>
 <video id="video" hidden playsinline></video>
 <canvas id="hold" hidden oncontextmenu="event.preventDefault()"></canvas>
-<script src="conscripter.js"></script>
+<script src="conscripter.js?v0.25.2"></script>
 <script>
 // The host page for CONscripter (conscripter.js/.wasm are the v0.25.2 web release).
 // The Program window in js/apps/conscripter.js makes one of these per game and calls
@@ -48,7 +48,8 @@ let savedir = null;
 // What the engine prints, for Debug > Engine Log.
 var engineLog = []; // var: the parent reads it
 function logLine(s) { engineLog.push(s); if (engineLog.length > 5000) engineLog.splice(0, 1000); }
-var g_cons_module = { canvas, print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
+// ?version on the engine's files: a cached old conscripter.js with a new .wasm can't start.
+var g_cons_module = { canvas, locateFile: (p, dir) => dir + p + '?v0.25.2', print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
 var g_cons_index = {};
 var g_cons_filemap = {};      // empty: no server lazyload, every file is already mounted
 function fetch_file() { return Promise.resolve(0); }

@@ -16,7 +16,7 @@ const NO_TIP = 'w95.cons.notip';
 const FLAGS = 'w95.cons.flags';
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
-// The engine release in cons/ (conscripter.js/.wasm); bump it with them.
+// The engine release in cons/ (conscripter.js/.wasm); CONscripter's update_site workflow bumps it.
 const ENGINE_VERSION = 'v0.25.2';
 
 // Debug > Engine Flags: engine options, used from the next start.
@@ -623,7 +623,7 @@ function open() {
   function boot(g, args = []) {
     if (frame) frame.remove();
     game = g; skip = false;
-    frame = h('iframe', { class: 'cons-frame', title: g.title, src: 'cons/player.html', allow: 'fullscreen; autoplay' });
+    frame = h('iframe', { class: 'cons-frame', title: g.title, src: 'cons/player.html?' + ENGINE_VERSION, allow: 'fullscreen; autoplay' });
     const me = frame;
     frame.addEventListener('load', () => {
       const w = frame.contentWindow;
