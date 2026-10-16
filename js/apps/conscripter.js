@@ -17,7 +17,7 @@ const FLAGS = 'w95.cons.flags';
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
 // The engine release in cons/ (conscripter.js/.wasm); CONscripter's update_site workflow bumps it.
-const ENGINE_VERSION = 'v0.25.2';
+const ENGINE_VERSION = 'v0.25.3';
 
 // Debug > Engine Flags: engine options, used from the next start.
 const FLAG_LIST = [
