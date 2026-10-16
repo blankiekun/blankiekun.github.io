@@ -3,7 +3,7 @@
 import { launch, appInfo } from './wm.js';
 import { store } from './util.js';
 import { msgbox } from './dialogs.js';
-import { resolve, pathOf, recycle, openerFor } from './fs.js';
+import { resolve, pathOf, recycle, openerFor, follow } from './fs.js';
 
 // Program names that Run... and the DOS prompt understand.
 export const ALIASES = {
@@ -48,6 +48,14 @@ export function open(node, parentWin) {
       const app = openerFor(node);
       remember(node);
       return launch(appInfo(app) ? app : 'notepad', { name: node.name, text: node.text, data: node.data, path: node.user ? pathOf(node) : null });
+    }
+    case 'shortcut': {
+      const t = follow(node);
+      if (!t) {
+        return msgbox({ title: 'Problem with Shortcut', icon: 'warn', parent: parentWin,
+          text: `The item '${node.target ? node.target.split('\\').pop() : node.name}' that this shortcut refers to has been changed or moved, so this shortcut will no longer work properly.` });
+      }
+      return open(t, parentWin);
     }
     case 'joke':
       return msgbox({ title: node.name, icon: 'warn', text: 'This file is in the Recycle Bin for a reason.\n\nTo use it, you would first have to drag it out. Please don\'t.', parent: parentWin });

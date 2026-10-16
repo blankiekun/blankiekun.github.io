@@ -6,9 +6,9 @@ import { openMenu, closeMenus, isOpen } from './menu.js';
 import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel } from './wm.js';
 import { msgbox } from './dialogs.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
-import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, rename, emptyBin, FsError, kindLabel } from './fs.js';
+import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
 import { properties, iconOf } from './props.js';
-import { cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut } from './fileops.js';
+import { clip, cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut, undo as undoFile, undoLabel as fileUndoLabel, renameNode, makeShortcut } from './fileops.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 const desktopEl = document.getElementById('desktop');
@@ -44,7 +44,7 @@ function fileIcon(node) {
 function makeIcon(it, i) {
   const b = h('button', { class: 'icon', type: 'button', role: 'option', 'aria-selected': 'false', tabindex: i === 0 ? '0' : '-1' },
     icon(typeof it.icon === 'function' ? it.icon() : it.icon), h('span', null, it.label));
-  if (it.shortcut || (it.node && it.node.kind === 'link')) b.append(h('i', { class: 'lnk', 'aria-hidden': 'true' }));
+  if (it.shortcut || (it.node && (it.node.kind === 'link' || it.node.kind === 'shortcut'))) b.append(h('i', { class: 'lnk', 'aria-hidden': 'true' }));
   it.el = b;
   if (it.node === recycle) b.dropFolder = () => recycle;
   else if (it.node && it.node.children && it.file) b.dropFolder = () => it.node;
@@ -64,18 +64,20 @@ function iconMenu(it) {
   if (n === recycle) return [
     { label: '&Open', action: it.open }, { label: '&Explore', action: () => launch('explorer', { node: recycle, explore: true }) }, '-',
     { label: 'Empty Recycle &Bin', disabled: !recycle.children.length, action: emptyAll }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(recycle, desktopFolder()) }, '-',
     { label: 'P&roperties', action: () => properties(recycle) },
   ];
   if (n === root) return [
     { label: '&Open', action: it.open }, { label: '&Explore', action: () => launch('explorer', { node: root, explore: true }) },
     { label: '&Find...', action: () => launch('find') }, '-',
     { label: 'Map &Network Drive...', disabled: true }, { label: '&Disconnect Network Drive...', disabled: true }, '-',
-    { label: 'Create &Shortcut', disabled: true }, { label: 'Rena&me', disabled: true }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(root, desktopFolder()) }, { label: 'Rena&me', disabled: true }, '-',
     { label: 'P&roperties', action: () => launch('sysprops') },
   ];
   if (n === network) return [
     { label: '&Open', action: it.open }, { label: '&Explore', action: () => launch('explorer', { node: network, explore: true }) },
     { label: '&Find Computer...', action: () => launch('find') }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(network, desktopFolder()) }, '-',
     { label: 'P&roperties', action: () => msgbox({ title: 'Network', icon: 'i-network', text: 'The following network components are installed:\n\n  Client for GitHub Networks\n  Dial-Up Adapter (28.8 kbps)\n  TCP/IP -> the whole internet' }) },
   ];
   if (it.file) return [
@@ -84,11 +86,13 @@ function iconMenu(it) {
     { label: 'Se&nd To', submenu: [{ label: '3½ Floppy (A:)', icon: 'i-floppy', action: () => toFloppy([n]) }] }, '-',
     { label: 'Cu&t', action: () => cut([n]) }, { label: '&Copy', action: () => copyNodes([n]) },
     ...(n.children ? [{ label: '&Paste', disabled: !canPaste(n), action: () => paste(n) }] : []), '-',
-    { label: 'Create &Shortcut', disabled: true }, { label: '&Delete', action: () => del([n]) }, { label: 'Rena&me', action: () => startRename(it) }, '-',
+    { label: 'Create &Shortcut', action: () => makeShortcut(n, desktopFolder()) }, { label: '&Delete', action: () => del([n]) }, { label: 'Rena&me', action: () => startRename(it) }, '-',
     { label: 'P&roperties', action: () => properties(n) },
   ];
+  // A program's icon: its shortcut opens the same program.
+  const asNode = it.app ? { name: it.label, kind: 'app', app: it.app, arg: it.app === 'ie' ? 'home' : undefined, icon: typeof it.icon === 'string' ? it.icon : undefined } : null;
   return [{ label: '&Open', action: it.open }, '-', { label: 'Cu&t', disabled: true }, { label: '&Copy', disabled: true }, '-',
-    { label: 'Create &Shortcut', disabled: true }, { label: '&Delete', disabled: true }, { label: 'Rena&me', disabled: true }, '-',
+    { label: 'Create &Shortcut', disabled: !asNode, action: () => makeShortcut(asNode, desktopFolder()) }, { label: '&Delete', disabled: true }, { label: 'Rena&me', disabled: true }, '-',
     { label: 'P&roperties', action: () => msgbox({ title: it.label + ' Properties', icon: it.el.querySelector('use').getAttribute('href').slice(1), text: `${it.label}\n\nType: ${it.type}\nLocation: C:\\WINDOWS\\Desktop` }) }];
 }
 
@@ -250,9 +254,7 @@ function startRename(it) {
     done = true; renaming = false;
     const v = box.value.replace(/\n/g, '').trim();
     span.textContent = it.node.name;
-    if (ok && v && v !== it.node.name) {
-      try { rename(it.node, v); } catch (e) { if (!(e instanceof FsError)) throw e; msgbox({ title: 'Error Renaming File', icon: 'error', text: e.message }); }
-    }
+    if (ok && v && v !== it.node.name) renameNode(it.node, v);
     it.el.focus({ preventScroll: true });
   };
   box.addEventListener('keydown', e => {
@@ -281,6 +283,7 @@ function iconKey(it, e) {
   else if (ctrl && e.key.toLowerCase() === 'c' && it.file) { e.preventDefault(); copyNodes([it.node]); }
   else if (ctrl && e.key.toLowerCase() === 'x' && it.file) { e.preventDefault(); cut([it.node]); }
   else if (ctrl && e.key.toLowerCase() === 'v') { e.preventDefault(); paste(desktopFolder()); }
+  else if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); undoFile(); }
 }
 
 // Things dragged out of folder windows land on the desktop.
@@ -323,7 +326,8 @@ desktopEl.addEventListener('contextmenu', e => {
     { label: '&Refresh', action: refreshDesktop },
     '-',
     { label: '&Paste', disabled: !canPaste(desktopFolder()), action: () => paste(desktopFolder()) },
-    { label: 'Paste &Shortcut', disabled: true },
+    { label: 'Paste &Shortcut', disabled: !clip.nodes.length, action: () => clip.nodes.forEach(n => makeShortcut(n, desktopFolder())) },
+    ...(fileUndoLabel() ? [{ label: '&' + fileUndoLabel(), action: () => undoFile() }] : []),
     '-',
     { label: 'Ne&w', submenu: [
       { label: '&Folder', icon: 'i-folder', action: () => newThing(f => mkdir(f)) },

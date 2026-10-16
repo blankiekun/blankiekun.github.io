@@ -114,6 +114,7 @@ export function properties(node, parent) {
         h('input', { type: 'checkbox', disabled: true, checked: a === 'Read-only' ? !node.user : a === 'Archive' ? !node.children : false }), a)));
     panels.push(h('div', null, head, sep(),
       rows([['Type:', kindLabel(node)], ['Location:', where],
+        node.kind === 'shortcut' && ['Target:', node.target || (node.ref && node.ref.name) || ''],
         ['Size:', st ? `${mb(st.bytes)} (${bytes(st.bytes)})` : node.size != null ? `${Math.max(1, Math.ceil(node.size / 1024))}KB (${bytes(node.size)})` : '0 bytes'],
         st && ['Contains:', `${st.files} Files, ${st.folders} Folders`]]),
       sep(),

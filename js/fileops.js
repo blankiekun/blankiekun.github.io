@@ -3,10 +3,23 @@
 
 import { h, icon, download } from './util.js';
 import { msgbox } from './dialogs.js';
-import { recycle, parentOf, remove, copy, move, canWrite, FsError } from './fs.js';
+import { recycle, parentOf, remove, copy, move, canWrite, rename, restore, shortcut, desktopFolder, FsError } from './fs.js';
 import { confirmDelete } from './props.js';
 
 export const clip = { nodes: [], cut: false };
+
+// Edit > Undo: the last delete, move, copy, rename or new shortcut can be taken back.
+let last = null;
+export const undoLabel = () => last && last.label;
+export async function undo(parent) {
+  const u = last;
+  last = null;
+  if (!u) return;
+  try { u.run(); } catch (e) { await fail(e, parent, 'Undo'); }
+  marks();
+}
+// Copies and new shortcuts are undone by deleting them for good.
+function gone(n) { remove(n); if (parentOf(n) === recycle) remove(n); }
 
 function fail(e, parent, title = 'Error') {
   if (!(e instanceof FsError)) throw e;
@@ -25,11 +38,13 @@ export const isCut = n => clip.cut && clip.nodes.includes(n);
 
 export async function paste(folder, parent) {
   if (!canPaste(folder)) return;
+  const moved = [], made = [];
   try {
     for (const n of clip.nodes) {
-      if (clip.cut) move(n, folder); else copy(n, folder);
+      if (clip.cut) { moved.push([n, parentOf(n)]); move(n, folder); } else made.push(copy(n, folder));
     }
   } catch (e) { await fail(e, parent, clip.cut ? 'Error Moving File' : 'Error Copying File'); }
+  remember(moved, made);
   if (clip.cut) { clip.nodes = []; clip.cut = false; }
   marks();
 }
@@ -53,7 +68,9 @@ export async function del(nodes, parent) {
     const b = await msgbox({ title, icon: forGood ? 'i-warn' : 'i-trash-full', parent, buttons: ['&Yes', '&No'], text });
     if (b !== 'Yes') return;
   }
-  try { for (const n of nodes) remove(n); } catch (e) { await fail(e, parent, 'Error Deleting File'); }
+  const done = [];
+  try { for (const n of nodes) { remove(n); done.push(n); } } catch (e) { await fail(e, parent, 'Error Deleting File'); }
+  if (!forGood && done.length) last = { label: 'Undo Delete', run: () => done.forEach(n => parentOf(n) === recycle && restore(n)) };
   if (nodes.some(n => clip.nodes.includes(n))) { clip.nodes = clip.nodes.filter(n => !nodes.includes(n)); marks(); }
 }
 
@@ -62,12 +79,41 @@ export async function del(nodes, parent) {
 export async function drop(nodes, folder, copying, parent) {
   if (folder === recycle) return del(nodes, parent);
   if (!nodes.length || nodes.includes(folder)) return;
+  const moved = [], made = [];
   try {
     for (const n of nodes) {
       if (parentOf(n) === folder && !copying) continue;
-      if (n.user && !copying) move(n, folder); else copy(n, folder);
+      if (n.user && !copying) { moved.push([n, parentOf(n)]); move(n, folder); } else made.push(copy(n, folder));
     }
   } catch (e) { await fail(e, parent, 'Error Moving File'); }
+  remember(moved, made);
+}
+
+function remember(moved, made) {
+  if (moved.length) last = { label: 'Undo Move', run: () => moved.forEach(([n, from]) => move(n, from)) };
+  else if (made.length) last = { label: 'Undo Copy', run: () => made.forEach(gone) };
+}
+
+export async function renameNode(n, name, parent) {
+  const old = n.name;
+  try { rename(n, name); last = { label: 'Undo Rename', run: () => rename(n, old) }; }
+  catch (e) { await fail(e, parent, 'Error Renaming File'); }
+}
+
+// Create Shortcut: next to the item, or on the desktop when that folder is read-only.
+export async function makeShortcut(n, folder, parent) {
+  let into = folder;
+  if (!canWrite(into)) {
+    const b = await msgbox({ title: 'Shortcut', icon: 'question', parent, buttons: ['&Yes', '&No'],
+      text: 'blankiekun 95 cannot create a shortcut here.\n\nDo you want the shortcut to be placed on the desktop instead?' });
+    if (b !== 'Yes') return null;
+    into = desktopFolder();
+  }
+  try {
+    const sc = shortcut(n, into);
+    last = { label: 'Undo Create Shortcut', run: () => gone(sc) };
+    return sc;
+  } catch (e) { await fail(e, parent, 'Shortcut'); return null; }
 }
 
 // Send To > 3½ Floppy (A:) downloads the file to the visitor's real computer.

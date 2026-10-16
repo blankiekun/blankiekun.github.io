@@ -1,6 +1,6 @@
 // Notepad.
 
-import { h } from '../util.js';
+import { h, esc } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
@@ -84,7 +84,7 @@ function open(arg) {
       ...(sendEnabled() && own ? [{ label: 'S&end to blankiekun...', icon: 'i-mail', action: sendNote }] : []),
       { label: 'Save &As...', action: () => save(true) },
       '-',
-      { label: '&Print', action: () => { const w = window.open('', '_blank'); if (w) { w.document.write('<pre>' + ta.value.replace(/</g, '&lt;') + '</pre>'); w.print(); } } },
+      { label: '&Print', action: () => import('./printers.js').then(m => m.printJob(name, '<pre style="white-space:pre-wrap;font:10pt monospace">' + esc(ta.value) + '</pre>')) },
       '-',
       { label: 'E&xit', action: () => win.close() },
     ] },

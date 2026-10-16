@@ -736,18 +736,9 @@ function open(arg) {
   }
 
   function print() {
-    const f = h('iframe', { class: 'wp-print', 'aria-hidden': 'true', tabindex: '-1' });
-    document.body.append(f);
-    const d = f.contentDocument;
-    d.open();
-    d.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)}</title><style>
+    import('./printers.js').then(m => m.printJob(name, sanitize(page.innerHTML), { css: `
       @page { margin: 1in 1.25in; } body { margin: 0; font: 10pt "Times New Roman", Times, serif; white-space: pre-wrap; tab-size: ${tabs[0] || 48}px; color: #000; }
-      p, div { margin: 0; } h1, h2, h3 { margin: 0; } ul, ol { margin: 0; }
-      </style></head><body>${sanitize(page.innerHTML)}</body></html>`);
-    d.close();
-    const done = () => setTimeout(() => f.remove(), 500);
-    f.contentWindow.addEventListener('afterprint', done);
-    setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch {} setTimeout(() => f.remove(), 120000); }, 50);
+      p, div { margin: 0; } h1, h2, h3 { margin: 0; } ul, ol { margin: 0; }` }));
   }
 
   async function paste() {

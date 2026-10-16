@@ -1,6 +1,6 @@
 // The pretend disk: what My Computer, MS-DOS Prompt, Find and Notepad see.
 //
-// Node: { name, kind: 'drive'|'folder'|'file'|'app'|'page'|'link', children?, text?, data?, app?, arg?, href?, icon?, size? }
+// Node: { name, kind: 'drive'|'folder'|'file'|'app'|'page'|'link'|'shortcut', children?, text?, data?, app?, arg?, href?, icon?, size?, target? }
 //
 // The files that ship with the site are read-only. Anything the visitor makes on C:
 // (folders, notes, drawings, copies) is marked `user` and kept in localStorage.
@@ -245,12 +245,19 @@ export function walk(fn, node = root, path = '') {
 export function kindLabel(n) {
   if (n.kind === 'drive') return n.letter === 'A' ? '3½ Inch Floppy Disk' : n.letter === 'E' ? 'CD-ROM Disc' : 'Local Disk';
   if (n.kind === 'folder') return n.virtual ? 'System Folder' : 'File Folder';
+  if (n.printer) return n.isDefault ? 'Printer (default)' : 'Printer';
+  if (n.app === 'addprinter') return 'Printer Wizard';
   if (n.kind === 'app' || n.kind === 'joke') return /\.CPL$/i.test(n.name) || !/\./.test(n.name) ? 'Control Panel extension' : 'Application';
   if (n.kind === 'page') return 'HTML Document';
   if (n.kind === 'link') return 'Internet Shortcut';
+  if (n.kind === 'shortcut') return 'Shortcut';
   if (/\.(bat)$/i.test(n.name)) return 'MS-DOS Batch File';
   if (/\.(sys|inf)$/i.test(n.name)) return 'System file';
   if (/\.html?$/i.test(n.name)) return 'HTML Document';
+  if (/\.(doc|wri)$/i.test(n.name)) return 'WordPad Document';
+  if (/\.rtf$/i.test(n.name)) return 'Rich Text Format';
+  if (/\.(bmp|png|gif|jpe?g)$/i.test(n.name)) return 'Bitmap Image';
+  if (/\.(wav|mp3|ogg)$/i.test(n.name)) return 'Wave Sound';
   return 'Text Document';
 }
 
@@ -278,17 +285,20 @@ export function iconForName(name) {
   if (ext === 'htm' || ext === 'html') return 'i-htm';
   if (ext === 'doc' || ext === 'wri' || ext === 'rtf') return 'i-doc';
   if (ext === 'bmp' || ext === 'png' || ext === 'gif' || ext === 'jpg') return 'i-bmp';
+  if (ext === 'wav' || ext === 'mp3' || ext === 'ogg') return 'i-sndrec';
   return 'i-txt';
 }
 
 export function openerFor(node) {
   if (/\.(doc|wri|rtf)$/i.test(node.name)) return 'wordpad';
+  if (/\.(wav|mp3|ogg)$/i.test(node.name)) return 'sndrec';
   if (/\.(bmp|png|gif|jpe?g)$/i.test(node.name) || node.data) return 'paint';
   return 'notepad';
 }
 
 function sizeOf(n) {
   if (n.children) return undefined;
+  if (n.kind === 'shortcut') return 342;
   if (n.data) return Math.round(n.data.length * 0.75);
   if (n.text != null) return new Blob([n.text]).size;
   return n.size;
@@ -392,7 +402,7 @@ export function rename(node, name) {
   const other = folder && child(folder, n);
   if (other && other !== node) throw new FsError(`Cannot rename ${node.name}: A file with the name you specified already exists. Specify a different filename.`);
   node.name = n;
-  if (node.kind === 'file' && node.icon && /^i-(txt|htm|doc|bmp)$/.test(node.icon)) node.icon = iconForName(n);
+  if (node.kind === 'file' && node.icon && /^i-(txt|htm|doc|bmp|sndrec)$/.test(node.icon)) node.icon = iconForName(n);
   changed();
 }
 
@@ -456,6 +466,34 @@ export function move(node, folder) {
   folder.children.push(node);
   changed();
   return node;
+}
+
+// ---------- shortcuts ----------
+
+// A shortcut remembers where its target lives, or, for things with no path
+// (Control Panel items, pages, links), a copy of how to open it.
+export function where(node) {
+  if (node === root) return 'My Computer';
+  if (node === recycle) return 'Recycle Bin';
+  if (node === network) return 'Network Neighborhood';
+  const p = pathOf(node);
+  return p && /^[A-Z]:/.test(p) ? p : null;
+}
+
+export function shortcut(target, folder) {
+  guard(folder);
+  if (target.kind === 'shortcut') return copy(target, folder);
+  const path = where(target);
+  const ref = path ? null : (({ kind, app, arg, page, href, icon, name }) => ({ kind, app, arg, page, href, icon, name }))(target);
+  const label = target === root ? 'My Computer' : target.kind === 'drive' ? `(${target.letter})` : target.name;
+  const n = make({ name: uniqueName(folder, 'Shortcut to ' + label.replace(BAD, '')), kind: 'shortcut', target: path, ref, icon: target.icon || (target.children ? 'i-folder' : iconForName(target.name)) });
+  return add(folder, n);
+}
+
+// What a shortcut points at now, or null when the target is gone.
+export function follow(sc) {
+  if (sc.target) return resolve(sc.target);
+  return sc.ref || null;
 }
 
 export function folderStats(folder) {

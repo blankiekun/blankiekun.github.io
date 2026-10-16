@@ -1,10 +1,11 @@
 // Sound Recorder. Records up to 60 seconds from the microphone, plays it back,
 // trims it, runs the Effects menu over the samples and saves 16-bit PCM .wav files.
 
-import { h, store, clamp, download } from '../util.js';
+import { h, store, clamp } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
-import { msgbox, inputbox, about } from '../dialogs.js';
+import { msgbox, about } from '../dialogs.js';
+import { openFile as openDialog, saveAs as saveDialog, saveTo } from '../filedlg.js';
 
 const MAX = 60;     // seconds a recording can grow to, like the original's buffer
 let clip = null;    // Edit > Copy, shared by every Sound Recorder window: { chans, rate }
@@ -89,8 +90,8 @@ function join(...parts) {
   return out;
 }
 
-function open() {
-  let name = 'Sound';
+function open(arg) {
+  let name = 'Sound', path = null;   // path: where it's saved on the pretend disk
   let rate = 44100;
   let chans = [new Float32Array(0)];   // never mutated in place, so `saved` can share arrays
   let saved = chans;                   // what Revert goes back to
@@ -359,42 +360,58 @@ function open() {
     }
   }
 
+  const WAV = [{ label: 'Sounds (*.wav)', exts: ['.wav'] }, { label: 'All Files (*.*)', exts: [] }];
+  async function load(f, p) {
+    const data = await decode(f);
+    if (!data) return;
+    rate = ctx.sampleRate;
+    chans = saved = data;
+    name = f.name; path = p || null;
+    pos = 0; dirty = false;
+    win.setTitle(title());
+    update();
+  }
+  // Sounds on the pretend disk are kept as data: URLs.
+  const fromData = async (data, n) => new File([await (await fetch(data)).blob()], n);
   async function openFile() {
     if (mode !== 'idle' || !(await confirmSave())) return;
-    pickFile(async f => {
-      const data = await decode(f);
-      if (!data) return;
-      rate = ctx.sampleRate;
-      chans = saved = data;
-      name = f.name;
-      pos = 0; dirty = false;
-      win.setTitle(title());
-      update();
-    });
+    const r = await openDialog({ filters: WAV, parent: win, accept: 'audio/*,.wav,.mp3,.ogg,.m4a,.flac' });
+    if (!r) return;
+    if (r.file) load(r.file);
+    else if (r.node.data) load(await fromData(r.node.data, r.name), r.node.user ? r.path : null);
+    else msgbox({ title: 'Sound Recorder', icon: 'error', parent: win, text: `Cannot open ${r.name}.\n\nThis is not a valid sound file, or it uses a format that is not supported.` });
   }
 
   function reset() {
     if (mode !== 'idle') stop();
     chans = saved = [new Float32Array(0)];
-    name = 'Sound'; pos = 0; dirty = false;
+    name = 'Sound'; path = null; pos = 0; dirty = false;
     win.setTitle(title());
     update();
   }
 
-  function save(file) {
-    download(file, encodeWav(chans, rate));
-    name = file;
+  const dataUrl = blob => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+  function markSaved(n, p) {
+    name = n; path = p || null;
     saved = chans;
     dirty = false;
     win.setTitle(title());
+    return true;
+  }
+  async function save() {
+    if (!path) return saveAs();
+    if (mode !== 'idle') stop();
+    if (!saveTo({ path }, { data: await dataUrl(encodeWav(chans, rate)) }, null, win)) return false;
+    return markSaved(name, path);
   }
   async function saveAs() {
     if (mode !== 'idle') stop();
-    let v = await inputbox({ title: 'Save As', label: 'File name:', value: /\.wav$/i.test(name) ? name : name.replace(/\.[^.]+$/, '') + '.wav', parent: win, ok: 'Save' });
-    if (!v || !v.trim()) return false;
-    v = v.trim();
-    save(/\.wav$/i.test(v) ? v : v + '.wav');
-    return true;
+    const r = await saveDialog({ name: /\.wav$/i.test(name) ? name : name.replace(/\.[^.]+$/, '') + '.wav', filters: WAV, parent: win });
+    if (!r) return false;
+    const blob = encodeWav(chans, rate);
+    const n = saveTo(r, r.floppy ? {} : { data: await dataUrl(blob) }, () => blob, win);
+    if (!n && !r.floppy) return false;
+    return markSaved(r.name, n ? r.path : null);
   }
 
   async function confirmSave() {
@@ -419,7 +436,7 @@ function open() {
     { label: '&File', items: () => [
       { label: '&New', action: async () => { if (await confirmSave()) reset(); } },
       { label: '&Open...', action: openFile },
-      { label: '&Save', disabled: !dirty && name !== 'Sound', action: () => (/\.wav$/i.test(name) ? save(name) : saveAs()) },
+      { label: '&Save', disabled: !dirty && name !== 'Sound', action: save },
       { label: 'Save &As...', action: saveAs },
       { label: '&Revert...', disabled: !dirty || mode !== 'idle', action: async () => {
         const b = await msgbox({ title: 'Sound Recorder', icon: 'question', parent: win, buttons: ['&Yes', '&No'], text: 'Do you want to discard your changes and return to the last saved version?' });
@@ -481,6 +498,7 @@ function open() {
   });
   update();
   bRec.focus();
+  if (arg && arg.data) fromData(arg.data, arg.name).then(f => load(f, arg.path));
   return win;
 }
 

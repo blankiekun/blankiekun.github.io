@@ -9,12 +9,12 @@ import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import {
   root, resolve, recycle, network, kindLabel, sizeLabel, pathOf, parentOf, onChange,
-  canWrite, mkdir, createFile, rename, restore, emptyBin, FsError, desktopFolder,
+  canWrite, mkdir, createFile, restore, emptyBin, FsError, desktopFolder,
 } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
 import { sound } from '../desktop.js';
 import { properties, iconOf } from '../props.js';
-import { cut, copyNodes, paste, canPaste, del, startDrag, toFloppy, onClip, isCut } from '../fileops.js';
+import { clip, cut, copyNodes, paste, canPaste, del, startDrag, toFloppy, onClip, isCut, undo, undoLabel, renameNode, makeShortcut } from '../fileops.js';
 
 const PREFS = 'w95.explorer';
 const prefs = { view: 'icons', sort: 'name', single: false, toolbar: false, status: true, ...store.get(PREFS, {}) };
@@ -22,6 +22,7 @@ const savePrefs = () => store.set(PREFS, prefs);
 const wins = new Set();
 const refreshAll = () => { for (const w of wins) w.refresh(); };
 onChange(refreshAll);
+export const refreshExplorers = refreshAll;
 onClip(refreshAll);
 
 const VIEWS = { icons: 'Lar&ge Icons', small: 'S&mall Icons', list: '&List', details: '&Details' };
@@ -141,7 +142,7 @@ function open(arg = 'My Computer') {
     }
     for (const n of items()) {
       const it = h('div', { class: 'ex-item' + (sel.has(n) ? ' sel' : '') + (isCut(n) ? ' cut' : ''), role: 'option', 'aria-selected': String(sel.has(n)), tabindex: '-1' },
-        h('span', { class: 'ex-ic' }, icon(iconFor(n)), n.kind === 'link' ? h('i', { class: 'lnk' }) : null),
+        h('span', { class: 'ex-ic' }, icon(iconFor(n)), n.kind === 'link' || n.kind === 'shortcut' ? h('i', { class: 'lnk' }) : null),
         h('span', { class: 'ex-name' }, n.name));
       if (view === 'details') {
         const date = n.mtime ? new Date(n.mtime).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit' }).replace(',', '') : n.children || n.kind === 'drive' ? '' : '8/24/95 11:11 AM';
@@ -251,9 +252,8 @@ function open(arg = 'My Computer') {
     const finish = ok => {
       if (done) return;
       done = true; renaming = null;
-      if (ok && box.value.trim() && box.value.trim() !== n.name) {
-        try { rename(n, box.value.replace(/\n/g, '')); } catch (e) { fail(e); render(); }
-      } else render();
+      if (ok && box.value.trim() && box.value.trim() !== n.name) renameNode(n, box.value.replace(/\n/g, ''), win).then(render);
+      else render();
       list.focus({ preventScroll: true });
       choose(n);
     };
@@ -295,6 +295,7 @@ function open(arg = 'My Computer') {
       { label: '3½ Floppy (A:)', icon: 'i-floppy', action: () => toFloppy(nodes, win) },
       { label: 'Desktop', icon: 'i-computer', action: () => { copyNodes(nodes); paste(desktopFolder(), win); } },
       { label: 'My Documents', icon: 'i-docs', action: () => { copyNodes(nodes); paste(resolve('C:\\My Documents'), win); } },
+      { label: 'Desktop as Shortcut', icon: 'i-computer', action: () => nodes.forEach(n => makeShortcut(n, desktopFolder(), win)) },
     ];
   }
   function itemMenu(x, y) {
@@ -312,6 +313,7 @@ function open(arg = 'My Computer') {
       ...(n.kind === 'drive' ? [] : [{ label: 'Cu&t', disabled: !n.user && !isBin(), action: () => cut(s) }, { label: '&Copy', disabled: isBin(), action: () => copyNodes(s) }]),
       ...(folderish && n !== recycle ? [{ label: '&Paste', disabled: !canPaste(n), action: () => paste(n, win) }] : []),
       '-',
+      ...(isBin() ? [] : [{ label: 'Create &Shortcut', disabled: s.length > 1, action: () => makeShortcut(n, here(), win) }]),
       ...(n.kind === 'drive' || isTop(n) ? [] : [{ label: '&Delete', action: delSel }, { label: 'Rena&me', disabled: !n.user || s.length > 1, action: () => startRename(n) }, '-']),
       { label: 'P&roperties', action: props },
     ], { x, y });
@@ -342,8 +344,9 @@ function open(arg = 'My Computer') {
       { label: 'Arrange &Icons', submenu: viewMenu().find(i => i.submenu).submenu },
       { label: 'Line &up Icons', action: render },
       '-',
+      ...(undoLabel() ? [{ label: '&' + undoLabel(), action: () => undo(win) }, '-'] : []),
       { label: '&Paste', disabled: !canPaste(here()), action: () => paste(here(), win) },
-      { label: 'Paste &Shortcut', disabled: true },
+      { label: 'Paste &Shortcut', disabled: !clip.nodes.length || !canWrite(here()), action: () => clip.nodes.forEach(n => makeShortcut(n, here(), win)) },
       ...(isBin() ? ['-', { label: 'Empty Recycle &Bin', disabled: !recycle.children.length, action: empty }] : ['-', { label: 'Ne&w', disabled: !canWrite(here()), submenu: newMenu }]),
       '-',
       { label: 'P&roperties', action: () => properties(here(), win) },
@@ -384,7 +387,7 @@ function open(arg = 'My Computer') {
       const c = b.dataset.cmd;
       b.disabled = c === 'up' ? (here() === root || isTop(here()) || here() === desktopFolder())
         : c === 'cut' ? !s.length || s.some(n => !n.user) : c === 'copy' ? !s.length || isBin()
-        : c === 'paste' ? !canPaste(here()) : c === 'del' ? !s.length || s.some(n => n.kind === 'drive') : c === 'undo' ? true : false;
+        : c === 'paste' ? !canPaste(here()) : c === 'del' ? !s.length || s.some(n => n.kind === 'drive') : c === 'undo' ? !undoLabel() : false;
       if (VIEWS[c]) b.setAttribute('aria-pressed', String(prefs.view === c));
     });
     if (treeEl) treeEl.render();
@@ -403,7 +406,7 @@ function open(arg = 'My Computer') {
     h('div', { class: 'ex-tbgroup' }, where, tb('up', 'Up One Level', icon('i-up').outerHTML, up)),
     h('div', { class: 'ex-tbgroup' },
       tb('cut', 'Cut', GLYPH.cut, () => cut(selected())), tb('copy', 'Copy', GLYPH.copy, () => copyNodes(selected())), tb('paste', 'Paste', GLYPH.paste, () => paste(here(), win))),
-    h('div', { class: 'ex-tbgroup' }, tb('undo', 'Undo', GLYPH.undo, () => {})),
+    h('div', { class: 'ex-tbgroup' }, tb('undo', 'Undo', GLYPH.undo, () => undo(win))),
     h('div', { class: 'ex-tbgroup' }, tb('del', 'Delete', GLYPH.del, delSel), tb('props', 'Properties', GLYPH.props, props)),
     h('div', { class: 'ex-tbgroup' }, ...Object.keys(VIEWS).map(k => tb(k, VIEWS[k].replace('&', ''), GLYPH[k], () => setView(k)))));
 
@@ -431,6 +434,7 @@ function open(arg = 'My Computer') {
     else if (ctrl && e.key.toLowerCase() === 'x' && sel.size) { e.preventDefault(); cut(selected()); return; }
     else if (ctrl && e.key.toLowerCase() === 'c' && sel.size) { e.preventDefault(); copyNodes(selected()); return; }
     else if (ctrl && e.key.toLowerCase() === 'v') { e.preventDefault(); paste(here(), win); return; }
+    else if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(win); return; }
     else if (e.key.length === 1 && !ctrl && !e.altKey) {
       // Typing a letter jumps to the next item starting with it.
       const k = e.key.toLowerCase();
@@ -456,7 +460,7 @@ function open(arg = 'My Computer') {
           ? [{ label: 'R&estore', disabled: !s.length, action: restoreSel }, { label: 'Empty Recycle &Bin', disabled: !recycle.children.length, action: empty }, '-']
           : [{ label: 'Ne&w', disabled: !canWrite(here()), submenu: newMenu }, '-']),
         ...(n && !isBin() && n.kind !== 'drive' ? [{ label: 'Se&nd To', submenu: sendTo(s) }, '-'] : []),
-        { label: 'Create &Shortcut', disabled: true },
+        { label: 'Create &Shortcut', disabled: s.length !== 1 || isBin(), action: () => makeShortcut(n, here(), win) },
         { label: '&Delete', disabled: !s.length || s.some(x => x.kind === 'drive'), action: delSel },
         { label: 'Rena&me', disabled: !n || !n.user || s.length > 1, action: () => startRename(n) },
         { label: 'P&roperties', action: props },
@@ -465,11 +469,11 @@ function open(arg = 'My Computer') {
       ];
     } },
     { label: '&Edit', items: () => [
-      { label: '&Undo', disabled: true }, '-',
+      { label: undoLabel() ? '&' + undoLabel() : '&Undo', key: 'Ctrl+Z', disabled: !undoLabel(), action: () => undo(win) }, '-',
       { label: 'Cu&t', key: 'Ctrl+X', disabled: !sel.size || selected().some(n => !n.user), action: () => cut(selected()) },
       { label: '&Copy', key: 'Ctrl+C', disabled: !sel.size || isBin(), action: () => copyNodes(selected()) },
       { label: '&Paste', key: 'Ctrl+V', disabled: !canPaste(here()), action: () => paste(here(), win) },
-      { label: 'Paste &Shortcut', disabled: true }, '-',
+      { label: 'Paste &Shortcut', disabled: !clip.nodes.length || !canWrite(here()), action: () => clip.nodes.forEach(n => makeShortcut(n, here(), win)) }, '-',
       { label: 'Select &All', key: 'Ctrl+A', action: () => { sel = new Set(items()); paint(); } },
       { label: '&Invert Selection', action: () => { sel = new Set(items().filter(n => !sel.has(n))); paint(); } },
     ] },
@@ -529,10 +533,8 @@ function blankBitmap() {
 }
 
 function printNode(n) {
-  const w = window.open('', '_blank');
-  if (!w) return;
-  if (n.data) w.document.write(`<img src="${n.data}" onload="print()">`);
-  else { w.document.write('<pre>' + String(n.text || '').replace(/[&<]/g, c => c === '&' ? '&amp;' : '&lt;') + '</pre>'); w.print(); }
+  const html = n.data ? `<img src="${n.data}" style="max-width:100%">` : '<pre style="white-space:pre-wrap">' + String(n.text || '').replace(/[&<]/g, c => c === '&' ? '&amp;' : '&lt;') + '</pre>';
+  import('./printers.js').then(m => m.printJob(n.name, html));
 }
 
 export default { id: 'explorer', title: 'Explorer', icon: 'i-folder-open', open };
