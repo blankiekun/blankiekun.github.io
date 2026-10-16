@@ -24,9 +24,9 @@ body.show-text #overlay div div { color: rgba(255, 64, 64, .9); background: rgba
 <div id="overlay" lang="ja"><div id="page-text"></div><div id="sprite-text"></div><div id="choices"></div></div>
 <video id="video" hidden playsinline></video>
 <canvas id="hold" hidden oncontextmenu="event.preventDefault()"></canvas>
-<script src="conscripter.js?v0.25.3"></script>
+<script src="conscripter.js?v0.26.0"></script>
 <script>
-// The host page for CONscripter (conscripter.js/.wasm are the v0.25.3 web release).
+// The host page for CONscripter (conscripter.js/.wasm are the v0.26.0 web release).
 // The Program window in js/apps/conscripter.js makes one of these per game and calls
 // start() with the visitor's own files. Nothing is uploaded: game files are read
 // straight off their disk as the engine asks for them, so one big .nsa never has to
@@ -49,7 +49,7 @@ let savedir = null;
 var engineLog = []; // var: the parent reads it
 function logLine(s) { engineLog.push(s); if (engineLog.length > 5000) engineLog.splice(0, 1000); }
 // ?version on the engine's files: a cached old conscripter.js with a new .wasm can't start.
-var g_cons_module = { canvas, locateFile: (p, dir) => dir + p + '?v0.25.3', print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
+var g_cons_module = { canvas, locateFile: (p, dir) => dir + p + '?v0.26.0', print: s => { logLine(s); console.log(s); }, printErr: s => { logLine(s); console.warn(s); } };
 // The engine's debug trace (CONscripter's DEBUG.md), for Debug > Dump Game State and Save Trace.
 var traceLines = []; // var: the parent reads it
 let traceWaiter = null;
