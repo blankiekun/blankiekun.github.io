@@ -1,7 +1,7 @@
 // The desktop surface: icons, right-click menu, Start menu, tray clock,
 // and the boot / shut down / log off screens.
 
-import { h, icon, clamp, wait, reducedMotion, store } from './util.js';
+import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
 import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel } from './wm.js';
 import { msgbox } from './dialogs.js';
@@ -180,13 +180,11 @@ function lineUp() {
   });
 }
 
-function select(it) {
-  ICONS.forEach(o => {
-    const on = o === it;
-    o.el.classList.toggle('sel', on);
-    o.el.setAttribute('aria-selected', String(on));
-    o.el.tabIndex = on ? 0 : -1;
-  });
+function select(it) { ICONS.forEach(o => mark(o, o === it)); }
+function mark(o, on) {
+  o.el.classList.toggle('sel', on);
+  o.el.setAttribute('aria-selected', String(on));
+  o.el.tabIndex = on ? 0 : -1;
 }
 
 // Where a dragged icon would land: a folder or the Recycle Bin, else just the desktop.
@@ -288,7 +286,7 @@ function iconKey(it, e) {
   else if (e.key === 'ArrowUp') { e.preventDefault(); go(i - 1); }
   else if (e.key === 'ArrowRight' && !moved) { e.preventDefault(); go(i + rows); }
   else if (e.key === 'ArrowLeft' && !moved) { e.preventDefault(); go(i - rows); }
-  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del([it.node]); }
+  else if (e.key === 'Delete' && it.file) { e.preventDefault(); del(ICONS.filter(o => o.file && o.el.classList.contains('sel')).map(o => o.node)); }
   else if (e.key === 'F2' && it.file) { e.preventDefault(); startRename(it); }
   else if (ctrl && e.key.toLowerCase() === 'c' && it.file) { e.preventDefault(); copyNodes([it.node]); }
   else if (ctrl && e.key.toLowerCase() === 'x' && it.file) { e.preventDefault(); cut([it.node]); }
@@ -304,6 +302,11 @@ desktopEl.addEventListener('pointerdown', e => {
   if (e.target !== desktopEl && e.target !== iconsEl) return;
   select(null);
   deactivate();
+  if (e.button === 0) marquee(e, r => {
+    ICONS.forEach(o => mark(o, [...o.el.children].some(c => overlaps(c, r)))); // the picture and label, not the whole cell
+    const first = ICONS.find(o => o.el.classList.contains('sel'));
+    if (first) first.el.focus({ preventScroll: true });
+  });
 });
 
 function newThing(fn) {

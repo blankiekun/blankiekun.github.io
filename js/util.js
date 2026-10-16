@@ -63,3 +63,27 @@ export const store = {
 export const small = matchMedia('(max-width: 640px), (max-height: 420px)');
 export const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 export const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// Dragging across empty space draws a dotted box; onRect gets it in client coordinates as it grows.
+export function marquee(e, onRect) {
+  const sx = e.clientX, sy = e.clientY, id = e.pointerId;
+  let box = null;
+  const move = ev => {
+    if (ev.pointerId !== id) return;
+    const r = { left: Math.min(sx, ev.clientX), top: Math.min(sy, ev.clientY), right: Math.max(sx, ev.clientX), bottom: Math.max(sy, ev.clientY) };
+    if (!box) {
+      if (r.right - r.left < 3 && r.bottom - r.top < 3) return;
+      box = h('div', { class: 'marquee' });
+      document.body.append(box);
+    }
+    Object.assign(box.style, { left: r.left + 'px', top: r.top + 'px', width: r.right - r.left + 'px', height: r.bottom - r.top + 'px' });
+    onRect(r);
+  };
+  const up = ev => {
+    if (ev.pointerId !== id) return;
+    removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+    if (box) box.remove();
+  };
+  addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+}
+export const overlaps = (el, r) => { const b = el.getBoundingClientRect(); return b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top; };

@@ -3,7 +3,7 @@
 // Like Win95's default, each folder opens in its own window; View > Options can
 // switch to browsing in one window.
 
-import { h, icon, small, store } from '../util.js';
+import { h, icon, small, store, marquee, overlaps } from '../util.js';
 import { createWindow, find, launch, appInfo } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
@@ -410,7 +410,13 @@ function open(arg = 'My Computer') {
     h('div', { class: 'ex-tbgroup' }, tb('del', 'Delete', GLYPH.del, delSel), tb('props', 'Properties', GLYPH.props, props)),
     h('div', { class: 'ex-tbgroup' }, ...Object.keys(VIEWS).map(k => tb(k, VIEWS[k].replace('&', ''), GLYPH[k], () => setView(k)))));
 
-  list.addEventListener('pointerdown', e => { if (e.button === 0 && !e.ctrlKey) choose(null); });
+  list.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    if (!e.ctrlKey) choose(null);
+    if (e.target === list && e.offsetX >= list.clientWidth || e.offsetY >= list.clientHeight) return; // the scroll bars
+    const base = [...sel];
+    marquee(e, r => { sel = new Set([...base, ...rows().filter(x => [...x.children].some(c => overlaps(c, r))).map(x => x.node)]); paint(); });
+  });
   list.addEventListener('contextmenu', e => { e.preventDefault(); choose(null); bgMenu(e.clientX, e.clientY); });
   list.addEventListener('keydown', e => {
     if (renaming) return;
