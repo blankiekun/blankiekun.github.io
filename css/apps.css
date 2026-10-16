@@ -476,26 +476,41 @@ body:has(.win.cons-full) .taskbar { display: none; }
 @media (max-height: 500px) { .cons-side { display: none; } }
 .solo-win .cons-view.playing { margin: 0; padding: 0; box-shadow: none; }
 
-/* Menu / Skip buttons under the game in place of the status bar, for touch screens with
-   no right-click or Ctrl, and on the desktop too so every version plays the same way. */
+/* Touch screens: no dragging folders in, bigger things to tap, and Menu / Skip buttons
+   under the game in place of the status bar, since there's no right-click or Ctrl. */
 .cons-touch { display: none; gap: 4px; padding: 3px 2px 2px; flex: none; }
 .cons-touch .btn { flex: 1; min-width: 0; height: 36px; }
 .cons-touch .btn.on { box-shadow: var(--sunken); background: var(--light); }
-.cons:has(> .cons-view.playing) > .cons-touch { display: flex; }
-.cons:has(> .cons-view.playing) > .statusbar, .cons:has(> .cons-view.playing) > .menubar > .cons-fs:not(.cons-sync) { display: none; }
-/* Touch screens: no dragging folders in, bigger things to tap. */
 @media (pointer: coarse) {
   .cons-drop { display: none; }
   .cons-btns .btn { flex: 1; height: 36px; }
   .cons > .menubar > button { padding-top: 6px; padding-bottom: 6px; }
   body.solo .menu .mi { padding-top: 7px; padding-bottom: 8px; }
+  .cons:has(> .cons-view.playing) > .cons-touch { display: flex; }
+  .cons:has(> .cons-view.playing) > .statusbar, .cons:has(> .cons-view.playing) > .menubar > .cons-fs:not(.cons-sync) { display: none; }
 }
 /* Sideways, the buttons go in a column beside the game, which needs the height more. */
-@media (orientation: landscape) {
+@media (pointer: coarse) and (orientation: landscape) {
   .cons:has(> .cons-view.playing) { display: grid; grid-template: auto minmax(0, 1fr) / minmax(0, 1fr) 112px; }
   .cons:has(> .cons-view.playing) > .menubar { grid-column: 1 / -1; }
+  /* row 2 even in full screen, where the menu bar leaves the grid and row 1 shrinks to nothing */
+  .cons:has(> .cons-view.playing) > .cons-view, .cons:has(> .cons-view.playing) > .cons-touch { grid-row: 2; }
   .cons:has(> .cons-view.playing) > .cons-touch { flex-direction: column; padding: 2px 2px 2px 4px; }
   .cons:has(> .cons-view.playing) > .cons-touch .btn { flex: 1; max-height: 64px; }
+}
+/* The little tab at the end of the buttons folds them away, leaving the game more room. */
+.cons:has(> .cons-view.playing) > .cons-touch > .cons-fold { flex: none; width: 28px; padding: 0; }
+.cons-fold::before { content: '\25be'; }
+.cons-folded .cons-fold::before { content: '\25b4'; }
+.cons-folded > .cons-touch { justify-content: flex-end; }
+.cons-folded > .cons-touch > .btn:not(.cons-fold) { display: none; }
+.cons-folded:has(> .cons-view.playing) > .cons-touch > .cons-fold { height: 18px; width: 44px; }
+@media (pointer: coarse) and (orientation: landscape) {
+  .cons:has(> .cons-view.playing) > .cons-touch > .cons-fold { width: auto; height: 28px; }
+  .cons-fold::before { content: '\25b8'; }
+  .cons-folded .cons-fold::before { content: '\25c2'; }
+  .cons.cons-folded:has(> .cons-view.playing) { grid-template-columns: minmax(0, 1fr) auto; }
+  .cons-folded:has(> .cons-view.playing) > .cons-touch > .cons-fold { width: 18px; height: 44px; }
 }
 @container (max-width: 480px) {
   .cons-side { display: none; }

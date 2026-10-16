@@ -754,13 +754,18 @@ function open() {
   bar.addEventListener('pointerleave', () => { hideTimer = setTimeout(() => root.classList.remove('reveal'), 400); });
 
   // Touch screens have no right-click or Ctrl, so the game's menu and skip get buttons
-  // beside the game, in place of the status bar (CSS shows it while playing, on every device).
+  // under the game, in place of the status bar (CSS shows it only for touch, while playing).
   function toggleSkip() { skip = !skip; player().setSkip(skip); skipBtn.classList.toggle('on', skip); frame.focus(); }
   const skipBtn = h('button', { class: 'btn', type: 'button', onclick: () => player() && toggleSkip() }, 'Skip');
   const touchFs = h('button', { class: 'btn', type: 'button', onclick: fullScreen, hidden: !canFull }, 'Full Screen');
   const touchBar = h('div', { class: 'cons-touch' },
     h('button', { class: 'btn', type: 'button', onclick: () => { if (player()) { player().pressEsc(); frame.focus(); } } }, 'Menu'),
-    skipBtn, touchFs);
+    skipBtn, touchFs, h('button', { class: 'btn cons-fold', type: 'button', 'aria-label': 'Hide buttons', 'aria-expanded': 'true', onclick: e => {
+      const folded = root.classList.toggle('cons-folded');
+      e.currentTarget.setAttribute('aria-expanded', !folded);
+      e.currentTarget.setAttribute('aria-label', folded ? 'Show buttons' : 'Hide buttons');
+      if (frame) frame.focus();
+    } }));
   const root = h('div', { class: 'cons' }, hot, bar, view, touchBar, status);
 
   // Ask the browser not to evict saves on its own. Clearing site data still erases them.
