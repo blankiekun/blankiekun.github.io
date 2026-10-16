@@ -685,7 +685,7 @@ function open(arg) {
 
     const had = document.activeElement;
     const playing = state === 'playing';
-    if (bPlay.title !== (playing ? 'Pause' : 'Play')) {
+    if (bPlay.getAttribute('aria-label') !== (playing ? 'Pause' : 'Play')) {
       bPlay.innerHTML = glyph(playing ? 'pause' : 'play');
       bPlay.title = playing ? 'Pause' : 'Play';
       bPlay.setAttribute('aria-label', bPlay.title);
