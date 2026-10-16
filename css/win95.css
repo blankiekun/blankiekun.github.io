@@ -44,6 +44,8 @@
   --move: url(../img/cursors/move.svg) 9 9, move;
 }
 html { cursor: var(--arrow); }
+/* Firefox gives form controls their own cursor: default, which skips the inherited arrow */
+button, select, input { cursor: var(--arrow); }
 input:not([type=checkbox], [type=radio], [type=range], [type=button], [type=submit]), textarea, [contenteditable] { cursor: var(--ibeam); }
 body.busy, body.busy * { cursor: var(--busy) !important; }
 * { box-sizing: border-box; }
