@@ -275,14 +275,27 @@ async function readZip(zip) {
   let e = tail.byteLength - 22;
   while (e >= 0 && t.getUint32(e, true) !== 0x06054b50) e--;
   if (e < 0) throw new Error('not a zip');
-  const count = t.getUint16(e + 10, true), cdSize = t.getUint32(e + 12, true), cdOff = t.getUint32(e + 16, true);
-  // shortcut: no Zip64, so zips over 4 GB or 65535 files don't open; add it if a game needs it.
-  if (cdOff === 0xffffffff || count === 0xffff) throw new Error('zip64');
+  let count = t.getUint16(e + 10, true), cdSize = t.getUint32(e + 12, true), cdOff = t.getUint32(e + 16, true);
+  // Zip64 (over 4 GB or 65535 files): the real numbers are in a record the locator before the end points to.
+  if (e >= 20 && t.getUint32(e - 20, true) === 0x07064b50) {
+    const at = Number(t.getBigUint64(e - 12, true)), z = new DataView(await zip.slice(at, at + 56).arrayBuffer());
+    if (z.getUint32(0, true) !== 0x06064b50) throw new Error('not a zip');
+    count = Number(z.getBigUint64(32, true)); cdSize = Number(z.getBigUint64(40, true)); cdOff = Number(z.getBigUint64(48, true));
+  }
   const cd = await zip.slice(cdOff, cdOff + cdSize).arrayBuffer(), v = new DataView(cd), u8 = new Uint8Array(cd);
   const utf8 = new TextDecoder(), sjis = new TextDecoder('shift_jis'), out = [];
   for (let i = 0, p = 0; i < count; i++) {
-    const flags = v.getUint16(p + 8, true), method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true);
-    const nlen = v.getUint16(p + 28, true), xlen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true), lo = v.getUint32(p + 42, true);
+    const flags = v.getUint16(p + 8, true), method = v.getUint16(p + 10, true);
+    const nlen = v.getUint16(p + 28, true), xlen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true);
+    let csize = v.getUint32(p + 20, true), lo = v.getUint32(p + 42, true);
+    // Sizes and offsets past 4 GB are 0xffffffff here, with the real ones in the Zip64 extra field.
+    for (let x = p + 46 + nlen, end = x + xlen; x + 4 <= end; x += 4 + v.getUint16(x + 2, true)) {
+      if (v.getUint16(x, true) !== 1) continue;
+      let q = x + 4;
+      if (v.getUint32(p + 24, true) === 0xffffffff) q += 8; // the unpacked size, not needed
+      if (csize === 0xffffffff) { csize = Number(v.getBigUint64(q, true)); q += 8; }
+      if (lo === 0xffffffff) lo = Number(v.getBigUint64(q, true));
+    }
     const path = (flags & 0x800 ? utf8 : sjis).decode(u8.subarray(p + 46, p + 46 + nlen)).replace(/\\/g, '/');
     p += 46 + nlen + xlen + clen;
     if (path.endsWith('/') || path.split('/').includes('..') || (method !== 0 && method !== 8)) continue;
@@ -735,9 +748,7 @@ function open() {
       say('Unpacking...');
       try { g = await findGame(await unzipAll(list)); } catch (e) {
         idle();
-        return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: e.message === 'zip64'
-          ? 'That zip is too big for CONscripter to open (over 4 GB or 65,535 files). Extract it first, then open the folder.'
-          : 'That zip could not be read. It may be damaged, or not really a .zip file.' });
+        return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'That zip could not be read. It may be damaged, or not really a .zip file.' });
       }
     }
     if (!g) {
