@@ -4,7 +4,7 @@
 
 import { h, icon, esc, clamp, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { menubar, openMenu, ribbon, rbtn, hasRibbon } from '../menu.js';
+import { menubar, openMenu, ribbon, rbtn, quickBar, hasRibbon } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { openFile, saveAs, saveTo } from '../filedlg.js';
 import { resolve } from '../fs.js';
@@ -1303,6 +1303,7 @@ function open(arg) {
     onClose: confirmSave, onResize: layoutRuler,
     onClosed: () => { document.removeEventListener('selectionchange', onSel); if (ro) ro.disconnect(); if (findWin) findWin.close(true); },
   });
+  if (hasRibbon) quickBar(win, { save: () => save(), undo: () => cmd('undo'), redo: () => cmd('redo') });
 
   if (arg && arg.text != null) load(arg.name || 'Document', convert(arg.name || '', arg.text), arg.path, typeOf(arg.name || ''));
   else load('Document', '', null, 'word');

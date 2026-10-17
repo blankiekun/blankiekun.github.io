@@ -3,7 +3,7 @@
 
 import { h, clamp } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { menubar, openMenu, ribbon, rbtn, hasRibbon } from '../menu.js';
+import { menubar, openMenu, ribbon, rbtn, quickBar, hasRibbon } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { saveAs, openFile, saveTo } from '../filedlg.js';
 import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
@@ -1327,6 +1327,7 @@ function open(arg) {
   // On the window, not the body: focus lands on the window itself after dialogs.
   win.el.addEventListener('keydown', onKey);
   win.el.addEventListener('paste', onPaste);
+  if (hasRibbon) quickBar(win, { save: () => save(), undo: () => { undo(); root.focus({ preventScroll: true }); } });
   if (arg && arg.data) loadImage(arg.data, arg.name, arg.path);
   setTool('pencil');
   updateColors();

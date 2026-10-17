@@ -543,7 +543,9 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 [data-win="11"] .tabs button, [data-win="11"] .tabpanel { border-radius: 6px 6px 0 0; }
 @supports not selector(::-webkit-scrollbar) {
   [data-win="xp"] * { scrollbar-color: #c8d6fb #f3f1ec; }
-  :is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) * { scrollbar-color: #c2c2c2 #f0f0f0; }
+  :is([data-win="vista"], [data-win="7"]) * { scrollbar-color: #c2c2c2 #f0f0f0; }
+  :is([data-win="8"], [data-win="10"]) * { scrollbar-color: #cdcdcd #f0f0f0; }
+  [data-win="11"] * { scrollbar-color: #8a8a8a #f9f9f9; scrollbar-width: thin; }
 }
 
 /* ---------- Internet Explorer 6 (XP): beige rebar bands, rounded hot buttons, the white flag box ---------- */
@@ -632,6 +634,16 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 .ribbon .pt-cur { width: 40px; height: 40px; }
 .ribbon .pt-cur i { width: 20px; height: 20px; }
 .ribbon .pt-colorbox .send-btn { margin-left: 6px; }
+
+/* The quick-access toolbar in the title bar: Save, Undo (and Redo), lit like the ribbon's buttons */
+.rb-qat { display: flex; align-items: center; gap: 1px; margin: 0 6px 0 4px; padding-right: 6px; border-right: 1px solid #0003; }
+.rb-qbtn { width: 22px; height: 20px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 3px; background: none; cursor: var(--arrow); }
+.rb-qbtn svg { width: 16px; height: 16px; }
+.rb-qbtn:hover { border-color: #ffb700; background: linear-gradient(#fffbe8, #ffe68d); }
+.rb-qbtn:active { border-color: #c28a30; background: linear-gradient(#ffd27a, #ffb43d); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .rb-qbtn { border-radius: 0; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .rb-qbtn:hover { border-color: transparent; background: #0000001a; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .rb-qbtn:active { background: #0003; }
 
 /* 8 on: the same ribbon gone flat */
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .ribbon { background: #f5f6f7; border-bottom-color: #dadbdc; }

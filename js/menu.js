@@ -264,3 +264,25 @@ export function rbtn(label, glyph, action, big) {
   b.addEventListener('click', e => action(e, b));
   return b;
 }
+
+// The quick-access toolbar 7 puts in a ribbon app's title bar, beside the window icon.
+// actions: { save, undo, redo? }
+const QAT_ARROW = "<svg viewBox='0 0 16 16' width='16' height='16'><path d='M5 4L1.5 7.5 5 11M2 7.5h7.5a4 4 0 0 1 0 8H7' fill='none' stroke='#1b5fb8' stroke-width='1.8'/></svg>";
+export function quickBar(win, actions) {
+  const btn = (label, pic, action, flip) => {
+    const b = h('button', { type: 'button', class: 'rb-qbtn', title: label, 'aria-label': label });
+    if (pic.startsWith('i-')) b.append(icon(pic)); else b.innerHTML = pic;
+    if (flip) b.firstChild.style.transform = 'scaleX(-1)';
+    b.addEventListener('mousedown', e => e.preventDefault());   // leave the caret where it was
+    b.addEventListener('click', action);
+    return b;
+  };
+  const bar = h('div', { class: 'rb-qat', role: 'toolbar', 'aria-label': 'Quick Access Toolbar' },
+    btn('Save', 'i-floppy', actions.save),
+    btn('Undo', QAT_ARROW, actions.undo),
+    ...(actions.redo ? [btn('Redo', QAT_ARROW, actions.redo, true)] : []));
+  // Clicks here are not the start of a drag or a double-click maximize.
+  for (const t of ['pointerdown', 'dblclick', 'contextmenu']) bar.addEventListener(t, e => e.stopPropagation());
+  const tb = win.el.querySelector('.titlebar');
+  tb.insertBefore(bar, tb.querySelector('.t'));
+}
