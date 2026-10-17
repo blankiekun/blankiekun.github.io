@@ -58,7 +58,7 @@ footer { text-align: center; font-size: 14px; display: flex; flex-direction: col
 <body>
 <div class="wrap">
   <h1>How much of each game converts</h1>
-  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. The red line shows the share that converts fully. A game reaches the top when nothing is left out.</p>
+  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. Calls <b>left out on purpose</b>, in code the game can't reach such as a debug menu, count as done. The red line shows the share that converts fully. A game reaches the top when nothing is left out.</p>
   <hr class="groove">
 
   <div id="games"></div>
@@ -124,7 +124,7 @@ function thermometer(name, engine) {
 
 function render(t, det, name, m) {
   const tot = m.totals;
-  const p = tot.calls ? 100 * tot.full / tot.calls : 0;
+  const p = tot.calls ? 100 * (tot.full + (tot.left_out || 0)) / tot.calls : 0;
   // Floor, so a game with any gap never shows 100.0.
   const shown = (Math.floor(p * 10) / 10).toFixed(1);
   t.gauge.setAttribute("aria-label", shown + "% fully converted");
@@ -136,7 +136,7 @@ function render(t, det, name, m) {
   const sha = m.commit.replace(/-dirty$/, "");
   const link = el("a", sha);
   link.href = REPO + "/commit/" + sha;
-  t.nums.textContent = fmt(tot.gaps) + " gaps in " + fmt(tot.calls) + " calls. Measured on ";
+  t.nums.textContent = fmt(tot.gaps) + " gaps in " + fmt(tot.calls) + " calls" + (tot.left_out ? ", " + fmt(tot.left_out) + " left out on purpose" : "") + ". Measured on ";
   t.nums.append(link, (dirty ? " + its PR" : "") + ", " + m.commit_date + ".");
 
   const kinds = Object.entries(m.kinds).sort((a, b) => b[1].gaps - a[1].gaps || b[1].calls - a[1].calls);
