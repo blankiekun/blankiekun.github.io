@@ -45,7 +45,7 @@ Everything else (Minesweeper, FreeCell, Hearts, Paint...) is here
 for fun.
 
 Source code: https://github.com/blankiekun
-Say hi:      https://x.com/blankiekun (English and Japanese)
+Twitter:     https://x.com/blankiekun (English and Japanese)
 `;
 
 const TODO = `TODO.TXT
