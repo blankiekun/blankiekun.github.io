@@ -368,7 +368,7 @@ desktopEl.addEventListener('contextmenu', e => {
       { label: 'Bitmap Image', icon: 'i-bmp', action: () => newThing(f => createFile(f, 'New Bitmap Image.bmp', { data: blankBitmap() })) },
     ] },
     '-',
-    { label: 'P&roperties', action: () => launch('display') },
+    { label: ['10', '11'].includes(V.id) ? 'Personali&ze' : 'P&roperties', action: () => launch('display') },
   ], { x: e.clientX, y: e.clientY });
 });
 
@@ -561,7 +561,7 @@ function openPanel() {
   // The programs everyone pinned or ran most.
   const fav = [['Internet Explorer', 'ie', 'i-ie', 'home'], ['Inbox', 'inbox', 'i-inbox'], ['Notepad', 'notepad', 'i-notepad'], ['Paint', 'paint', 'i-paint'],
     ['Calculator', 'calc', 'i-calc'], ['CONscripter', 'cons', 'i-game'], ['Solitaire', 'solitaire', 'i-sol'], ['Minesweeper', 'minesweeper', 'i-mine'],
-    ['MS-DOS Prompt', 'dos', 'i-dos'], ['Windows Setup', 'setup', 'i-setup']]
+    ['MS-DOS Prompt', 'dos', 'i-dos'], ['Settings', 'settings', 'i-ctrl'], ['Windows Setup', 'setup', 'i-setup']]
     .filter(([, id]) => appInfo(id) && !absent(id)).map(([label, id, ic, arg]) => ({ label, icon: ic, action: () => launch(id, arg) }));
   const xp = PANEL === 'xp';
   const places = [
@@ -663,7 +663,7 @@ function openPanel() {
   } else if (PANEL === 'ten') {
     el = h('div', { class: 'startpanel sp-ten' },
       h('div', { class: 'sp-rail' }, user(), item('Documents', 'i-docs', () => launch('explorer', 'C:\\My Documents')),
-        item('Settings', 'i-ctrl', () => launch('explorer', 'Control Panel')), logoff(), power('Power')),
+        item('Settings', 'i-ctrl', () => launch('settings')), logoff(), power('Power')),
       h('div', { class: 'sp-apps' }, ...az()),
       h('div', { class: 'sp-tiles' }, ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label))))));
   } else {

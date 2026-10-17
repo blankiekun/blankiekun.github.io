@@ -70,7 +70,7 @@ export const VERSIONS = [
 export const V = VERSIONS.find(r => r.id === store.get(KEY, '95')) || VERSIONS[3];
 export const OS = 'blankiekun ' + V.short;
 // Programs only some eras had. Elsewhere they're left out of the Start menu and the desktop.
-const ONLY = { reversi: ['1.0', '2.0'], clock: ['1.0', '2.0', '3.1', 'vista', '7'], stickynotes: ['7', '8', '10', '11'], restore: ['me', 'xp'] };
+const ONLY = { reversi: ['1.0', '2.0'], clock: ['1.0', '2.0', '3.1', 'vista', '7'], stickynotes: ['7', '8', '10', '11'], restore: ['me', 'xp'], settings: ['10', '11'] };
 export const absent = app => V.absent.includes(app) || (ONLY[app] ? !ONLY[app].includes(V.id) : false);
 
 // The names the 95 code uses, swapped for this era's. Every era's keys are in the pattern so a

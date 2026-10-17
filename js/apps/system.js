@@ -32,6 +32,7 @@ const DEVICES = [
 ];
 
 function sysprops() {
+  if (['10', '11'].includes(V.id)) return launch('settings', 'About');
   const general = h('div', { class: 'sp-general' },
     h('div', { class: 'sp-pc' }, icon('i-computer')),
     h('div', { class: 'sp-text' },
