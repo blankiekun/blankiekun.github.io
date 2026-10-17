@@ -184,6 +184,18 @@
 .hs-view h3 { color: #0a246a; }
 .hs-view h4 { margin: 10px 0 4px; color: #0a246a; }
 @media (max-width: 520px) { .hs-main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 120px minmax(0, 1fr); } }
+/* System Restore (Me, XP): Help and Support's band over a white wizard page */
+.sr { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #fff; }
+.sr-page { flex: 1; min-height: 0; overflow: auto; padding: 12px 16px; }
+.sr-page h2 { margin: 0 0 10px; color: #0a246a; font: bold 18px Verdana, Tahoma, sans-serif; }
+.sr-page p { margin: 0 0 8px; }
+.sr-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.sr-opt { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+.sr-list { height: 150px; }
+.sr-list .opt { display: flex; justify-content: space-between; gap: 12px; }
+.sr-big { color: #0a246a; font-weight: bold; }
+.sr-field { display: flex; flex-direction: column; gap: 4px; }
+.sr-btns { padding: 8px 12px; background: var(--face); border-top: 1px solid var(--shadow); }
 
 /* ---------- Find ---------- */
 .fd-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }

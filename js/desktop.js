@@ -418,6 +418,7 @@ function startItems() {
       prog('Resource Meter', 'resmeter', 'i-resmeter'),
       prog('ScanDisk', 'scandisk', 'i-drive'),
       prog('System Monitor', 'sysmon', 'i-sysmon'),
+      era('System Restore', 'restore', 'i-clock'),
     ]) },
     '-',
     { label: 'HyperTerminal', icon: 'i-programs', submenu: some([prog('HyperTerminal', 'hyperterm', 'i-hyperterm')]) },
