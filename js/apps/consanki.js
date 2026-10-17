@@ -32,9 +32,10 @@ export function watch(onNote, onError, interval = 2000) {
       // Note ids are their creation times, so newer notes have larger ids.
       const ids = await invoke('findNotes', { query: 'added:1' });
       const added = latest === undefined ? [] : ids.filter(id => id > latest);
-      latest = Math.max(latest ?? 0, ...ids);
       onError(undefined);
       if (added.length && !stopped) for (const note of await invoke('notesInfo', { notes: added })) await onNote(note);
+      // Only now, so notes whose details failed to load are tried again on the next check.
+      latest = Math.max(latest ?? 0, ...ids);
     } catch (e) {
       onError(e);
     }

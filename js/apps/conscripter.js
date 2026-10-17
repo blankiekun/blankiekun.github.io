@@ -1234,19 +1234,22 @@ function open() {
 
   // ---------- Anki mining (Japanese games) ----------
 
-  let ankiStop = null, ankiError = '';
+  // ankiBusy: what Anki mining is doing right now, shown on the button until it's done.
+  let ankiStop = null, ankiError = '', ankiBusy = '';
 
   // Watches Anki while a Japanese game plays with mining on.
   function ankiWatch() {
     const on = !!(frame && game && game.jp && anki.settings().on);
     if (on && !ankiStop) {
+      ankiBusy = 'Connecting...';
       ankiStop = anki.watch(ankiNote, e => {
         // Said once per kind of failure, not on every check.
         if (e && e.message !== ankiError) say(e.message);
         ankiError = e ? e.message : '';
+        if (ankiBusy === 'Connecting...') ankiBusy = '';
         showAnki();
       });
-    } else if (!on && ankiStop) { ankiStop(); ankiStop = null; ankiError = ''; }
+    } else if (!on && ankiStop) { ankiStop(); ankiStop = null; ankiError = ''; ankiBusy = ''; }
     showAnki();
   }
 
@@ -1262,22 +1265,28 @@ function open() {
   async function ankiNote(note) {
     const p = player(), s = anki.settings();
     if (!p) return;
+    const busy = text => { ankiBusy = text; showAnki(); };
+    busy('Reading New Card...');
     const sentence = anki.noteSentence(note);
     const kept = anki.lineFor(sentence, p.ankiTexts()), shown = anki.lineFor(sentence, p.ankiShownTexts());
-    if (kept < 0 && shown < 0) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text or backlog`);
+    if (kept < 0 && shown < 0) return busy(''), say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text or backlog`);
     try {
       say('Adding media to the Anki card...');
-      const filled = await anki.addMedia(note, await p.ankiMedia(kept, shown, { picture: s.screenshot, audio: s.audio }));
+      busy(`Adding ${[s.screenshot && 'Screenshot', s.audio && 'Voice'].filter(Boolean).join(' and ') || 'Media'}...`);
+      const media = await p.ankiMedia(kept, shown, { picture: s.screenshot, audio: s.audio });
+      busy('Saving to Card...');
+      const filled = await anki.addMedia(note, media);
       say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : 'Nothing added to the Anki card (fields missing or already filled)');
     } catch (e) {
       say('Anki: ' + e.message);
     }
+    busy('');
   }
 
   function showAnki() {
     const s = anki.settings();
     ankiBtn.hidden = !(frame && game && game.jp);
-    ankiLabel.textContent = !s.on ? 'Anki' : ankiError ? 'Anki: Not Connected' : 'Anki: On';
+    ankiLabel.textContent = !s.on ? 'Anki' : ankiError ? 'Anki: Not Connected' : 'Anki: ' + (ankiBusy || 'On');
     ankiBtn.title = !s.on ? 'Anki mining is off. Click to turn it on.' : ankiError || 'Cards added to Anki while playing get a screenshot and the line\'s voice.';
     ankiBtn.classList.toggle('off', !s.on);
     ankiBtn.classList.toggle('warn', s.on && !!ankiError);
