@@ -3,63 +3,78 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>conscripter-convert :: completion</title>
+<title>Conversion Thermometers</title>
 <link rel="stylesheet" href="retro.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
 <style>
-/* The convert page's look: black background, phosphor green, bordered tables. */
-body { background: #000; color: #33ff33; font: 15px/1.5 "Courier New", Courier, monospace; }
-a { color: #00ffff; } a:visited { color: #ff66ff; }
-pre.ascii { margin: 0; color: #33ff33; font: 13px/1.2 "Courier New", monospace; text-align: center; text-shadow: 0 0 6px #00ff0099; overflow-x: auto; }
-.tag { text-align: center; color: #ffff00; }
-h2 { margin: 0 0 8px; font: 28px/1 "VT323", "Courier New", monospace; color: #ffff00; }
-h2::before { content: "[ "; color: #33ff33; } h2::after { content: " ]"; color: #33ff33; }
-h2 small { font-size: 18px; color: #1aaa1a; }
-p { margin: 0 0 8px; }
-p:last-child { margin: 0; }
-code { color: #fff; }
-.box { border: 1px dashed #33ff33; padding: 12px; }
-.bar { font: 22px/1.1 "VT323", "Courier New", monospace; color: #c0c0c0; white-space: nowrap; overflow: hidden; }
-.bar i { color: #33ff33; font-style: normal; } .bar b { color: #ffff00; font-weight: normal; }
-.nums { color: #c0c0c0; } .nums b { color: #fff; font-weight: normal; }
-.err { color: #ff3333; }
-summary { color: #ffff00; }
+/* A 1995 university lab page on Netscape grey, with a charity-drive thermometer per game. */
+body { background: #c0c0c0; color: #000; font: 16px/1.5 "Times New Roman", Times, serif; }
+a { color: #0000ee; } a:visited { color: #551a8b; }
+h1 { margin: 0; text-align: center; font: bold clamp(28px, 6vw, 40px)/1.1 "Times New Roman", Times, serif; }
+.lede { margin: 0 auto; max-width: 34em; text-align: center; }
+h2 { margin: 0 0 6px; font: bold 22px/1.2 "Times New Roman", Times, serif; }
+p { margin: 0; }
+.small { font-size: 13px; }
+
+#games { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 24px 12px; }
+/* Subgrid rows, so every tube starts at the same height however the titles wrap. */
+.therm { margin: 0; display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 6px; justify-items: center; align-items: start; text-align: center; }
+.therm figcaption { align-self: end; font-size: 14px; line-height: 1.25; }
+.therm figcaption b { display: block; font-size: 15px; }
+.therm figcaption small { font: 12px Arial, Helvetica, sans-serif; color: #404040; }
+
+/* The glass: a scale on the left, the tube, and the bulb it rises out of. */
+.gauge { --h: 220px; position: relative; display: grid; grid-template-columns: 30px 24px; column-gap: 4px; padding-bottom: 46px; }
+.scale { position: relative; height: var(--h); font: 11px/1 Arial, Helvetica, sans-serif;
+  background: repeating-linear-gradient(to top, #000 0 1px, transparent 1px 10%) right / 8px 100% no-repeat; }
+.scale span { position: absolute; right: 11px; transform: translateY(50%); }
+.scale .goal { color: #000080; font-weight: bold; }
+.tube { position: relative; height: var(--h); background: #fff; border: 3px solid #000; border-bottom: 0; border-radius: 12px 12px 0 0; overflow: hidden;
+  box-shadow: inset 4px 0 0 #e8e8e8; }
+.merc { position: absolute; left: 3px; right: 3px; bottom: 0; height: calc(var(--p, 0) * 1%);
+  background: linear-gradient(90deg, #a00000, #ff3a3a 45%, #c00000); transition: height 1.4s cubic-bezier(.2, .7, .2, 1); }
+.bulb { position: absolute; left: 30px; bottom: 0; width: 48px; height: 48px; margin-left: -10px; border: 3px solid #000; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff7a7a, #d40000 45%, #900000); }
+.bulb::before { content: ""; position: absolute; left: 15px; right: 15px; top: -9px; height: 14px; background: #d40000; }
+.pct { font: bold 26px/1 "Times New Roman", Times, serif; }
+.nums { font-size: 13px; color: #202020; max-width: 13em; }
+.err { color: #a00000; font-size: 13px; }
+
+.where details { background: #fff; border: 2px inset #e0e0e0; padding: 6px 10px; }
+.where details + details { margin-top: 8px; }
+.where summary { font-weight: bold; }
 .scroll { overflow-x: auto; margin-top: 6px; }
-table.kinds { width: 100%; border: 2px solid #33ff33; font-size: 13px; }
-.kinds th, .kinds td { border: 1px solid #1a801a; padding: 3px 6px; text-align: left; vertical-align: top; }
-.kinds th { background: #003300; color: #ffff00; }
+table.kinds { width: 100%; border: 1px solid #000; font: 13px/1.35 Arial, Helvetica, sans-serif; }
+.kinds th, .kinds td { border: 1px solid #808080; padding: 3px 6px; text-align: left; vertical-align: top; }
+.kinds th { background: #e0e0e0; }
 .kinds td.n { text-align: right; white-space: nowrap; }
 .kinds td:last-child { min-width: 18em; }
-.kinds ul { margin: 0; padding: 0; list-style: none; color: #c0c0c0; }
-#games { display: flex; flex-direction: column; gap: 18px; }
-.small { font-size: 12px; color: #1aaa1a; }
-footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; color: #1aaa1a; }
+.kinds ul { margin: 0; padding: 0; list-style: none; }
+
+footer { text-align: center; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 480px) { .gauge { --h: 150px; } }
+@media (prefers-reduced-motion: reduce) { .merc { transition: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-<pre class="ascii" aria-label="conscripter-convert completion">
-+==========================================+
-|                                          |
-|   c o n v e r t  ::  c o m p l e t i o n |
-|                                          |
-+==========================================+
-</pre>
-  <div class="tag">::: how much of each game converts, live from the repository :::</div>
-
-  <div class="box">
-    <p>Every command call in a game's scripts counts as either <b>fully converted</b> or <b>with a gap</b>: the converter dropped it, approximated it, or left an argument it was given unread. These numbers come from the converter's dry run and are updated in the same pull request as every change to a conversion.</p>
-  </div>
+  <h1>How much of each game converts</h1>
+  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. The red line shows the share that converts fully. A game reaches the top when nothing is left out.</p>
+  <hr class="groove">
 
   <div id="games"></div>
 
-  <p class="small">Fetched from the <a href="https://github.com/blankiekun/conscripter-convert/tree/main/tests/snapshots">main branch</a> on each load. GitHub's raw file server can be up to 5 minutes behind a merge. The commit is the one the numbers were measured on; "+ its PR" means plus the change that updated them.</p>
+  <hr class="groove">
+  <section class="where">
+    <h2>Where the gaps are</h2>
+    <p class="small" style="margin-bottom:8px">Each game's command kinds, most gaps first, with the reasons the converter gave.</p>
+    <div id="details"></div>
+  </section>
+
+  <p class="small">The numbers come from the converter's dry run and change in the same pull request as the code they measure. This page reads them from the <a href="https://github.com/blankiekun/conscripter-convert/tree/main/tests/snapshots">main branch</a> each time it loads, so it can lag a merge by up to 5 minutes. "Measured on" names the commit; "+ its PR" means that commit plus the change that updated the numbers.</p>
 
   <footer>
-    <div>---------------------------------------------</div>
-    <div><a href="convert.html">&lt;&lt; conscripter-convert</a> | <a href="home.html">home</a></div>
+    <hr class="groove">
+    <div><a href="convert.html">conscripter-convert</a> | <a href="home.html">blankiekun's Homepage</a></div>
   </footer>
 </div>
 <script>
@@ -80,34 +95,56 @@ function el(tag, text, cls) {
   return e;
 }
 const fmt = n => n.toLocaleString("en-US");
+const langOf = s => /[^\x00-\x7f]/.test(s) ? "ja" : "en";
 
-function render(box, m) {
-  const t = m.totals;
-  const pct = t.calls ? 100 * t.full / t.calls : 0;
+function thermometer(name, engine) {
+  const fig = el("figure", null, "therm");
+  const cap = el("figcaption");
+  const b = el("b", name);
+  b.lang = langOf(name);
+  cap.append(b, el("small", engine));
+  const gauge = el("div", null, "gauge");
+  gauge.setAttribute("role", "img");
+  gauge.setAttribute("aria-label", "loading");
+  const scale = el("div", null, "scale");
+  for (const v of [100, 75, 50, 25, 0]) {
+    const s = el("span", v === 100 ? "goal" : String(v), v === 100 ? "goal" : null);
+    s.style.bottom = v + "%";
+    scale.append(s);
+  }
+  const merc = el("div", null, "merc");
+  const tube = el("div", null, "tube");
+  tube.append(merc);
+  gauge.append(scale, tube, el("div", null, "bulb"));
+  const pct = el("p", "…", "pct");
+  const nums = el("p", "loading...", "nums");
+  fig.append(cap, gauge, pct, nums);
+  return { fig, gauge, merc, pct, nums };
+}
+
+function render(t, det, name, m) {
+  const tot = m.totals;
+  const p = tot.calls ? 100 * tot.full / tot.calls : 0;
   // Floor, so a game with any gap never shows 100.0.
-  const shown = (Math.floor(pct * 10) / 10).toFixed(1);
-  const width = 24, filled = Math.round(pct / 100 * width);
-  const bar = el("div", null, "bar");
-  bar.setAttribute("role", "img");
-  bar.setAttribute("aria-label", shown + "% fully converted");
-  bar.append("[", el("i", "#".repeat(filled)), ".".repeat(width - filled), "] ", el("b", shown + "%"));
-  box.append(bar);
-
-  const nums = el("p", null, "nums");
-  nums.append(el("b", fmt(t.calls)), " calls: ", el("b", fmt(t.full)), " fully converted, ", el("b", fmt(t.gaps)), " with gaps");
-  box.append(nums);
+  const shown = (Math.floor(p * 10) / 10).toFixed(1);
+  t.gauge.setAttribute("aria-label", shown + "% fully converted");
+  t.pct.textContent = shown + "%";
+  // Next frame, so the mercury rises from the bulb instead of appearing.
+  requestAnimationFrame(() => requestAnimationFrame(() => t.merc.style.setProperty("--p", p)));
 
   const dirty = m.commit.endsWith("-dirty");
   const sha = m.commit.replace(/-dirty$/, "");
-  const src = el("p", "measured on ", "small");
   const link = el("a", sha);
   link.href = REPO + "/commit/" + sha;
-  src.append(link, (dirty ? " + its PR" : "") + " (" + m.commit_date + ")");
-  box.append(src);
+  t.nums.textContent = fmt(tot.gaps) + " gaps in " + fmt(tot.calls) + " calls. Measured on ";
+  t.nums.append(link, (dirty ? " + its PR" : "") + ", " + m.commit_date + ".");
 
   const kinds = Object.entries(m.kinds).sort((a, b) => b[1].gaps - a[1].gaps || b[1].calls - a[1].calls);
-  const det = el("details");
-  det.append(el("summary", Object.keys(m.kinds).length + " command kinds, by gaps"));
+  const sum = el("summary");
+  const nb = el("span", name);
+  nb.lang = langOf(name);
+  sum.append(nb, ": " + kinds.length + " command kinds");
+  det.append(sum);
   const table = el("table", null, "kinds");
   const head = table.createTHead().insertRow();
   for (const h of ["Command", "Calls", "Gaps", "Top reasons"]) {
@@ -116,9 +153,9 @@ function render(box, m) {
     head.append(th);
   }
   const body = table.createTBody();
-  for (const [name, k] of kinds) {
+  for (const [cmd, k] of kinds) {
     const row = body.insertRow();
-    row.append(el("td", name), el("td", fmt(k.calls), "n"), el("td", fmt(k.gaps), "n"));
+    row.append(el("td", cmd), el("td", fmt(k.calls), "n"), el("td", fmt(k.gaps), "n"));
     const ul = el("ul");
     for (const [why, n] of k.reasons) ul.append(el("li", fmt(n) + "  " + why));
     const td = el("td");
@@ -128,25 +165,25 @@ function render(box, m) {
   const scroll = el("div", null, "scroll");
   scroll.append(table);
   det.append(scroll);
-  box.append(det);
+  det.hidden = false;
 }
 
-const list = document.getElementById("games");
+const list = document.getElementById("games"), details = document.getElementById("details");
 for (const [id, name, engine] of GAMES) {
-  const box = el("div", null, "box");
-  const h = el("h2", name + " ");
-  h.lang = /[^\x00-\x7f]/.test(name) ? "ja" : "en";
-  const sub = el("small", engine);
-  sub.lang = "en";
-  h.append(sub);
-  box.append(h);
-  const wait = el("p", "loading...", "small");
-  box.append(wait);
-  list.append(box);
+  const t = thermometer(name, engine);
+  list.append(t.fig);
+  const det = el("details");
+  det.hidden = true;
+  details.append(det);
   fetch(BASE + id + ".metrics.json", { cache: "no-store" })
     .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-    .then(m => { wait.remove(); render(box, m); })
-    .catch(e => { wait.className = "err"; wait.textContent = "No numbers for this game yet (" + e.message + ")."; });
+    .then(m => render(t, det, name, m))
+    .catch(e => {
+      t.pct.textContent = "?";
+      t.gauge.setAttribute("aria-label", "no numbers yet");
+      t.nums.className = "err";
+      t.nums.textContent = "No numbers for this game yet (" + e.message + ").";
+    });
 }
 </script>
 </body>

@@ -23,13 +23,15 @@ const CANNED = {
 
 Welcome to blankiekun 95, my homepage dressed up as a PC from 1995. Everything works: open things, poke around, and save files to the pretend disk (they stay in your browser).
 
+A bit about me: I'm blank, I live in the US, and I'm learning Japanese by reading visual novels (Umineko, Oretsuba and Subahibi are some favourites).
+
 I make three open-source projects, and each one has a message in this Inbox:
 
   - chimimouryou, a Japanese e-book reader for Calibre libraries
   - CONscripter, a visual novel engine that runs in the browser
   - conscripter-convert, which brings games from other engines to CONscripter
 
-If you want to say hi, use Compose > New Message. It really reaches me.
+If you want to say hi, use Compose > New Message. It really reaches me. I'm also on X as @blankiekun, in English and Japanese.
 
 blankiekun` },
   w2: { date: +new Date(1995, 7, 24, 11, 25), subject: 'chimimouryou: your Calibre library, everywhere', body:
@@ -79,6 +81,7 @@ blankiekun` },
   - Notepad and Paint have a "Send to blankiekun" button for notes and drawings.
   - HyperTerminal: dial blankiekun BBS at 555-1995 and sign the guestbook.
   - Bugs and ideas for the projects: open an issue on GitHub.
+  - X: @blankiekun (https://x.com/blankiekun), in English or Japanese.
 
 ${GITHUB}
 

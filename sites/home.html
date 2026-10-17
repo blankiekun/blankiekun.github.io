@@ -44,6 +44,9 @@ p { margin: 0; }
 .proj { border: 2px outset #c0c0c0; background: #e8e8e8; padding: 8px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
 .proj a { font-weight: bold; font-size: 16px; }
 .proj span { color: #404040; font-size: 13px; }
+.me { border: 2px solid #000; background: #ffffe0; font-size: 15px; }
+.me th, .me td { border: 1px solid #808080; padding: 4px 8px; text-align: left; vertical-align: top; }
+.me th { background: #000080; color: #ffff00; font: bold 13px Arial, sans-serif; white-space: nowrap; }
 .news { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 @media (max-width: 620px) {
@@ -72,15 +75,28 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
           <li><a href="conscripter.html">CONscripter</a></li>
           <li><a href="guestbook.html">Guestbook</a></li>
           <li><a href="https://github.com/blankiekun">My GitHub</a></li>
+          <li><a href="https://x.com/blankiekun">Me on X</a></li>
           <li><a href="https://github.com/blankiekun?tab=repositories">All my repos</a></li>
         </ul>
       </nav>
 
       <div class="main">
-        <p>Hi, and thanks for stopping by! I make three open-source projects that fit together.
+        <p>Hi, I'm <b>blank</b>! I live in the States, I'm learning Japanese, and I read a <i>lot</i> of visual novels.
+          I also make three open-source projects for reading them, and they fit together.
           <b>chimimouryou</b> is a self-hosted reader for your Calibre library.
           <b>CONscripter</b> is the visual novel engine it uses to play games in the browser.
           <b>conscripter-convert</b> turns games made with other engines into games CONscripter can play.</p>
+
+        <h2>About Me</h2>
+        <table class="me">
+          <tr><th scope="row">Name</th><td>blank (blankiekun)</td></tr>
+          <tr><th scope="row">Location</th><td>USA</td></tr>
+          <tr><th scope="row">Speaks</th><td>English, and Japanese (still learning!)</td></tr>
+          <tr><th scope="row">Favourite VNs</th><td lang="ja">ひぐらし, うみねこ, 俺つば, CROSS&dagger;CHANNEL, マブラブ, すば日々</td></tr>
+          <tr><th scope="row">Now reading</th><td><span lang="ja">最果てのイマ</span>, which conscripter-convert can now play from start to end</td></tr>
+          <tr><th scope="row">Favourite food</th><td>Cookie dough</td></tr>
+        </table>
+        <p>If you're learning Japanese or you love visual novels too, come say hi on <a href="https://x.com/blankiekun">X (@blankiekun)</a>. I post in English and Japanese.</p>
 
         <h2>My Projects</h2>
         <div class="projects">

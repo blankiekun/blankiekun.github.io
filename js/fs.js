@@ -8,7 +8,13 @@
 const README = `blankiekun 95 - README.TXT
 ==========================
 
-Hi! This is my homepage, dressed up as a Windows 95 desktop.
+Hi! I'm blank. This is my homepage, dressed up as a Windows 95
+desktop.
+
+About me: I live in the US, I'm learning Japanese, and I read
+visual novels. Lots of them. Favourites: Higurashi, Umineko,
+Oretsuba, CROSS†CHANNEL, Muv-Luv and Subahibi. Right now I'm
+reading Saihate no Ima.
 
 I write open-source tools for reading Japanese:
 
@@ -39,6 +45,7 @@ Everything else (Minesweeper, FreeCell, Hearts, Paint...) is here
 for fun.
 
 Source code: https://github.com/blankiekun
+Say hi:      https://x.com/blankiekun (English and Japanese)
 `;
 
 const TODO = `TODO.TXT
