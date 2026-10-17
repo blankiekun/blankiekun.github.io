@@ -3,6 +3,7 @@
 import { register, launch, appInfo, activeWindow, maximize } from './wm.js';
 import { initDesktop, boot } from './desktop.js';
 import { OS } from './version.js';
+import { initScrollbars } from './fxscroll.js';
 
 document.title = OS;
 
@@ -53,6 +54,7 @@ async function start() {
 
 if (solo) document.body.classList.add('solo'); else boot();
 start();
+initScrollbars();
 
 // Offline: sw.js keeps the site's files as they load. The ones loaded before it ran, and
 // CONscripter's engine (only fetched once a game starts), are handed to it the first time.
