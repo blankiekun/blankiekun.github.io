@@ -10,7 +10,7 @@ import { OS, V, ram } from '../version.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 
-function tabbed(names, panels) {
+export function tabbed(names, panels) {
   const tabs = h('div', { class: 'tabs', role: 'tablist' }, ...names.map((t, i) => {
     const b = h('button', { type: 'button', role: 'tab', 'aria-selected': String(i === 0) }, t);
     b.addEventListener('click', () => {

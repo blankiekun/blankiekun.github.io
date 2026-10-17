@@ -698,6 +698,62 @@ body.dragging-files iframe { pointer-events: none; }
 .tm-list { height: 150px; }
 .tm-warn { margin: 0; }
 
+/* Task Manager (2000 on, js/apps/taskman.js) */
+.tmgr { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.tmgr .dp-tabs { flex: 1; min-height: 0; padding: 6px 6px 0; }
+.tmgr .dp-tabs .tabpanel { flex: 1; min-height: 0; padding: 8px; }
+.tm-panel { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+.tm-grid { flex: 1; min-height: 60px; padding: 0; outline: 0; }
+.tm-grid table { width: 100%; border-collapse: collapse; }
+.tm-grid th { position: sticky; top: 0; z-index: 1; background: var(--face); box-shadow: var(--thin-out); padding: 1px 6px; font-weight: normal; text-align: left; white-space: nowrap; }
+.tm-grid td { padding: 1px 6px; white-space: nowrap; }
+.tm-grid .n { text-align: right; font-variant-numeric: tabular-nums; }
+.tm-grid tr.sel td { background: var(--select); color: var(--select-ink); }
+.tm-grid:focus-visible tr.sel td:first-child { outline: 1px dotted #fff; outline-offset: -1px; }
+.tm-btns { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.tm-perf { display: grid; grid-template-columns: 84px 1fr; gap: 6px 8px; overflow: auto; }
+.tm-perf .group { margin: 0; padding: 4px 6px 6px; }
+.tm-meter, .tm-hist { display: block; height: 96px; width: 100%; }
+.tm-totals { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tm-nums { width: 100%; border-collapse: collapse; }
+.tm-nums td { padding: 0 2px; }
+.tm-nums .n { text-align: right; font-variant-numeric: tabular-nums; }
+.tm-nt > .statusbar > span { flex: 1; }
+.tm-nt > .statusbar > span:last-child { flex: 1.6; }
+
+/* 8 on: fewer details is the list alone; more details the menus and tabs */
+.tm-10 { background: #fff; }
+.tm-10:not(.more) > :is(.menubar, .dp-tabs), .tm-10.more > .tm-fewer { display: none; }
+.tm-fewer { flex: 1; min-height: 0; display: flex; padding: 6px 6px 0; }
+.tm-fewer .tm-grid { box-shadow: none; }
+.tm-fewer thead { display: none; }
+.tm-app { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+.tm-app svg { width: 16px; height: 16px; flex: none; }
+.tm-10 .tm-grid { box-shadow: none; border: 0; }
+.tm-10 .tm-grid th { box-shadow: inset -1px 0 #e5e5e5, inset 0 -1px #e5e5e5; background: #fff; vertical-align: bottom; color: #4d4d4d; }
+.tm-10 .tm-grid th b { font-size: 15px; font-weight: normal; color: #000; }
+.tm-10 .tm-grid td { padding: 3px 6px; }
+.tm-10 .tm-grid tr.grp td { padding-top: 10px; font-weight: bold; color: #1e3287; background: #fff; }
+.tm-10 .tm-grid tr.sel td { background: #cce8ff; color: #000; }
+.tm-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-top: 1px solid #e5e5e5; }
+.tm-more { border: 0; background: none; padding: 0; color: #000; cursor: var(--arrow); }
+.tm-more::before { content: "\2304"; display: inline-block; margin-right: 6px; }
+.tm-10.more .tm-more::before { transform: rotate(180deg); }
+.tm-perf10 { display: grid; grid-template-columns: 150px 1fr; gap: 10px; flex: 1; min-height: 0; }
+.tm-side { display: flex; flex-direction: column; gap: 2px; border-right: 1px solid #e5e5e5; padding-right: 6px; }
+.tm-side button { display: flex; flex-direction: column; align-items: flex-start; border: 0; background: none; padding: 6px 8px; text-align: left; cursor: var(--arrow); }
+.tm-side button b { font-size: 14px; font-weight: normal; }
+.tm-side button span { font-size: 11px; color: #4d4d4d; }
+.tm-side button.on { background: #cce8ff; }
+.tm-main { display: flex; flex-direction: column; min-width: 0; }
+.tm-main h2 { margin: 0; font-size: 22px; font-weight: normal; }
+.tm-sub { font-size: 11px; color: #707070; margin: 4px 0 2px; }
+.tm-graph { display: block; width: 100%; flex: 1; min-height: 120px; }
+.tm-stats { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 8px; }
+.tm-stats div { display: flex; flex-direction: column; }
+.tm-stats span { font-size: 11px; color: #707070; }
+.tm-stats b { font-size: 18px; font-weight: normal; }
+
 /* ---------- Welcome ---------- */
 .wl { width: min(470px, calc(100vw - 24px)); }
 .wl-head { font: 26px/1 Arial, var(--font-ui); letter-spacing: -.5px; }

@@ -885,6 +885,7 @@ taskbarEl.addEventListener('contextmenu', e => {
     QUICK_ON && { label: 'Reset &Quick Launch', action: () => { pins = QUICK_DEFAULT.slice(); savePins(); } },
     undoLabel() && { label: undoLabel(), action: undo },
     '-',
+    !['1.0', '2.0', '3.1', '95', '98', 'me'].includes(V.id) && { label: 'Tas&k Manager', action: () => launch('taskman') },
     { label: 'P&roperties', action: taskbarProps },
   ]), { x: e.clientX, y: e.clientY });
 });

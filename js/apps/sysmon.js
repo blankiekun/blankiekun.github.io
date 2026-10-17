@@ -7,7 +7,7 @@ import { menubar, openMenu } from '../menu.js';
 import { about } from '../dialogs.js';
 
 let cpu = 8;
-function sample() {
+export function sample() {
   cpu += (15 - cpu) * 0.2 + (Math.random() - 0.5) * 12;
   if (Math.random() < 0.06) cpu += 30 + Math.random() * 40;
   return cpu = Math.max(1, Math.min(100, cpu));
