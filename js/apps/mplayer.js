@@ -7,6 +7,7 @@ import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { openFile } from '../filedlg.js';
 import { glyph } from './sndrec.js';
+import { OS } from '../version.js';
 
 const PREFS = 'w95.mplayer';
 const BASE = 420;      // the window's width with no picture
@@ -109,7 +110,7 @@ function paint(g, t) {
     const a = (t - 5) * Math.PI * 0.8;
     flag(g, DW / 2, 70, 92, t * 5, Math.cos(a), null);
     g.font = 'bold 26px Tahoma, Arial, sans-serif';
-    const full = 'blankiekun 95', x = Math.round((DW - g.measureText(full).width) / 2);
+    const full = OS, x = Math.round((DW - g.measureText(full).width) / 2);
     const n = Math.min(full.length, Math.floor((t - 5.4) * 5));
     if (n > 0) {
       const wb = words(g, 'blankiekun ', x, 150, 26, '#ffffff', '#000000', Math.min(n, 11));
@@ -131,7 +132,7 @@ function paint(g, t) {
     flag(g, 62, 86, 72, t * 5, 1, '#ffffff');
     const wb = words(g, 'blankiekun', 112, 92, 22, '#ffffff', '#000000');
     words(g, '95', 112 + wb + 4, 92, 22, '#ffff00', '#000000');
-    words(g, 'Starting blankiekun 95...', 46, 160, 11, '#ffffff', null, Math.floor((t - 10.5) * 12));
+    words(g, 'Starting ' + OS + '...', 46, 160, 11, '#ffffff', null, Math.floor((t - 10.5) * 12));
     if (t > 13.8) {
       g.fillStyle = `rgba(0,0,0,${Math.min(1, (t - 13.8) / 1.1)})`;
       g.fillRect(0, 0, DW, DH);

@@ -5,6 +5,7 @@ import { h, icon, small } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
+import { OS, V } from '../version.js';
 
 const HIVES = ['HKEY_CLASSES_ROOT', 'HKEY_CURRENT_USER', 'HKEY_LOCAL_MACHINE', 'HKEY_USERS', 'HKEY_CURRENT_CONFIG', 'HKEY_DYN_DATA'];
 
@@ -35,8 +36,10 @@ function data(v) {
 function build() {
   const top = key('My Computer');
   for (const name of HIVES) sub(top, [name]);
-  const cur = sub(top, ['HKEY_LOCAL_MACHINE', 'SOFTWARE', 'Microsoft', 'Windows', 'CurrentVersion']);
-  cur.values.push(['ProductName', 'blankiekun 95'], ['Version', 'Windows 95'], ['VersionNumber', '4.00.950'], ['RegisteredOwner', 'blankiekun']);
+  const cur = sub(top, ['HKEY_LOCAL_MACHINE', 'SOFTWARE', 'Microsoft', V.nt ? 'Windows NT' : 'Windows', 'CurrentVersion']);
+  // Real Windows 11 still says "Windows 10" here.
+  cur.values.push(['ProductName', V.id === '11' ? 'blankiekun 10 Pro' : OS], ['Version', 'Windows ' + V.short], ['VersionNumber', V.number], ['RegisteredOwner', 'blankiekun']);
+  if (V.nt) cur.values.push(['CurrentBuildNumber', V.number.split('.')[2]]);
   sub(top, ['HKEY_CURRENT_USER', 'Control Panel', 'Desktop']);
   sub(top, ['HKEY_CURRENT_USER', 'AppEvents', 'Schemes']);
   const mine = sub(top, ['HKEY_CURRENT_USER', 'Software', 'blankiekun']);

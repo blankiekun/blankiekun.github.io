@@ -9,6 +9,7 @@ import { run, open as shellOpen, RECENT } from './shell.js';
 import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
 import { properties, iconOf } from './props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut, undo as undoFile, undoLabel as fileUndoLabel, renameNode, makeShortcut } from './fileops.js';
+import { OS, V, rename, absent } from './version.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 const desktopEl = document.getElementById('desktop');
@@ -49,8 +50,9 @@ function fileIcon(node) {
 }
 
 function makeIcon(it, i) {
-  const b = h('button', { class: 'icon', type: 'button', role: 'option', 'aria-selected': 'false', tabindex: i === 0 ? '0' : '-1' },
-    icon(typeof it.icon === 'function' ? it.icon() : it.icon), h('span', null, it.label));
+  const b = h('button', { class: 'icon', type: 'button', role: 'option', 'aria-selected': 'false', tabindex: i === 0 ? '0' : '-1',
+    title: !it.file && absent(it.app) ? `Not part of ${OS}` : null },
+    icon(typeof it.icon === 'function' ? it.icon() : it.icon), h('span', null, it.file ? it.label : rename(it.label)));
   if (it.shortcut || (it.node && (it.node.kind === 'link' || it.node.kind === 'shortcut'))) b.append(h('i', { class: 'lnk', 'aria-hidden': 'true' }));
   it.el = b;
   if (it.node === recycle) b.dropFolder = () => recycle;
@@ -381,7 +383,7 @@ window.addEventListener('resize', () => {
 // ---------- Start menu ----------
 
 const startBtn = document.getElementById('start');
-const banner = h('div', { class: 'side', 'aria-hidden': 'true' }, 'blankiekun', h('b', null, '95'));
+const banner = h('div', { class: 'side', 'aria-hidden': 'true' }, 'blankiekun', h('b', null, V.short));
 
 // A Start menu entry for a program, left out when the program didn't load.
 const prog = (label, id, ic, arg) => appInfo(id) ? { label, icon: ic, action: () => launch(id, arg) } : null;
@@ -442,6 +444,7 @@ function startItems() {
     ] },
     { label: '&Documents', icon: 'i-docs', submenu: docs.length ? docs : [{ label: '(Empty)', disabled: true }] },
     { label: '&Settings', icon: 'i-ctrl', submenu: [
+      prog('Windows &Setup...', 'setup', 'i-computer'),
       { label: '&Control Panel', icon: 'i-ctrl', action: () => launch('explorer', 'Control Panel') },
       { label: '&Printers', icon: 'i-printer', action: () => launch('explorer', 'Printers') },
       { label: '&Taskbar...', icon: 'i-taskbar', action: taskbarProps },
@@ -454,7 +457,7 @@ function startItems() {
     { label: '&Help', icon: 'i-helpbook', action: () => launch('help') },
     { label: '&Run...', icon: 'i-run', action: runDialog },
     '-',
-    { label: '&Log Off blankiekun...', icon: 'i-logoff', action: logOff },
+    V.logoff && { label: '&' + V.logoff, icon: 'i-logoff', action: logOff },
     { label: 'Sh&ut Down...', icon: 'i-shutdown', action: shutDown },
   ];
 }
@@ -493,7 +496,7 @@ export function runDialog() {
   const input = h('input', { class: 'field', id: 'run-open', autocomplete: 'off', list: 'run-history', value: history[0] || '', style: { flex: '1', minWidth: '0' } });
   const datalist = h('datalist', { id: 'run-history' }, ...history.map(v => h('option', { value: v })));
   const form = h('form', { class: 'dlg', style: { width: 'min(360px, calc(100vw - 24px))' } },
-    h('div', { class: 'row' }, icon('i-run'), h('div', { class: 'msg' }, 'Type the name of a program, folder, or document, and blankiekun 95 will open it for you.')),
+    h('div', { class: 'row' }, icon('i-run'), h('div', { class: 'msg' }, 'Type the name of a program, folder, or document, and ' + OS + ' will open it for you.')),
     h('label', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, h('span', { html: '<u>O</u>pen:' }), input, datalist),
     h('div', { class: 'btns right' },
       h('button', { class: 'btn default', type: 'submit' }, 'OK'),
@@ -518,18 +521,18 @@ export function runDialog() {
 
 export function shutDown() {
   const opts = [
-    ['shutdown', '&Shut down the computer?'],
+    ['shutdown', V.offText ? '&Shut down the computer?' : '&Exit to MS-DOS?'],
     ['restart', '&Restart the computer?'],
-    ['dos', 'Restart the computer in &MS-DOS mode?'],
-    ['logoff', '&Close all programs and log on as a different user?'],
-  ];
+    V.dosMode && ['dos', 'Restart the computer in &MS-DOS mode?'],
+    V.logoff && ['logoff', '&Close all programs and log on as a different user?'],
+  ].filter(Boolean);
   // The dither goes inside the window layer so the dialog can sit above it.
   const dim = h('div', { class: 'screen dim' });
   document.getElementById('windows').append(dim);
   document.body.classList.add('shutting');
   const form = h('form', { class: 'dlg', style: { width: 'min(380px, calc(100vw - 24px))' } },
     h('div', { class: 'row' }, icon('i-shutdown'), h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
-      h('div', null, 'Are you sure you want to:'),
+      h('div', null, V.shutAsk),
       ...opts.map(([v, l], i) => h('label', { style: { display: 'flex', alignItems: 'center' } },
         h('input', { type: 'radio', name: 'sd', value: v, checked: i === 0 }), h('span', { html: l.replace(/&(.)/, '<u>$1</u>') }))))),
     h('div', { class: 'btns' },
@@ -550,7 +553,7 @@ export function shutDown() {
     if (e.key === 'y') form.requestSubmit();
     if (e.key === 'n') win.close();
   });
-  const win = createWindow({ title: 'Shut Down blankiekun 95', body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, onClosed: () => { dim.remove(); document.body.classList.remove('shutting'); } });
+  const win = createWindow({ title: V.shutTitle, body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, onClosed: () => { dim.remove(); document.body.classList.remove('shutting'); } });
   win.el.style.zIndex = 9001;
   form.querySelector('.btn').focus();
 }
@@ -560,11 +563,12 @@ function closeAll() { all().forEach(w => close(w, true)); }
 async function powerOff() {
   closeAll();
   sound('Exit Windows');
-  const wait1 = h('div', { class: 'screen wait' }, h('div', null, 'Please wait while your computer shuts down.'));
+  const wait1 = h('div', { class: 'screen wait' }, V.waitText ? h('div', null, V.waitText) : null);
   document.body.append(wait1);
   await wait(reducedMotion.matches ? 300 : 1400);
-  const off = h('div', { class: 'screen off', tabindex: '0', role: 'button' },
-    h('div', null, "It's now safe to turn off", h('br'), 'your computer.', h('small', null, 'Click anywhere to start blankiekun 95 again.')));
+  // Before 95 Windows exits to the DOS prompt; from Vista on the screen just goes black.
+  const off = h('div', { class: 'screen off' + (V.offText.startsWith('C:') ? ' dos' : ''), tabindex: '0', role: 'button' },
+    h('div', { style: { whiteSpace: 'pre-line' } }, V.offText, h('small', null, 'Click anywhere to start ' + OS + ' again.')));
   wait1.replaceWith(off);
   off.focus();
   const restart = () => { try { sessionStorage.removeItem('w95.booted'); } catch {} history.replaceState(null, '', location.pathname); location.reload(); };
@@ -573,7 +577,7 @@ async function powerOff() {
 }
 
 async function logOff() {
-  const b = await msgbox({ title: 'Log Off blankiekun 95', icon: 'i-logoff', text: 'Are you sure you want to log off?', buttons: ['&Yes', '&No'] });
+  const b = await msgbox({ title: V.logoff.replace('...', ''), icon: 'i-logoff', text: `Are you sure you want to ${V.logoff.replace('...', '').toLowerCase()}?`, buttons: ['&Yes', '&No'] });
   if (b === 'Yes') logOn();
 }
 
@@ -582,13 +586,13 @@ function logOn() {
   closeAll();
   const scr = h('div', { class: 'screen logon' });
   const pw = h('input', { class: 'field', type: 'password', id: 'logon-pw', autocomplete: 'off' });
-  const form = h('form', { class: 'win active logon-win', 'aria-label': 'Welcome to blankiekun 95' },
-    h('div', { class: 'titlebar' }, h('span', { class: 't' }, 'Welcome to blankiekun 95')),
+  const form = h('form', { class: 'win active logon-win', 'aria-label': 'Welcome to ' + OS },
+    h('div', { class: 'titlebar' }, h('span', { class: 't' }, 'Welcome to ' + OS)),
     h('div', { class: 'dlg' },
       h('div', { class: 'row' },
         h('img', { src: GITHUB + '.png?size=96', alt: '', width: 48, height: 48, class: 'logon-avatar' }),
         h('div', { class: 'logon-fields' },
-          h('p', null, 'Type a user name and password to log on to blankiekun 95.'),
+          h('p', null, 'Type a user name and password to log on to ' + OS + '.'),
           h('label', null, h('span', { html: '<u>U</u>ser name:' }), h('input', { class: 'field', value: 'blankiekun', readonly: true })),
           h('label', null, h('span', { html: '<u>P</u>assword:' }), pw),
           h('p', { class: 'logon-hint' }, 'Any password works. This account is ', h('a', { href: GITHUB, target: '_blank', rel: 'noopener' }, 'github.com/blankiekun'), '.')),
@@ -614,14 +618,14 @@ export async function boot() {
   const fast = reducedMotion.matches;
   let skip;
   const skipped = new Promise(r => { skip = r; });
-  const post = h('div', { class: 'screen post', 'aria-live': 'polite' }, 'Starting blankiekun 95...');
+  const post = h('div', { class: 'screen post', 'aria-live': 'polite' }, V.start ? 'Starting ' + OS + '...' : 'C:\\>WIN');
   document.body.append(post);
   const onKey = () => skip();
   addEventListener('keydown', onKey);
   post.addEventListener('pointerdown', skip);
   await Promise.race([wait(fast ? 200 : 900), skipped]);
-  const splash = h('div', { class: 'screen splash', role: 'img', 'aria-label': 'blankiekun 95 is starting' },
-    h('div', { class: 'logo' }, icon('i-flag'), h('div', { class: 'word' }, h('small', null, 'Starting'), h('b', null, 'blankiekun', h('sup', null, '95')))),
+  const splash = h('div', { class: 'screen splash', role: 'img', 'aria-label': OS + ' is starting' },
+    h('div', { class: 'logo' }, icon('i-flag'), h('div', { class: 'word' }, h('small', null, 'Starting'), h('b', null, 'blankiekun', h('sup', null, V.short)))),
     h('div', { class: 'bar' }));
   splash.addEventListener('pointerdown', skip);
   post.replaceWith(splash);
@@ -817,7 +821,7 @@ document.addEventListener('keydown', hideTip, true);
 // Until Start has been clicked once, a hint slides out beside it, as on a new Windows 95 PC.
 const BEGUN = 'w95.begun';
 function beginHint() {
-  if (store.get(BEGUN, false)) return;
+  if (store.get(BEGUN, false) || !V.start) return;
   const hint = h('div', { class: 'tooltip begin-hint', 'aria-hidden': 'true' }, '\u25c4 Click here to begin');
   hint.style.left = startBtn.getBoundingClientRect().right + 4 + 'px';
   document.body.append(hint);
@@ -843,7 +847,7 @@ const unpin = id => { pins = pins.filter(p => p.id !== id); savePins(); };
 
 function renderQuick() {
   quickEl.replaceChildren(...pins.filter(p => p.id === 'showdesktop' || appInfo(p.id)).map(p => {
-    const b = h('button', { type: 'button', title: p.label, 'aria-label': p.label }, icon(p.icon));
+    const b = h('button', { type: 'button', title: rename(p.label), 'aria-label': rename(p.label) }, icon(p.icon));
     b.addEventListener('click', () => { if (!b.dragged) p.id === 'showdesktop' ? minimizeAll() : launch(p.id, p.arg); });
     b.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
@@ -886,6 +890,8 @@ export function initDesktop() {
   quickLaunch();
   renderIcons();
   lastH = desktopEl.clientHeight;
+  startBtn.querySelector('span').textContent = V.start;
+  startBtn.setAttribute('aria-label', 'Start');
   clock();
   beginHint();
 }

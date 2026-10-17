@@ -4,6 +4,7 @@
 // or '-' for a separator. `submenu` may be an array or a function returning one.
 
 import { h, icon, accel, sound } from './util.js';
+import { rename } from './version.js';
 
 let stack = []; // open menus, outermost first: { el, items, hot, parentItem, onClose }
 let rootOpts = null;
@@ -41,7 +42,7 @@ function push(items, at, className, banner) {
   const m = { el: null, items, hot: -1, rows: [] };
   items.forEach((it, i) => {
     if (it === '-') { ul.append(h('li', { role: 'separator' }, h('hr'))); m.rows.push(null); return; }
-    const a = accel(it.label);
+    const a = accel(rename(it.label));
     const row = h(it.href ? 'a' : 'div', {
       class: 'mi' + (it.className ? ' ' + it.className : ''), role: 'menuitem', tabindex: '-1',
       'aria-disabled': it.disabled ? 'true' : null,
@@ -165,7 +166,7 @@ document.addEventListener('keydown', e => {
     case 'Tab': closeMenus('escape'); return;
     default: {
       const k = e.key.toLowerCase();
-      const i = m.items.findIndex(it => it !== '-' && accel(it.label).key === k);
+      const i = m.items.findIndex(it => it !== '-' && accel(rename(it.label)).key === k);
       if (i < 0) return;
       setHot(m, i); activate(level, i);
     }

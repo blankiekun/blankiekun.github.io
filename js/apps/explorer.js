@@ -14,6 +14,7 @@ import {
 import { open as shellOpen } from '../shell.js';
 import { properties, iconOf } from '../props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, startDrag, toFloppy, onClip, isCut, undo, undoLabel, renameNode, makeShortcut } from '../fileops.js';
+import { OS } from '../version.js';
 
 const PREFS = 'w95.explorer';
 const prefs = { view: 'icons', sort: 'name', single: false, toolbar: false, status: true, ...store.get(PREFS, {}) };
@@ -238,7 +239,7 @@ function open(arg = 'My Computer') {
   function startRename(n) {
     const r = rowOf(n);
     if (!r) return;
-    if (!n.user) { msgbox({ title: 'Error Renaming File', icon: 'error', parent: win, text: `Cannot rename ${n.name}: Access is denied.\n\nIt's one of the files that came with blankiekun 95.` }); return; }
+    if (!n.user) { msgbox({ title: 'Error Renaming File', icon: 'error', parent: win, text: `Cannot rename ${n.name}: Access is denied.\n\nIt's one of the files that came with ${OS}.` }); return; }
     const label = r.querySelector('.ex-name');
     const box = h('textarea', { class: 'ex-rename', rows: 1, spellcheck: false, 'aria-label': 'New name' });
     box.value = n.name;
@@ -493,7 +494,7 @@ function open(arg = 'My Computer') {
     ] }] : []),
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help') }, '-',
-      { label: '&About blankiekun 95', action: () => about('Explorer', 'i-folder-open', win) },
+      { label: '&About ' + OS, action: () => about('Explorer', 'i-folder-open', win) },
     ] },
   ]);
 

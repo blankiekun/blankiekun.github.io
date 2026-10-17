@@ -741,3 +741,20 @@ body.dragging-files iframe { pointer-events: none; }
 .rm-bar { height: 16px; box-shadow: var(--thin-in); padding: 2px; background: var(--paper); }
 .rm-bar i { display: block; height: 100%; background: repeating-linear-gradient(90deg, #008000 0 8px, transparent 8px 10px); }
 .tray .resmeter { margin-right: 4px; }
+
+/* ---------- Windows Setup ---------- */
+.su-list { width: min(300px, calc(100vw - 48px)); height: 150px; }
+.screen.su-screen { background: #000080; color: #fff; font: 16px/1.4 var(--font-dos); padding: 40px max(16px, 8vw); }
+.su-screen h1 { font: inherit; margin: 0 0 24px; padding-bottom: 4px; border-bottom: 2px solid #fff; }
+.su-bar { margin-top: 24px; max-width: 480px; height: 22px; background: #fff; padding: 2px; }
+.su-fill { height: 100%; width: 0; background: #c00000; }
+.su-balloon {
+  position: fixed; right: 8px; bottom: calc(var(--tb-h) + 10px + env(safe-area-inset-bottom, 0px)); z-index: 40001;
+  width: min(280px, calc(100vw - 16px)); padding: 8px 26px 8px 10px;
+  background: var(--tip); color: #000; border: 1px solid #000; border-radius: 6px; cursor: var(--hand);
+}
+.su-balloon::after { content: ''; position: absolute; right: 30px; bottom: -11px; border: 10px solid transparent; border-top-color: var(--tip); border-bottom: 0; filter: drop-shadow(0 1px 0 #000); }
+.su-balloon b { display: flex; align-items: center; gap: 6px; }
+.su-balloon b svg { width: 16px; height: 16px; }
+.su-balloon p { margin: 4px 0 0; }
+.su-x { position: absolute; right: 4px; top: 4px; }

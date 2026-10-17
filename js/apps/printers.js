@@ -6,6 +6,7 @@ import { createWindow, find, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox } from '../dialogs.js';
 import { root } from '../fs.js';
+import { OS } from '../version.js';
 
 const KEY = 'w95.printers';
 const folder = root.children.find(n => n.name === 'Printers');
@@ -88,7 +89,7 @@ function addPrinter() {
         radio('wz-def', '<u>Y</u>es', makeDefault, () => { makeDefault = true; }),
         radio('wz-def', 'N<u>o</u>', !makeDefault, () => { makeDefault = false; })];
     },
-    () => [h('p', null, 'After your printer is installed, blankiekun 95 can print a test page so you can confirm that the printer is set up properly.'),
+    () => [h('p', null, 'After your printer is installed, ' + OS + ' can print a test page so you can confirm that the printer is set up properly.'),
       h('p', null, 'Would you like to print a test page?'),
       radio('wz-test', 'Yes (recommended)', testPage, () => { testPage = true; }),
       radio('wz-test', 'No', !testPage, () => { testPage = false; })],
@@ -148,7 +149,7 @@ function refreshFolder() {
 
 // ---------- printing ----------
 
-const TEST_PAGE = name => `<h2>blankiekun 95 Printer Test Page</h2>
+const TEST_PAGE = name => `<h2>${OS} Printer Test Page</h2>
 <p>Congratulations!</p><p>If you can read this information, you have correctly installed your ${esc(name)}.</p>
 <table><tr><td>Printer name:</td><td>${esc(name)}</td></tr><tr><td>Printer driver:</td><td>UNIDRV.DLL</td></tr>
 <tr><td>Data format:</td><td>EMF</td></tr><tr><td>Port:</td><td>LPT1:</td></tr></table>

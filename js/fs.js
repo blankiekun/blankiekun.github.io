@@ -5,10 +5,12 @@
 // The files that ship with the site are read-only. Anything the visitor makes on C:
 // (folders, notes, drawings, copies) is marked `user` and kept in localStorage.
 
-const README = `blankiekun 95 - README.TXT
+import { OS, V } from './version.js';
+
+const README = `${OS} - README.TXT
 ==========================
 
-Hi! I'm blank. This is my homepage, dressed up as a Windows 95
+Hi! I'm blank. This is my homepage, dressed up as a Windows ${V.short}
 desktop.
 
 About me: I live in the US, I'm learning Japanese, and I read
@@ -385,7 +387,7 @@ function guard(folder) {
 }
 
 function readOnly(node, verb) {
-  if (!node.user) throw new FsError(`Cannot ${verb} ${node.name}: Access is denied.\n\nIt's one of the files that came with blankiekun 95, so it can't be changed.`);
+  if (!node.user) throw new FsError(`Cannot ${verb} ${node.name}: Access is denied.\n\nIt's one of the files that came with ${OS}, so it can't be changed.`);
 }
 
 export function mkdir(folder, name = 'New Folder') {

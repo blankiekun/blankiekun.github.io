@@ -6,6 +6,7 @@ import { about } from '../dialogs.js';
 import { walk, kindLabel, sizeLabel } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
 import { sendEnabled } from '../send.js';
+import { OS, V, ram } from '../version.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 
@@ -34,12 +35,12 @@ function sysprops() {
   const general = h('div', { class: 'sp-general' },
     h('div', { class: 'sp-pc' }, icon('i-computer')),
     h('div', { class: 'sp-text' },
-      h('p', null, 'System:', h('br'), h('span', { class: 'ind' }, 'blankiekun 95'), h('br'), h('span', { class: 'ind' }, '4.00.950 B')),
+      h('p', null, 'System:', h('br'), h('span', { class: 'ind' }, OS), ...V.sys.split('\n').flatMap(l => [h('br'), h('span', { class: 'ind' }, l)])),
       h('p', null, 'Registered to:', h('br'), h('span', { class: 'ind' }, 'blankiekun'), h('br'),
         h('span', { class: 'ind' }, h('a', { href: GITHUB, target: '_blank', rel: 'noopener' }, 'github.com/blankiekun'))),
       h('p', null, 'Computer:', h('br'), h('span', { class: 'ind' }, 'Builds tools for reading Japanese:'), h('br'),
         h('span', { class: 'ind' }, 'an e-book reader, a visual novel'), h('br'), h('span', { class: 'ind' }, 'engine, and a game converter.'), h('br'),
-        h('span', { class: 'ind' }, '16.0MB RAM'))));
+        h('span', { class: 'ind' }, ram(V.ramKB) + ' RAM'))));
 
   let picked = null;
   const info = h('div', { class: 'sp-detail' }, 'Select a device to see its status.');
@@ -59,7 +60,7 @@ function sysprops() {
   const perf = h('div', { class: 'sp-perf' },
     h('fieldset', { class: 'group' }, h('legend', null, 'Performance status'),
       h('dl', null,
-        h('dt', null, 'Memory:'), h('dd', null, '16.0 MB of RAM'),
+        h('dt', null, 'Memory:'), h('dd', null, ram(V.ramKB) + ' of RAM'),
         h('dt', null, 'System Resources:'), h('dd', null, '87% free'),
         h('dt', null, 'File System:'), h('dd', null, '32-bit'),
         h('dt', null, 'Virtual Memory:'), h('dd', null, '32-bit'),
@@ -80,7 +81,7 @@ function sysprops() {
 // ---------- Help ----------
 
 const TOPICS = [
-  { book: 'Introducing blankiekun 95', pages: [
+  { book: 'Introducing ' + OS, pages: [
     ['Welcome', `<p>This desktop is <b>blankiekun</b>'s homepage. It holds three open-source projects for reading Japanese:</p>
       <ul><li><b>chimimouryou</b>, a self-hosted e-book reader for your Calibre library.</li>
       <li><b>CONscripter</b>, the visual novel engine chimimouryou uses to play games in the browser.</li>
@@ -95,7 +96,7 @@ const TOPICS = [
     ['Move or resize a window', `<p>Drag the window's title bar. An outline follows the pointer and the window moves when you release the button. Press <b>Esc</b> while dragging to cancel.</p><p>To resize, drag any edge or corner of the window.</p><p>Double-click the title bar to maximize or restore the window.</p>`],
     ['Switch between windows', `<p>Each open window has a button on the taskbar. Click it to bring the window to the front. Click the button of the window that is already in front to minimize it.</p>`],
     ['Arrange your windows', `<p>Right-click an empty part of the taskbar to <b>Cascade</b> or <b>Tile</b> the open windows, or to <b>Minimize All Windows</b>. The same menu can undo it.</p><p>Click the icon in the top-left corner of a window for its <b>system menu</b>. <b>Move</b> and <b>Size</b> there work with the arrow keys: press <b>Enter</b> when the outline is where you want it. Double-click the icon to close the window.</p><p>To change the taskbar itself, right-click it and click <b>Properties</b>.</p>`],
-    ['Save and organize files', `<p>Notepad, WordPad and Paint save files on drive <b>C:</b>, in <b>My Documents</b> or any folder you make. They stay in this browser until you delete them or clear its site data.</p><p>To keep a copy on your real computer, save it to <b>3½ Floppy (A:)</b>, or right-click a file and point to <b>Send To</b>. Opening a file from A: picks one from your real computer.</p><p>In a folder window or on the desktop, right-click to make a <b>New</b> folder or document. Drag files between folders to move them; hold <b>Ctrl</b> to copy. Press <b>F2</b> to rename and <b>Delete</b> to send to the <b>Recycle Bin</b>, where <b>Restore</b> puts things back.</p><p>Files that came with blankiekun 95 are read-only, but you can copy them.</p>`],
+    ['Save and organize files', `<p>Notepad, WordPad and Paint save files on drive <b>C:</b>, in <b>My Documents</b> or any folder you make. They stay in this browser until you delete them or clear its site data.</p><p>To keep a copy on your real computer, save it to <b>3½ Floppy (A:)</b>, or right-click a file and point to <b>Send To</b>. Opening a file from A: picks one from your real computer.</p><p>In a folder window or on the desktop, right-click to make a <b>New</b> folder or document. Drag files between folders to move them; hold <b>Ctrl</b> to copy. Press <b>F2</b> to rename and <b>Delete</b> to send to the <b>Recycle Bin</b>, where <b>Restore</b> puts things back.</p><p>Files that came with ${OS} are read-only, but you can copy them.</p>`],
     ...(sendEnabled() ? [['Send blankiekun a drawing or note', `<p>Draw something in <b>Paint</b> or write something in <b>Notepad</b>, then click <b>Send to blankiekun...</b> in the bottom-right corner of the window (it's also on the <b>File</b> menu).</p><p>Add your name if you like, tick the "are you human" check, and click <b>Send</b>. It goes to a private channel that only blankiekun reads.</p><p>You can send once a minute.</p>`]] : []),
     ['Make a shortcut', `<p>Right-click a file, folder, drive or desktop icon and click <b>Create Shortcut</b>. In folders you can't change, the shortcut goes on the desktop. <b>Send To &gt; Desktop as Shortcut</b> does the same from any folder.</p><p>A shortcut opens what it points to. Deleting the shortcut doesn't delete the original.</p><p>Changed your mind? <b>Edit &gt; Undo</b> (Ctrl+Z) takes back the last delete, move, copy, rename or new shortcut.</p>`],
     ['Print', `<p>Click <b>Print</b> on the <b>File</b> menu. The document goes to the default printer's queue, then your browser's print dialog opens.</p><p>To add another printer, click <b>Start</b>, point to <b>Settings</b>, click <b>Printers</b>, and double-click <b>Add Printer</b>.</p>`],
@@ -140,7 +141,7 @@ function help(arg) {
     if (a) { e.preventDefault(); launch('ie', a.dataset.ie); }
   });
   const body = h('div', { class: 'hp' }, tree, view);
-  const win = createWindow({ app: 'help', title: 'blankiekun 95 Help', icon: 'i-helpbook', body, width: 600, height: 400, minW: 280, minH: 200, route: 'help' });
+  const win = createWindow({ app: 'help', title: OS + ' Help', icon: 'i-helpbook', body, width: 600, height: 400, minW: 280, minH: 200, route: 'help' });
   const first = rows.find(r => r[1] === arg) || rows[0];
   show(...first);
   return win;
@@ -267,7 +268,7 @@ function welcome() {
   show();
   const btn = (label, fn) => h('button', { class: 'btn', type: 'button', onclick: fn }, h('span', { html: label }));
   const body = h('div', { class: 'dlg wl' },
-    h('div', { class: 'wl-head' }, h('span', null, 'Welcome to '), h('b', null, 'blankiekun'), h('sup', null, '95')),
+    h('div', { class: 'wl-head' }, h('span', null, 'Welcome to '), h('b', null, 'blankiekun'), h('sup', null, V.short)),
     h('div', { class: 'wl-main' },
       h('div', { class: 'wl-box' }, h('div', { class: 'wl-did' }, icon('i-info'), h('b', null, 'Did you know...')), tip),
       h('div', { class: 'wl-btns' },

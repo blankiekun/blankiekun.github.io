@@ -4,12 +4,13 @@ import { launch, appInfo } from './wm.js';
 import { h, store } from './util.js';
 import { msgbox } from './dialogs.js';
 import { resolve, pathOf, recycle, openerFor, follow } from './fs.js';
+import { OS } from './version.js';
 
 // Starting Windows from inside Windows: the famous blue screen. Any key or click
 // goes back to the desktop and nothing is lost; it's only a joke.
 export function bsod() {
   const scr = h('div', { class: 'screen bsod', tabindex: '-1', role: 'alert' },
-    h('p', null, h('span', null, ' blankiekun 95 ')),
+    h('p', null, h('span', null, ' ' + OS + ' ')),
     h('p', null, 'A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36. The current application will be terminated.'),
     h('p', null, '*  Press any key to terminate the current application.', h('br'),
       '*  Press CTRL+ALT+DEL again to restart your computer. You will lose any unsaved information in all applications.'),
@@ -23,7 +24,7 @@ export function bsod() {
 
 // Program names that Run... and the DOS prompt understand.
 export const ALIASES = {
-  iexplore: 'ie', ie: 'ie', 'internet explorer': 'ie', explorer: 'explorer',
+  iexplore: 'ie', ie: 'ie', 'internet explorer': 'ie', explorer: 'explorer', setup: 'setup',
   winmine: 'minesweeper', minesweeper: 'minesweeper', mines: 'minesweeper',
   sol: 'solitaire', solitaire: 'solitaire',
   onscripter: 'cons', cons: 'cons', 'conscripter player': 'cons',
@@ -65,7 +66,6 @@ export function open(node, parentWin) {
       }
       return launch('explorer', node.virtual || !pathOf(node) ? { node } : pathOf(node));
     case 'app':
-      if (node.app === 'setup') return msgbox({ title: 'Setup', icon: 'info', text: 'blankiekun 95 is already installed on this computer.', parent: parentWin });
       return launch(node.app, node.arg);
     case 'page':
       return launch('ie', node.page);

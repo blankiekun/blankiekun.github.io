@@ -2,11 +2,12 @@
 
 import { h, icon, accel } from './util.js';
 import { createWindow } from './wm.js';
+import { OS, V, rename } from './version.js';
 
 const ICONS = { error: 'i-error', info: 'i-info', warn: 'i-warn', question: 'i-question' };
 
 // Resolves with the label of the button pressed ('OK', 'Yes', ...), or null when closed.
-export function msgbox({ title = 'blankiekun 95', text, icon: kind = 'info', buttons = ['OK'], parent, html }) {
+export function msgbox({ title = OS, text, icon: kind = 'info', buttons = ['OK'], parent, html }) {
   return new Promise(resolve => {
     let done = false;
     const finish = v => { if (done) return; done = true; resolve(v); win.close(true); };
@@ -15,7 +16,7 @@ export function msgbox({ title = 'blankiekun 95', text, icon: kind = 'info', but
       onclick: () => finish(b.replace('&', '')),
     }, h('span', { html: accel(b).html })));
     const msg = h('div', { class: 'msg' });
-    if (html) msg.innerHTML = html; else msg.textContent = text;
+    if (html) msg.innerHTML = rename(html); else msg.textContent = rename(text);
     const body = h('div', { class: 'dlg' },
       h('div', { class: 'row' }, kind ? icon(ICONS[kind] || kind) : null, msg),
       h('div', { class: 'btns' }, btns));
@@ -65,12 +66,12 @@ export function about(appName, appIcon, parent, extra) {
     h('div', { class: 'row' },
       h('div', { class: 'about-logo' }, icon('i-flag'), appIcon ? icon(appIcon) : null),
       h('div', { class: 'about-text' },
-        h('p', null, h('b', null, 'blankiekun 95'), h('br'), appName),
+        h('p', null, h('b', null, OS), h('br'), rename(appName)),
         extra ?? null,
-        h('p', null, 'Copyright © 1981-1995 blankiekun'),
+        h('p', null, V.copy ? `Copyright © ${V.copy} blankiekun` : '© blankiekun'),
         h('p', null, 'This product is licensed to:', h('br'), h('a', { href: 'https://github.com/blankiekun', target: '_blank', rel: 'noopener' }, 'github.com/blankiekun')),
         h('hr'),
-        h('p', null, 'Physical Memory Available to Windows:  16,384 KB', h('br'), 'System Resources:  87% Free'))),
+        h('p', null, `Physical Memory Available to Windows:  ${V.ramKB.toLocaleString('en-US')} KB`, h('br'), 'System Resources:  87% Free'))),
     h('div', { class: 'btns right' }, h('button', { class: 'btn default', type: 'button', onclick: () => win.close() }, 'OK')));
   body.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); win.close(); } });
   const win = createWindow({ title: 'About ' + appName, body, dialog: true, resizable: false, width: 'auto', parent, taskbar: !parent });

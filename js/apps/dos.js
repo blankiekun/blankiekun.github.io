@@ -4,8 +4,9 @@ import { h } from '../util.js';
 import { createWindow, launch, toggleMax } from '../wm.js';
 import { resolve, dosName, drive, pathOf, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
 import { run, open as shellOpen, bsod, ALIASES, PROJECTS } from '../shell.js';
+import { OS, V } from '../version.js';
 
-const STAMP = '08-24-95  11:11a';
+const STAMP = [V.date[1] + 1, V.date[2], V.date[0] % 100].map(n => String(n).padStart(2, '0')).join('-') + '  11:11a';
 
 function open(arg) {
   let cwd = 'C:\\MYDOCU~1';
@@ -75,7 +76,7 @@ function open(arg) {
     if (d && d.notReady) return notReady(path[0]);
     if (!node || !node.children) { print('File not found'); return; }
     print(` Volume in drive ${path[0]} is ${path[0] === 'D' ? 'PROJECTS' : path[0] === 'E' ? 'BK95_CD' : 'BLANKIEKUN'}`);
-    print(' Volume Serial Number is 1995-0824');
+    print(` Volume Serial Number is ${V.date[0]}-${STAMP.slice(0, 5).replace('-', '')}`);
     print(` Directory of ${canonical(path) || path}`);
     print('');
     let files = 0, dirs = 0, bytes = 0;
@@ -136,7 +137,7 @@ function open(arg) {
     switch (cmd) {
       case 'help': case '/?': HELP.forEach(l => print(l)); return;
       case 'cls': out.replaceChildren(); return;
-      case 'ver': print(''); print('blankiekun 95. [Version 4.00.950]'); print(''); return;
+      case 'ver': print(''); print(V.ver); print(''); return;
       case 'echo': print(argStr || 'ECHO is on.'); return;
       case 'date': print('Current date is ' + new Date().toLocaleDateString('en-US', { weekday: 'short', month: '2-digit', day: '2-digit', year: 'numeric' }).replace(',', '')); return;
       case 'time': print('Current time is ' + new Date().toLocaleTimeString('en-US')); return;
@@ -276,10 +277,10 @@ function open(arg) {
   });
 
   print('');
-  print('blankiekun 95. [Version 4.00.950]');
-  print('(C)Copyright blankiekun 1981-1995.');
+  print(V.ver);
+  print(V.dosCopy);
   print('');
-  if (arg === 'dosmode') { print('Type EXIT to return to blankiekun 95.'); print(''); }
+  if (arg === 'dosmode') { print('Type EXIT to return to ' + OS + '.'); print(''); }
   else { print('Type HELP for a list of commands.'); print(''); }
   sync();
   input.focus({ preventScroll: true });

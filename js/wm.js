@@ -3,6 +3,7 @@
 
 import { h, icon, clamp, small, reducedMotion, sound } from './util.js';
 import { closeMenus, openMenu } from './menu.js';
+import { rename } from './version.js';
 
 const layer = document.getElementById('windows');
 const tasks = document.getElementById('tasks');
@@ -38,6 +39,7 @@ export function launch(id, arg) {
 function area() { return layer.getBoundingClientRect(); }
 
 export function createWindow(o) {
+  o.title = rename(o.title);
   const resizable = o.resizable !== false;
   const win = {
     app: o.app || null, opts: o, state: 'normal', route: o.route || null,
@@ -93,7 +95,7 @@ export function createWindow(o) {
 
   Object.assign(win, {
     el, body, bar, maxBtn,
-    setTitle(t) { title.textContent = t; el.setAttribute('aria-label', t); if (win.task) { win.task.querySelector('span').textContent = t; win.task.title = t; } },
+    setTitle(t) { t = rename(t); title.textContent = t; el.setAttribute('aria-label', t); if (win.task) { win.task.querySelector('span').textContent = t; win.task.title = t; } },
     setIcon(id) { bar.querySelector('use').setAttribute('href', '#' + id); if (win.task) win.task.querySelector('use').setAttribute('href', '#' + id); },
     setRoute(r) { win.route = r; if (active === win) syncRoute(); },
     close: force => close(win, force),

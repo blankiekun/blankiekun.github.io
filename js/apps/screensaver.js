@@ -5,6 +5,7 @@
 import { h, icon, clamp, store, reducedMotion } from '../util.js';
 import { createWindow, all } from '../wm.js';
 import { msgbox } from '../dialogs.js';
+import { OS, V } from '../version.js';
 
 const KEY = 'w95.screensaver';
 
@@ -15,7 +16,7 @@ export const SAVERS = {
   mystify: 'Mystify Your Mind',
   pipes: 'Pipes',
   marquee: 'Scrolling Marquee',
-  stars: 'Starfield Simulation',
+  stars: V.id === '95' ? 'Flying Through Space' : 'Starfield Simulation',
 };
 
 const DEFAULTS = {
@@ -23,7 +24,7 @@ const DEFAULTS = {
   stars: { speed: 5, density: 200 },
   flying: { speed: 5, count: 20 },
   mystify: { polys: 2, lines: 6, colors: 'multi' },
-  marquee: { text: 'blankiekun 95', speed: 5, bg: '#000000', fg: '#ff00ff' },
+  marquee: { text: OS, speed: 5, bg: '#000000', fg: '#ff00ff' },
   pipes: { speed: 5 },
 };
 

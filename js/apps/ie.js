@@ -5,6 +5,7 @@ import { h, icon, esc, wait, reducedMotion } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
+import { V } from '../version.js';
 
 export const PAGES = {
   home: { file: 'sites/home.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/', label: "blankiekun's Homepage", icon: 'i-htm' },
@@ -128,7 +129,7 @@ function open(arg) {
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help') },
       '-',
-      { label: '&About Internet Explorer', action: () => about('Internet Explorer', 'i-ie', win) },
+      { label: '&About Internet Explorer', action: () => about('Internet Explorer', 'i-ie', win, V.ie ? h('p', null, 'Version ' + V.ie) : null) },
     ] },
   ]);
 
@@ -293,7 +294,7 @@ function errorPage(url) {
 h1{font:bold 18px Tahoma,Arial,sans-serif;margin:0 0 12px;display:flex;gap:10px;align-items:center}
 hr{border:0;border-top:1px solid #c0c0c0;margin:14px 0}ul{padding-left:20px}a{color:#0000ff}code{word-break:break-all}</style></head>
 <body><h1><svg width="32" height="32" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#000" d="M5 1h6v1h2v2h1v2h1v4h-1v2h-1v2h-2v1H5v-1H3v-2H2v-2H1V6h1V4h1V2h2z"/><path fill="#fff" d="M5 2h6v1h1v1h1v2h1v4h-1v2h-1v1h-1v1H5v-1H4v-1H3v-2H2V6h1V4h1V3h1z"/><path fill="#0000ff" d="M7 4h2v2H7zM7 7h2v5H7zM6 7h1v1H6zM6 11h4v1H6z"/></svg>The page cannot be displayed</h1>
-<p>The page you are looking for, <code>${esc(url)}</code>, is not on blankiekun's little corner of the 1995 web.</p>
+<p>The page you are looking for, <code>${esc(url)}</code>, is not on blankiekun's little corner of the ${V.date[0]} web.</p>
 <hr><p>Please try the following:</p>
 <ul><li>Click the <b>Home</b> button, or pick a page from the <b>Links</b> bar.</li>
 <li>Open the address in a real browser: <a href="${esc(url.replace(/^http:/, 'https:'))}" target="_blank" rel="noopener">${esc(url)}</a></li></ul>
