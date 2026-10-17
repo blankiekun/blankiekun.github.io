@@ -3,7 +3,7 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel, onPlaceTask } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel, onPlaceTask, onTaskMenu, systemMenu } from './wm.js';
 import { msgbox } from './dialogs.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
 import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
@@ -1016,7 +1016,7 @@ const pinOf = app => [...quickEl.children].find(b => b.dataset.app === app && b.
 // CSS hides a pin while a window's button follows it.
 function placeTask(w) {
   let at = SUPERBAR && pinOf(w.app);
-  if (!at) { document.getElementById('tasks').append(w.task); return; }
+  if (!at) { delete w.task.dataset.app; document.getElementById('tasks').append(w.task); return; }
   while (at.nextElementSibling?.matches('.task:not(.pin)')) at = at.nextElementSibling;
   w.task.dataset.app = w.app;
   at.after(w.task);
@@ -1027,7 +1027,7 @@ const pin = p => { if (!isPinned(p.id)) { pins.push(p); savePins(); } };
 const unpin = id => { pins = pins.filter(p => p.id !== id); savePins(); };
 
 function renderQuick() {
-  const running = all().filter(w => w.task && quickEl.contains(w.task));
+  const running = all().filter(w => w.task && (quickEl.contains(w.task) || isPinned(w.app)));
   quickEl.replaceChildren(...pins.filter(p => p.id === 'showdesktop' ? !SUPERBAR : appInfo(p.id)).map(p => {
     const b = h('button', { type: 'button', class: SUPERBAR ? 'task pin' : null, 'data-app': p.id, title: rename(p.label), 'aria-label': rename(p.label) }, icon(p.icon));
     b.addEventListener('click', () => { if (!b.dragged) p.id === 'showdesktop' ? minimizeAll() : launch(p.id, p.arg); });
@@ -1070,6 +1070,17 @@ function quickLaunch() {
   if (SUPERBAR) document.getElementById('tasks').prepend(quickEl);
   else document.getElementById('start').after(quickEl);
   onPlaceTask(placeTask);
+  // 7's jump list: open another, pin or unpin, close; Shift+right-click still gives the window menu.
+  if (SUPERBAR) onTaskMenu((w, at, e) => {
+    const a = w.app && appInfo(w.app);
+    if (e.shiftKey || !a) { systemMenu(w, at); return; }
+    openMenu([
+      { label: rename(a.title), action: () => launch(w.app) },
+      isPinned(w.app) ? { label: '&Unpin this program from taskbar', action: () => unpin(w.app) }
+        : { label: '&Pin this program to taskbar', action: () => pin({ label: a.title, id: w.app, icon: a.icon || 'i-exe' }) },
+      '-', { label: '&Close window', action: () => close(w) },
+    ], at);
+  });
 }
 
 export function initDesktop() {

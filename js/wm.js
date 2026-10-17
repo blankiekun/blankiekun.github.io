@@ -24,6 +24,9 @@ export function onRouteChange(fn) { routeListener = fn; }
 // Where a new window's taskbar button goes; the desktop moves it next to its pin from 7 on.
 let placeTask = w => tasks.append(w.task);
 export function onPlaceTask(fn) { placeTask = fn; }
+// What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
+let taskMenu = (win, at) => systemMenu(win, at);
+export function onTaskMenu(fn) { taskMenu = fn; }
 export function all() { return wins.slice(); }
 export function find(pred) { return wins.find(pred); }
 export function activeWindow() { return active; }
@@ -154,7 +157,7 @@ export function createWindow(o) {
     win.task.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
       if (win.state !== 'min') focus(win);
-      systemMenu(win, { x: e.clientX, y: e.clientY });
+      taskMenu(win, { x: e.clientX, y: e.clientY }, e);
     });
     placeTask(win);
   }
