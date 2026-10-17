@@ -607,13 +607,10 @@ function logOn() {
 
 // ---------- boot ----------
 
-export let freshBoot = false;
-
 export async function boot() {
   let booted = false;
   try { booted = sessionStorage.getItem('w95.booted') === '1'; sessionStorage.setItem('w95.booted', '1'); } catch {}
   if (booted) return;
-  freshBoot = true;
   const fast = reducedMotion.matches;
   let skip;
   const skipped = new Promise(r => { skip = r; });

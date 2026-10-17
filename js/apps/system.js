@@ -1,6 +1,6 @@
 // System Properties, Help, Find and Date/Time.
 
-import { h, icon, store } from '../util.js';
+import { h, icon } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { about } from '../dialogs.js';
 import { walk, kindLabel, sizeLabel } from '../fs.js';
@@ -265,8 +265,6 @@ function welcome() {
   const tip = h('p', { class: 'wl-tip' });
   const show = () => { tip.textContent = TIPS[i % TIPS.length]; };
   show();
-  const again = h('input', { type: 'checkbox', id: 'wl-again', checked: store.get('w95.welcome', true) });
-  again.addEventListener('change', () => store.set('w95.welcome', again.checked));
   const btn = (label, fn) => h('button', { class: 'btn', type: 'button', onclick: fn }, h('span', { html: label }));
   const body = h('div', { class: 'dlg wl' },
     h('div', { class: 'wl-head' }, h('span', null, 'Welcome to '), h('b', null, 'blankiekun'), h('sup', null, '95')),
@@ -278,8 +276,7 @@ function welcome() {
         btn('<u>O</u>nline Registration', () => window.open(GITHUB, '_blank', 'noopener')),
         h('hr', { class: 'pr-sep' }),
         btn('Next <u>T</u>ip', () => { i++; show(); }),
-        h('button', { class: 'btn default', type: 'button', onclick: () => win.close() }, 'Close'))),
-    h('label', { class: 'pr-check', for: 'wl-again' }, again, 'Show this Welcome Screen next time you start blankiekun 95'));
+        h('button', { class: 'btn default', type: 'button', onclick: () => win.close() }, 'Close'))));
   body.addEventListener('keydown', e => {
     if (e.key === 'Escape') { e.preventDefault(); win.close(); }
     if (e.key.toLowerCase() === 't' && !e.ctrlKey) { i++; show(); }
