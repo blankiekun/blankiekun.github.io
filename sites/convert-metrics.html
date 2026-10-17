@@ -50,7 +50,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   <div class="tag">::: how much of each game converts, live from the repository :::</div>
 
   <div class="box">
-    <p>Every command call in a game's scripts counts as either <b>fully converted</b> or <b>with a gap</b>: the converter dropped it, approximated it, or left an argument it was given unread. These numbers come from the converter's dry run and are updated in the same pull request as every change to a conversion.</p>
+    <p>Every command call in a game's scripts counts as either <b>fully converted</b> or <b>with a gap</b>: the converter dropped it, approximated it, or left an argument it was given unread. Calls <b>left out on purpose</b> (code the game can't reach, such as a debug menu) count as done. These numbers come from the converter's dry run and are updated in the same pull request as every change to a conversion.</p>
   </div>
 
   <div id="games"></div>
@@ -83,7 +83,7 @@ const fmt = n => n.toLocaleString("en-US");
 
 function render(box, m) {
   const t = m.totals;
-  const pct = t.calls ? 100 * t.full / t.calls : 0;
+  const pct = t.calls ? 100 * (t.full + (t.left_out || 0)) / t.calls : 0;
   // Floor, so a game with any gap never shows 100.0.
   const shown = (Math.floor(pct * 10) / 10).toFixed(1);
   const width = 24, filled = Math.round(pct / 100 * width);
@@ -94,7 +94,7 @@ function render(box, m) {
   box.append(bar);
 
   const nums = el("p", null, "nums");
-  nums.append(el("b", fmt(t.calls)), " calls: ", el("b", fmt(t.full)), " fully converted, ", el("b", fmt(t.gaps)), " with gaps");
+  nums.append(el("b", fmt(t.calls)), " calls: ", el("b", fmt(t.full)), " fully converted, ", el("b", fmt(t.gaps)), " with gaps", ...(t.left_out ? [", ", el("b", fmt(t.left_out)), " left out on purpose"] : []));
   box.append(nums);
 
   const dirty = m.commit.endsWith("-dirty");
