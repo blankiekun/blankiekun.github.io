@@ -60,7 +60,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 .ad b { display: block; font: 900 clamp(20px, 5vw, 30px)/1.1 Impact, "Arial Black", sans-serif; color: #fff; text-shadow: 2px 2px 0 #000; }
 .ad u { color: #fff; }
 /* With a CG behind it, darkened so the words read. The script sizes the CG so only its safe band shows. */
-.ad.cg { background-clip: padding-box; text-shadow: 1px 1px 0 #000, 0 0 4px #000; }
+.ad.cg { display: flex; flex-direction: column; justify-content: center; min-height: 120px; background-clip: padding-box; text-shadow: 1px 1px 0 #000, 0 0 4px #000; }
 </style>
 <style id="virus">
 /* What clicking the ad does before it lands on Games. Copied into the desktop too, so the screen-wide ones reach past IE. */
@@ -200,7 +200,7 @@ body { transition: rotate 1s, scale 2s; }
     var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
     // Racy CGs, so each has a safe band: the slice of the picture, top to bottom as fractions of its height, that may show
     // (faces only; below it is NSFW or a text box), centred on the eyes since a short strip shows only its middle. Then where across to centre. All are 4:3.
-    var CGS = [['57/3157', .3, .42, .5], ['72/188872', .05, .5, .35], ['30/9330', .22, .38, .75]], cg = pick(CGS);
+    var CGS = [['57/3157', .3, .53, .5], ['72/188872', .05, .5, .35], ['30/9330', .22, .38, .75]], cg = pick(CGS);
     ad.classList.add('cg');
     ad.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, .3), rgba(0, 0, 0, .3)), url(https://t.vndb.org/sf/' + cg[0] + '.jpg)';
     // Scale the CG up until the banner's height fits inside the band (and its width is covered), then centre on the band.
