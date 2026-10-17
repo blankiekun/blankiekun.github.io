@@ -113,7 +113,57 @@ const TOPICS = [
   ] },
 ];
 
+// Me's Help and Support: the same topics as a web page, with Home, Index and Search.
+function helpCenter(arg) {
+  const pages = TOPICS.flatMap(t => t.pages.map(([title, html]) => ({ book: t.book, title, html })));
+  const side = h('nav', { class: 'hs-side' }), view = h('div', { class: 'hp-view hs-view' });
+  const back = [], fwd = [];
+  let cur = null;
+  const link = (label, place, on) => h('a', { href: '#', class: on ? 'on' : '', onclick: e => { e.preventDefault(); go(place); } }, label);
+  // A place is a page, { book }, { index: true }, { search }, or {} for Home.
+  function go(place, record = true) { if (record && cur) { back.push(cur); fwd.length = 0; } cur = place; draw(); }
+  function draw() {
+    const p = cur, books = TOPICS.map(t => link(t.book, { book: t.book }, p.book === t.book));
+    if (p.title) {
+      side.replaceChildren(h('h4', null, p.book), ...pages.filter(x => x.book === p.book).map(x => link(x.title, x, x === p)), h('h4', null, 'Home'), ...books);
+      view.innerHTML = `<h3>${p.title}</h3>${p.html}`;
+    } else if (p.book) {
+      side.replaceChildren(h('h4', null, 'Home'), ...books);
+      view.replaceChildren(h('h3', null, p.book), h('ul', null, ...pages.filter(x => x.book === p.book).map(x => h('li', null, link(x.title, x)))));
+    } else if (p.index || p.search != null) {
+      const q = (p.search || '').toLowerCase();
+      const hits = pages.filter(x => !q || (x.title + ' ' + x.html.replace(/<[^>]+>/g, ' ')).toLowerCase().includes(q)).sort((x, y) => x.title.localeCompare(y.title));
+      side.replaceChildren(h('h4', null, p.index ? 'Index' : `Search results for "${p.search}"`), ...hits.map(x => link(x.title, x)), hits.length ? null : h('p', null, 'No topics found.'));
+      view.replaceChildren(h('h3', null, p.index ? 'Index' : 'Search'), h('p', null, hits.length ? 'Pick a topic on the left.' : 'Try another word.'));
+    } else {
+      side.replaceChildren(h('h4', null, 'Home'), ...books);
+      view.replaceChildren(h('h3', null, 'Welcome to Help and Support'), h('p', null, 'Pick a topic on the left, look one up in the Index, or type a word in Search.'),
+        ...TOPICS.flatMap(t => [h('h4', null, t.book), h('ul', null, ...pages.filter(x => x.book === t.book).map(x => h('li', null, link(x.title, x))))]));
+    }
+    view.scrollTop = 0;
+    bBack.disabled = !back.length; bFwd.disabled = !fwd.length;
+  }
+  view.addEventListener('click', e => {
+    const a = e.target.closest('a[data-ie]');
+    if (a) { e.preventDefault(); launch('ie', a.dataset.ie); }
+  });
+  const tb = (label, fn) => h('button', { class: 'hs-btn', type: 'button', onclick: fn }, label);
+  const bBack = tb('Back', () => { fwd.push(cur); cur = back.pop(); draw(); });
+  const bFwd = tb('Forward', () => { back.push(cur); cur = fwd.pop(); draw(); });
+  const q = h('input', { class: 'field hs-q', type: 'search', 'aria-label': 'Search' });
+  const form = h('form', { class: 'hs-search' }, h('label', null, 'Search'), q, h('button', { class: 'hs-btn', type: 'submit' }, 'Go'));
+  form.addEventListener('submit', e => { e.preventDefault(); go({ search: q.value.trim() }); });
+  const body = h('div', { class: 'hs' },
+    h('div', { class: 'hs-band' }, h('b', null, 'Help and Support'), h('span', null, OS)),
+    h('div', { class: 'hs-bar' }, bBack, bFwd, tb('Home', () => go({})), tb('Index', () => go({ index: true })), form),
+    h('div', { class: 'hs-main' }, side, view));
+  const win = createWindow({ app: 'help', title: 'Help and Support', icon: 'i-helpbook', body, width: 680, height: 460, minW: 320, minH: 240, route: 'help' });
+  go(pages.find(x => x.title === arg) || {}, false);
+  return win;
+}
+
 function help(arg) {
+  if (V.id === 'me') return helpCenter(arg);
   const view = h('div', { class: 'hp-view' });
   let selRow = null;
   const tree = h('div', { class: 'listbox hp-tree', tabindex: '0', role: 'tree', 'aria-label': 'Contents' });

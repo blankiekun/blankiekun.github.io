@@ -21,9 +21,12 @@ import { OS, V, rename } from '../version.js';
 const XP = V.id === 'xp', AERO = V.id === 'vista' || V.id === '7', RIBBON = V.id === '8' || V.id === '10', W11 = V.id === '11';
 const MODERN = AERO || RIBBON || W11;
 const NEW = XP || MODERN;
+// 98, Me and 2000 show folders as web pages: a panel beside the icons that names the folder
+// and describes what's selected (View > as Web Page).
+const WEB = ['98', 'me', '2000'].includes(V.id);
 
 const PREFS = NEW ? 'w95.explorer.' + V.id : 'w95.explorer';
-const prefs = { view: 'icons', sort: 'name', single: NEW, toolbar: XP, status: !AERO, menubar: XP, nav: true, details: AERO, ...store.get(PREFS, {}) };
+const prefs = { view: 'icons', sort: 'name', single: NEW, toolbar: XP, status: !AERO, menubar: XP, nav: true, details: AERO, web: true, ...store.get(PREFS, {}) };
 const savePrefs = () => store.set(PREFS, prefs);
 const wins = new Set();
 const refreshAll = () => { for (const w of wins) w.refresh(); };
@@ -230,7 +233,23 @@ function open(arg = 'My Computer') {
       det.hidden = !prefs.details;
     }
     if (tasks) syncTasks();
+    if (web) syncWeb();
     syncButtons();
+  }
+
+  // The web view: the folder's name over a coloured rule, then what it holds or what's selected.
+  function syncWeb() {
+    web.hidden = !prefs.web;
+    const s = selected(), d = s[0], f = here();
+    const about = f === root ? 'Displays the files and folders on your computer.' : f === recycle ? 'Contains the files and folders that you have deleted.'
+      : f === network ? 'Displays the computers on your network.' : f.name === 'Control Panel' ? 'Use the settings in Control Panel to personalize your computer.'
+      : 'Select an item to view its description.';
+    const date = d && d.mtime ? 'Modified: ' + new Date(d.mtime).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+    web.replaceChildren(...[icon(winIcon(f), 'ex-wicon'), h('h2', null, rename(titleFor(f))), h('i', { class: 'ex-wrule' }),
+      s.length > 1 ? h('p', null, s.length + ' items selected.')
+        : d ? h('p', null, h('b', null, d.name), h('br'), kindLabel(d), ...(d.size ? [h('br'), 'Size: ' + sizeLabel(d)] : []), ...(date ? [h('br'), date] : []))
+        : h('p', null, about),
+      f === recycle && recycle.children.length ? h('p', null, h('a', { href: '#', onclick: e => { e.preventDefault(); empty(); } }, 'Empty Recycle Bin')) : null].filter(Boolean));
   }
 
   // XP's task pane: what you can do here, other places, and details of the selection.
@@ -404,6 +423,7 @@ function open(arg = 'My Computer') {
       ...(MODERN ? [] : [{ label: '&Toolbar', checked: prefs.toolbar, action: flip('toolbar') }]),
       { label: 'Status &Bar', checked: prefs.status, action: flip('status') },
       ...(XP ? [{ label: 'E&xplorer Bar', submenu: [{ label: '&Folders', checked: showTree, action: toggleTree }] }] : []),
+      ...(web ? [{ label: 'as &Web Page', checked: prefs.web, action: flip('web') }] : []),
       '-',
       ...viewItems(),
       '-',
@@ -673,6 +693,7 @@ function open(arg = 'My Computer') {
       : null;
   const det = AERO ? h('div', { class: 'ex-det' }) : null;
   const tasks = XP ? h('div', { class: 'ex-tasks' }) : null;
+  const web = WEB && !explore ? h('div', { class: 'ex-web' }) : null;
   const side = NEW ? h('div', { class: 'ex-side' }) : null;
   const paneHead = XP ? h('div', { class: 'ex-phead' }, h('span', null, 'Folders'), h('button', { class: 'ex-pclose', type: 'button', 'aria-label': 'Close', onclick: toggleTree }, '\u00d7')) : null;
 
@@ -683,7 +704,7 @@ function open(arg = 'My Computer') {
     ? h('div', { class: 'ex explore' }, bar, toolbar,
       h('div', { class: 'ex-heads' }, h('span', null, 'All Folders'), h('span', { class: 'ex-contents' }, 'Contents of \'' + pathLabel(node) + '\'')),
       h('div', { class: 'ex-panes' }, treeEl, list), status)
-    : h('div', { class: 'ex' }, bar, toolbar, list, status);
+    : h('div', { class: 'ex' }, bar, toolbar, web ? h('div', { class: 'ex-panes' }, web, list) : list, status);
   const winIcon = n => { const ic = iconOf(n); return ic === 'i-folder' ? 'i-folder-open' : ic; };
   const routeFor = n => n === root ? 'mycomputer' : n === recycle ? 'recycle' : n === network ? 'network' : null;
   const win = createWindow({
