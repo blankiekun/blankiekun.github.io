@@ -59,8 +59,8 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 .ad { display: block; text-align: center; text-decoration: none; color: #ff0; background: repeating-linear-gradient(45deg, #ff1493 0 14px, #c00060 14px 28px); border: 4px outset #ff69b4; padding: 8px; font: bold 13px Arial, sans-serif; }
 .ad b { display: block; font: 900 clamp(20px, 5vw, 30px)/1.1 Impact, "Arial Black", sans-serif; color: #fff; text-shadow: 2px 2px 0 #000; }
 .ad u { color: #fff; }
-/* With a CG behind it: headline on top, caption at the bottom, faces between. 3:1 or wider shows under half of a 4:3 CG, framed on the faces (each CG's own height, at most 45% down), well above its dialogue box. */
-.ad.cg { display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 3; max-height: 170px; background-size: cover; text-shadow: 1px 1px 0 #000; }
+/* With a CG behind it, darkened so the words read. The script sizes the CG so only its safe band shows. */
+.ad.cg { background-clip: padding-box; text-shadow: 1px 1px 0 #000, 0 0 4px #000; }
 </style>
 <style id="virus">
 /* What clicking the ad does before it lands on Games. Copied into the desktop too, so the screen-wide ones reach past IE. */
@@ -198,11 +198,20 @@ body { transition: rotate 1s, scale 2s; }
   (function () {
     var ad = document.getElementById('babes'), busy = false;
     var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
-    // 俺翼 (v1141) screenshots VNDB voters rate safe. 最果てのイマ's and 村正's have text mid-screen, which no crop hides.
-    var CGS = [['28/9328', 20], ['29/9329', 25], ['32/9332', 45], ['33/9333', 30], ['34/9334', 35], ['36/9336', 20]], cg = pick(CGS);
+    // Racy CGs, so each has a safe band: the slice of the picture, top to bottom as fractions of its height, that may show
+    // (faces only; below it is NSFW or a text box), centred on the eyes since a short strip shows only its middle. Then where across to centre. All are 4:3.
+    var CGS = [['57/3157', .3, .42, .5], ['72/188872', .05, .5, .35], ['30/9330', .22, .38, .75]], cg = pick(CGS);
     ad.classList.add('cg');
-    ad.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, .6), transparent 30% 70%, rgba(0, 0, 0, .8)), url(https://t.vndb.org/sf/' + cg[0] + '.jpg)';
-    ad.style.backgroundPosition = 'center 0, center ' + cg[1] + '%';
+    ad.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, .3), rgba(0, 0, 0, .3)), url(https://t.vndb.org/sf/' + cg[0] + '.jpg)';
+    // Scale the CG up until the banner's height fits inside the band (and its width is covered), then centre on the band.
+    function frame() {
+      var w = ad.clientWidth, h = ad.clientHeight, H = Math.max(h / (cg[2] - cg[1]), w * .75), W = H / .75;
+      var y = (cg[1] + (cg[2] - cg[1] - h / H) / 2) * H, x = Math.min(Math.max(cg[3] * W - w / 2, 0), W - w);
+      ad.style.backgroundSize = '100% 100%, ' + W + 'px ' + H + 'px';
+      ad.style.backgroundPosition = '0 0, ' + -x + 'px ' + -y + 'px';
+    }
+    frame();
+    addEventListener('resize', frame);
     var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
     // The whole screen: the desktop around IE when this page is inside it, else this page.
     var T = (function () { try { return window.top.document; } catch (e) { return document; } })(), made = [];
