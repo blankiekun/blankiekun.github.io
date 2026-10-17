@@ -1,5 +1,8 @@
 /* The shell: desktop, windows, taskbar, menus and the standard controls.
    Colours are variables so Display Properties can swap the scheme at runtime. */
+/* A pixel rebuild of MS Sans Serif, as converted by 98.css; see THIRD-PARTY.txt. */
+@font-face { font-family: "Pixelated MS Sans Serif"; src: url(../fonts/ms_sans_serif.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Pixelated MS Sans Serif"; src: url(../fonts/ms_sans_serif_bold.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 :root {
   color-scheme: light;
   --desktop: #008080;
@@ -21,7 +24,7 @@
   --tip: #ffffe1;
   --link: #0000ff;
 
-  --font-ui: Tahoma, "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Pixelated MS Sans Serif", Tahoma, "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
   --font-pixel: "DotGothic16", "MS Gothic", "Osaka", monospace;
   --font-dos: "VT323", "Lucida Console", "Courier New", monospace;
 
@@ -64,7 +67,7 @@ body {
   margin: 0;
   background: var(--desktop);
   color: var(--ink);
-  font: 12px/1.35 var(--font-ui);
+  font: 11px/1.35 var(--font-ui);
   user-select: none; -webkit-user-select: none; /* UI chrome isn't text; reading panes opt back in with user-select: text */
   -webkit-font-smoothing: none;
   font-smooth: never;
@@ -156,7 +159,7 @@ a { color: var(--link); }
 }
 .win.active > .titlebar { background: var(--title); color: var(--title-ink); }
 .titlebar > svg { width: 16px; height: 16px; flex: none; }
-.titlebar .t { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 12px; }
+.titlebar .t { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 11px; }
 .tbtns { display: flex; flex: none; }
 .tbtn {
   width: 16px; height: 14px; padding: 0;
