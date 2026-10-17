@@ -363,7 +363,9 @@ function open(arg) {
   }
 
   // ---------- zoom ----------
+  const rbSync = []; // the ribbon's checkboxes, re-read whenever the view changes from a menu or key
   function layout() {
+    rbSync.forEach(f => f());
     for (const c of [canvas, overlay]) { c.style.width = W * zoom + 'px'; c.style.height = H * zoom + 'px'; }
     gridEl.hidden = !(grid && zoom >= 4);
     Object.assign(gridEl.style, { width: W * zoom + 'px', height: H * zoom + 'px', backgroundSize: `${zoom}px ${zoom}px` });
@@ -400,6 +402,7 @@ function open(arg) {
     const d = createWindow({ title: 'Custom Zoom', body: form, dialog: true, resizable: false, width: 'auto', parent: win, taskbar: false });
     (form.querySelector('input:checked') || radios[0].firstChild).focus();
   }
+  function toggleStatus() { status.hidden = !status.hidden; layout(); }
   function toggleGrid() { if (zoom >= 4) { grid = !grid; layout(); } }
 
   // The thumbnail shows the part of the picture in view at its real size.
@@ -1185,7 +1188,7 @@ function open(arg) {
     { label: '&View', items: () => [
       { label: '&Tool Box', key: 'Ctrl+T', checked: !toolbox.hidden, action: () => { toolbox.hidden = !toolbox.hidden; } },
       { label: '&Color Box', checked: !colorbox.hidden, action: () => { colorbox.hidden = !colorbox.hidden; } },
-      { label: '&Status Bar', checked: !status.hidden, action: () => { status.hidden = !status.hidden; } },
+      { label: '&Status Bar', checked: !status.hidden, action: toggleStatus },
       { label: 'T&ext Toolbar', checked: textBarOn, action: () => { textBarOn = !textBarOn; fontbar.hidden = !(tool === 'text' && textBarOn); } },
       '-',
       { label: '&Zoom', submenu: () => [
@@ -1213,8 +1216,10 @@ function open(arg) {
   const rb = (label, glyph, action, big) => rbtn(label, glyph, (e, b) => { root.focus({ preventScroll: true }); action(b); }, big);
   const rbChk = (label, get, flip) => {
     const c = h('input', { type: 'checkbox' });
-    c.checked = get();
-    c.addEventListener('change', () => { flip(); c.checked = get(); root.focus({ preventScroll: true }); });
+    const sync = () => { c.checked = get(); };
+    rbSync.push(sync);
+    sync();
+    c.addEventListener('change', () => { flip(); sync(); root.focus({ preventScroll: true }); });
     return h('label', { class: 'rb-chk' }, c, label);
   };
   const col = (...kids) => h('div', { class: 'rb-col' }, ...kids);
@@ -1230,7 +1235,7 @@ function open(arg) {
     ] },
     { label: 'View', groups: [
       ['Zoom', rb('Zoom in', RB.zoomIn, () => zoomBy(1), true), rb('Zoom out', RB.zoomOut, () => zoomBy(-1), true), rb('100%', RB.actual, () => setZoom(1), true)],
-      ['Show or hide', col(rbChk('Gridlines', () => grid && zoom >= 4, toggleGrid), rbChk('Status bar', () => !status.hidden, () => { status.hidden = !status.hidden; }))],
+      ['Show or hide', col(rbChk('Gridlines', () => grid && zoom >= 4, toggleGrid), rbChk('Status bar', () => !status.hidden, toggleStatus))],
       ['Display', rb('Full screen', RB.full, viewBitmap, true)],
     ] },
   ]) : menubar(menus);

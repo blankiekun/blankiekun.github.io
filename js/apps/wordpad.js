@@ -503,7 +503,9 @@ function open(arg) {
   }
 
   // ---------- views ----------
+  const rbSync = []; // ribbon checkboxes, so the Alt+V menu and Options dialog keep them in step
   function applyView() {
+    rbSync.forEach(f => f());
     toolbar.hidden = !opts.toolbar;
     formatbar.hidden = !opts.format;
     ruler.hidden = !opts.ruler;
@@ -1246,6 +1248,7 @@ function open(arg) {
   // From 7 the toolbar and format bar's own controls move into the ribbon.
   const rbChk = (label, k) => {
     const c = h('input', { type: 'checkbox' });
+    rbSync.push(() => { c.checked = opts[k]; });
     c.checked = opts[k];
     c.addEventListener('change', toggle(k));
     return h('label', { class: 'rb-chk' }, c, label);
