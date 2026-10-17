@@ -598,6 +598,33 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 :is([data-win="10"], [data-win="11"]) .ie-more { display: block; order: 9; border: 0; background: none; padding: 2px 8px 6px; font: bold 16px/1 var(--font-ui); letter-spacing: 1px; border-radius: 3px; color: #333; }
 :is([data-win="10"], [data-win="11"]) .ie-more:hover { background: rgba(0, 0, 0, .07); }
 
+/* ---------- Tabs (IE 7 on): a row under the address bar, above it in Edge ---------- */
+.ie-bars > .ie-tabs { order: 5; flex-basis: 100%; display: flex; align-items: flex-end; gap: 2px; min-width: 0; padding: 2px 0 0; margin-bottom: -3px; }
+.ie-tab { flex: 0 1 180px; min-width: 40px; height: 24px; display: flex; align-items: center; gap: 4px; padding: 0 2px 0 6px; border: 1px solid #a0afc3; border-bottom: 0; border-radius: 3px 3px 0 0;
+  background: linear-gradient(#f4f8fd, #d6e2f1); color: var(--ink); cursor: var(--arrow); }
+.ie-tab svg { width: 16px; height: 16px; flex: none; }
+.ie-tab span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ie-tab:hover { background: linear-gradient(#fff, #e3edf9); }
+.ie-tab[aria-selected="true"] { background: #fff; height: 26px; position: relative; z-index: 1; }
+.ie-tab-x, .ie-newtab { flex: none; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 2px; background: none; color: #555; cursor: var(--arrow); font: 14px/18px var(--font-ui); }
+.ie-tab-x::before { content: "\00d7"; }
+.ie-newtab::before { content: "+"; }
+.ie-tab:not([aria-selected="true"]) .ie-tab-x { visibility: hidden; }
+.ie-tab-x:hover { background: #c75050; color: #fff; }
+.ie-newtab { width: 28px; height: 22px; align-self: flex-end; }
+.ie-newtab:hover { background: rgba(255, 255, 255, .7); box-shadow: inset 0 0 0 1px #a0afc3; }
+[data-win="8"] .ie-tab { border-color: #d0d0d0; background: #f0f0f0; border-radius: 0; }
+:is([data-win="10"], [data-win="11"]) .ie-bars > .ie-tabs { order: -1; margin: -3px -4px 2px; padding: 0 4px; background: #dadada; }
+:is([data-win="10"], [data-win="11"]) .ie-tab { height: 30px; border: 0; border-radius: 0; background: none; }
+:is([data-win="10"], [data-win="11"]) .ie-tab:hover { background: rgba(255, 255, 255, .45); }
+:is([data-win="10"], [data-win="11"]) .ie-tab[aria-selected="true"] { height: 30px; background: #f7f7f7; }
+[data-win="11"] .ie-bars > .ie-tabs { background: #e8e8e8; padding-top: 4px; }
+[data-win="11"] .ie-tab { border-radius: 6px 6px 0 0; }
+[data-win="11"] .ie-tab[aria-selected="true"] { background: #f3f3f3; }
+:is([data-win="10"], [data-win="11"]) .ie-tab-x:hover { background: rgba(0, 0, 0, .1); color: #000; }
+:is([data-win="10"], [data-win="11"]) .ie-newtab { height: 30px; }
+:is([data-win="10"], [data-win="11"]) .ie-newtab:hover { background: rgba(255, 255, 255, .45); box-shadow: none; }
+
 /* ---------- The ribbon in Paint and WordPad (7 on) ---------- */
 .ribbon { flex: none; display: flex; flex-direction: column; background: linear-gradient(#fdfeff, #dce7f5); border-bottom: 1px solid #8db2e3; }
 .rb-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 3px 4px 0; background: #dfe9f5; box-shadow: inset 0 -1px #8db2e3; }

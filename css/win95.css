@@ -79,6 +79,7 @@ button { font: inherit; color: inherit; }
 a { color: var(--link); }
 :focus { outline: none; }
 :focus-visible { outline: 1px dotted var(--ink); outline-offset: -4px; }
+.win:focus-visible { outline: none; } /* windows show focus by their title bar, never a focus rect */
 .noscript { position: fixed; inset: 0; display: grid; place-items: center; color: #fff; padding: 16px; text-align: center; }
 
 /* ---------- scrollbars ---------- */

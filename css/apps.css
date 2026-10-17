@@ -54,6 +54,7 @@
 .ie-link:hover { box-shadow: var(--thin-out); }
 .ie-link:active { box-shadow: var(--thin-in); }
 .ie-view { flex: 1; min-height: 0; box-shadow: var(--sunken); padding: 2px; background: var(--paper); margin-top: 2px; }
+.ie-view iframe[hidden] { display: none; }
 .ie-view iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
 .ie-prog-cell { width: 110px; padding: 2px !important; }
 .ie-progress { width: 100%; height: 100%; }
