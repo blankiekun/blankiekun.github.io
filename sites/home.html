@@ -56,6 +56,20 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   .pipe, .pipe tbody, .pipe tr, .pipe td { display: block; width: 100%; }
   .pipe td.arr { width: 100%; padding: 2px 0; text-align: center; transform: rotate(90deg); }
 }
+.ad { display: block; text-align: center; text-decoration: none; color: #ff0; background: repeating-linear-gradient(45deg, #ff1493 0 14px, #c00060 14px 28px); border: 4px outset #ff69b4; padding: 8px; font: bold 13px Arial, sans-serif; }
+.ad b { display: block; font: 900 clamp(20px, 5vw, 30px)/1.1 Impact, "Arial Black", sans-serif; color: #fff; text-shadow: 2px 2px 0 #000; }
+.ad u { color: #fff; }
+/* What clicking the ad does to the page before it lands on Games */
+@keyframes v-shake { 25% { transform: translate(-8px, 4px) rotate(-1deg); } 75% { transform: translate(8px, -4px) rotate(1deg); } }
+.v-shake { animation: v-shake .12s linear infinite; }
+.v-invert { filter: invert(1) hue-rotate(180deg); }
+.v-flip { transform: rotate(180deg); transition: transform .6s; }
+.vpop { position: fixed; z-index: 10; width: min(260px, 80vw); background: #c0c0c0; border: 2px outset #fff; font: 12px Arial, sans-serif; box-shadow: 2px 2px 0 #000; }
+.vpop > b { display: block; background: #000080; color: #fff; padding: 2px 4px; }
+.vpop > p { margin: 0; padding: 10px 8px; }
+.vbar { height: 16px; margin: 0 8px 10px; border: 2px inset #fff; background: #fff; }
+.vbar i { display: block; height: 100%; width: 0; background: #000080; }
+@media (prefers-reduced-motion: reduce) { .v-shake { animation: none; } .v-flip { transition: none; } }
 </style>
 </head>
 <body>
@@ -64,6 +78,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
     <h1>Welcome to blankiekun's Homepage!</h1>
     <p class="sub">Read Japanese. Play visual novels. In the browser.</p>
     <marquee scrollamount="4">*** Welcome!!! *** 3 open-source projects online *** chimimouryou * CONscripter * conscripter-convert *** Read my guestbook! ***</marquee>
+    <a class="ad" id="babes" href="games.html"><b class="blink">HOT ANIME BABES IN YOUR AREA!!!</b>They're lonely and want to play <u>visual novels</u> with YOU. CLICK HERE!!!</a>
 
     <div class="layout">
       <nav class="nav" aria-label="Site">
@@ -165,6 +180,52 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
     try { n += +(localStorage.getItem('hits') || 0) + 1; localStorage.setItem('hits', n - 1995); } catch (e) { n += 1; }
     var s = String(n).padStart(7, '0'), el = document.getElementById('counter');
     for (var i = 0; i < s.length; i++) { var d = document.createElement('span'); d.textContent = s[i]; el.appendChild(d); }
+  })();
+  // The ad does what a virus would, a few things picked at random, then goes to Games.
+  (function () {
+    var ad = document.getElementById('babes'), busy = false;
+    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+    var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+    function popup(title, text) {
+      var w = document.createElement('div'), b = document.createElement('b'), p = document.createElement('p');
+      w.className = 'vpop'; b.textContent = title; p.textContent = text; w.append(b, p);
+      w.style.left = Math.random() * Math.max(0, innerWidth - 270) + 'px';
+      w.style.top = Math.random() * Math.max(0, innerHeight - 100) + 'px';
+      document.body.appendChild(w);
+      return w;
+    }
+    function toggle(el, cls) { return async function () { el.classList.add(cls); await wait(1200); el.classList.remove(cls); }; }
+    var VIRUS = [
+      toggle(document.body, 'v-shake'),
+      toggle(document.documentElement, 'v-invert'),
+      toggle(document.querySelector('.wrap'), 'v-flip'),
+      async function () {
+        var msgs = [['CONGRATULATIONS!!!', 'You are our 1,000,000th visitor! Claim your FREE iMac!'], ['BonziBuddy', 'Hi! I\'m your new friend. I\'ll be staying a while.'],
+          ['Warning', 'Your PC is running SLOW. Download more RAM now!'], ['Install', 'Install the Hot Babes Toolbar? Yes / Yes'], ['Error', 'Too many babes. Babe buffer overflow at 0xBABE.']];
+        for (var i = 0; i < 6; i++) { popup.apply(null, pick(msgs)); await wait(200); }
+        await wait(600);
+      },
+      async function () {
+        var w = popup('Downloading...', 'anime_babes.jpg.exe from 69.42.0.1'), bar = document.createElement('div'), fill = document.createElement('i');
+        bar.className = 'vbar'; bar.appendChild(fill); w.appendChild(bar);
+        for (var n = 0; n <= 100; n += 10) { fill.style.width = n + '%'; await wait(120); }
+      },
+      async function () {
+        var els = document.querySelectorAll('h1, h2, p, td, li, img');
+        for (var i = 0; i < els.length; i++) els[i].style.transform = 'rotate(' + (Math.random() * 30 - 15) + 'deg)';
+        await wait(1200);
+      }
+    ];
+    ad.addEventListener('click', async function (e) {
+      e.preventDefault();
+      if (busy) return;
+      busy = true;
+      var left = VIRUS.slice();
+      for (var k = 0; k < 3; k++) await left.splice(Math.floor(Math.random() * left.length), 1)[0]();
+      popup('Babe Finder 1.0', 'Babes found in your area: 0. Games found: lots. Taking you there...');
+      await wait(1200);
+      location.href = ad.href;
+    });
   })();
 </script>
 </body>
