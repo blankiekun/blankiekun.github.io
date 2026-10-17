@@ -55,7 +55,7 @@ function open() {
   function measure() {
     const W = board.clientWidth || 620, H = board.clientHeight || 420;
     gap = W < 500 ? 6 : 10;
-    cw = clamp(Math.floor(Math.min(W / 6.5, H / 6.2)), 34, 71);
+    cw = clamp(Math.floor(Math.min(W / 6.5, H / 6.2)), 34, 142);
     ch = Math.round(cw * 96 / 71);
     ocw = Math.round(cw * .62); och = Math.round(ch * .62);
     board.style.setProperty('--cw', cw + 'px');

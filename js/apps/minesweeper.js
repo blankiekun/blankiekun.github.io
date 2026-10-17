@@ -52,7 +52,15 @@ function open() {
     board.replaceChildren(...cells.map(c => (c.el = h('div', { class: 'c', role: 'gridcell', 'data-i': c.i }))));
     setFace('smile');
     updateCounters();
-    if (win) win.fit();
+    if (win) { win.fit(); scale(); }
+  }
+
+  // Resized or maximized, the whole game zooms to fill the window; otherwise the window fits the field.
+  function scale() {
+    root.style.zoom = '';
+    if (!win || (win.state !== 'max' && !win.el.style.width)) return;
+    const wrap = root.parentElement;
+    root.style.zoom = Math.max(.5, Math.min(wrap.clientWidth / root.offsetWidth, (wrap.clientHeight - bar.offsetHeight) / root.offsetHeight));
   }
 
   function neighbors(c) {
@@ -304,7 +312,8 @@ function open() {
   newGame();
   win = createWindow({
     app: 'minesweeper', title: 'Minesweeper', icon: 'i-mine', body: h('div', { class: 'ms-wrap' }, bar, root),
-    width: 'auto', resizable: false, maximizable: false, route: 'minesweeper',
+    width: 'auto', route: 'minesweeper',
+    onResize: scale,
     onClosed: () => clearInterval(timer),
   });
   return win;

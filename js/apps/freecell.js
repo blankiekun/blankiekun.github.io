@@ -164,8 +164,8 @@ function open(arg) {
 
   // ---------- layout ----------
   function measure() {
-    const W = board.clientWidth || 620;
-    cw = clamp(Math.floor(W / 8.75), 30, 71);
+    const W = board.clientWidth || 620, H = board.clientHeight || 400;
+    cw = clamp(Math.floor(Math.min(W / 8.75, H / 4.2 * 71 / 96)), 30, 142);
     ch = Math.round(cw * 96 / 71);
     colGap = (W - 8 * cw) / 9;
     rowY = ch + Math.max(8, Math.round(ch * .14));

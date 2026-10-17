@@ -338,6 +338,8 @@ function outlineDrag(win, e, mode) {
       if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
       outline = LIVE ? win.el : h('div', { class: 'drag-outline' });
       if (!LIVE) document.body.append(outline);
+      // A window that fitted its content keeps the size it's given from now on.
+      if (mode !== 'move') win.el.classList.remove('autosize');
       document.body.classList.add('dragging');
       document.body.style.cursor = cursor;
       if (wasMax) {

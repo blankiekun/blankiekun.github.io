@@ -17,7 +17,7 @@ function open() {
   const timeEl = h('span', null, 'Time: 0');
   const status = h('div', { class: 'statusbar' }, h('span', null, ''), scoreEl, timeEl);
   const slots = {};
-  let cards = [], stock, waste, found, tab, score, seconds, timer, undoSnap, cw = 71, ch = 96, gap = 8, drag = null, lastClick = { id: -1, t: 0 }, celebrating = null;
+  let cards = [], stock, waste, found, tab, score, seconds, timer, undoSnap, cw = 71, ch = 96, gap = 8, pad = 8, drag = null, lastClick = { id: -1, t: 0 }, celebrating = null;
 
   // Empty-pile outlines.
   const slot = (key, cls) => { const el = h('div', { class: 'sol-slot ' + cls }); slots[key] = el; board.append(el); return el; };
@@ -70,15 +70,18 @@ function open() {
 
   // ---------- layout ----------
   function measure() {
-    const W = board.clientWidth || 560;
-    cw = Math.max(34, Math.min(71, Math.floor(W / 8.1)));
+    const W = board.clientWidth || 560, H = board.clientHeight || 400;
+    // Cards grow with the window up to twice their 95 size, keeping a dealt hand in view.
+    cw = Math.max(34, Math.min(142, Math.floor(Math.min(W / 8.1, H / 4 * 71 / 96))));
     ch = Math.round(cw * 96 / 71);
     gap = Math.max(4, Math.floor((W - 7 * cw) / 8));
+    // Wide windows spread the columns apart; the rows stay near the top, as in 95.
+    pad = Math.min(gap, 10);
     board.style.setProperty('--cw', cw + 'px');
     board.style.setProperty('--ch', ch + 'px');
   }
   const colX = i => gap + i * (cw + gap);
-  const rowY = () => gap * 2 + ch;
+  const rowY = () => pad * 2 + ch;
   const downStep = () => Math.max(3, Math.round(ch * 0.06));
   const upStep = () => Math.max(12, Math.round(ch * 0.22));
 
@@ -93,20 +96,20 @@ function open() {
   function render() {
     measure();
     const pos = (el, x, y) => { el.style.left = x + 'px'; el.style.top = y + 'px'; };
-    pos(slots.stock, colX(0), gap);
+    pos(slots.stock, colX(0), pad);
     slots.stock.classList.toggle('done', !stock.length && !waste.length);
-    for (let i = 0; i < 4; i++) pos(slots['f' + i], colX(3 + i), gap);
+    for (let i = 0; i < 4; i++) pos(slots['f' + i], colX(3 + i), pad);
     for (let i = 0; i < 7; i++) pos(slots['t' + i], colX(i), rowY());
-    stock.forEach((c, i) => place(c, colX(0) + Math.floor(i / 10) * 2, gap + Math.floor(i / 10) * 2, 10 + i));
+    stock.forEach((c, i) => place(c, colX(0) + Math.floor(i / 10) * 2, pad + Math.floor(i / 10) * 2, 10 + i));
     const fanFrom = prefs.draw === 3 ? Math.max(0, waste.length - 3) : waste.length;
-    waste.forEach((c, i) => place(c, colX(1) + (i >= fanFrom ? (i - fanFrom) * Math.round(cw * 0.22) : 0), gap, 100 + i));
-    found.forEach((p, f) => p.forEach((c, i) => place(c, colX(3 + f), gap, 200 + i)));
+    waste.forEach((c, i) => place(c, colX(1) + (i >= fanFrom ? (i - fanFrom) * Math.round(cw * 0.22) : 0), pad, 100 + i));
+    found.forEach((p, f) => p.forEach((c, i) => place(c, colX(3 + f), pad, 200 + i)));
     let maxY = rowY() + ch;
     tab.forEach((p, t) => {
       let y = rowY();
       p.forEach((c, i) => { place(c, colX(t), y, 300 + i); maxY = Math.max(maxY, y + ch); y += c.up ? upStep() : downStep(); });
     });
-    spacer.style.top = maxY + gap + 'px';
+    spacer.style.top = maxY + pad + 'px';
     board.classList.toggle('won', found.every(p => p.length === 13));
   }
 
@@ -253,7 +256,7 @@ function open() {
     }
     if (d.group.length === 1) for (let i = 0; i < 4; i++) {
       if (d.from.kind === 'found' && d.from.i === i) continue;
-      const a = overlap(colX(3 + i), gap);
+      const a = overlap(colX(3 + i), pad);
       if (a > bestA && canFound(d.c, found[i])) { best = ['found', i]; bestA = a; }
     }
     if (best) moveTo(d.group, d.from, best[0], best[1]);
@@ -299,7 +302,7 @@ function open() {
       for (let r = 13; r >= 1 && !stopped; r--) for (let f = 0; f < 4 && !stopped; f++) {
         const c = found[f][r - 1];
         const img = cardImage(c);
-        let x = colX(3 + f), y = gap - board.scrollTop;
+        let x = colX(3 + f), y = pad - board.scrollTop;
         let vx = (Math.random() * 5 + 2) * (Math.random() < .5 ? -1 : 1), vy = -Math.random() * 6;
         c.el.style.visibility = 'hidden';
         await new Promise(done => {

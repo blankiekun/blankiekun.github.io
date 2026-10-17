@@ -271,7 +271,7 @@ function open(arg) {
   screen.addEventListener('pointerup', () => { if (!window.getSelection().toString()) input.focus({ preventScroll: true }); });
 
   const win = createWindow({
-    app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, toolbar, screen),
+    app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, !V.nt && toolbar, screen),
     width: 640, height: 400, minW: 240, minH: 160, route: 'dos', autofocus: '.dos-input',
     maximized: arg === 'dosmode',
   });

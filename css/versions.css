@@ -204,6 +204,7 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
   --font-ui: "Segoe UI", Tahoma, "Noto Sans", sans-serif;
   --tb-h: 40px;
 }
+html[data-win="11"] { --font-ui: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", Tahoma, "Noto Sans", sans-serif; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .win { padding: 0; background: var(--face); box-shadow: 0 0 0 1px #aaa, 0 6px 22px rgba(0, 0, 0, .3); }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .win.active { box-shadow: 0 0 0 1px var(--frame, #1883d7), 0 8px 28px rgba(0, 0, 0, .35); }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .titlebar { height: 30px; padding: 0 0 0 8px; background: #fff; color: #999; }

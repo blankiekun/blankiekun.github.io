@@ -188,7 +188,8 @@
 @media (max-width: 420px) { .dt-grid { grid-template-columns: 1fr; } }
 
 /* ---------- Minesweeper ---------- */
-.ms-wrap { display: flex; flex-direction: column; }
+.ms-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.ms-wrap > .ms { margin: auto; }
 .ms { background: #c0c0c0; padding: 6px; box-shadow: inset 3px 3px #fff; display: flex; flex-direction: column; gap: 6px; align-items: stretch; touch-action: none; user-select: none; }
 .ms-top { display: flex; align-items: center; justify-content: space-between; padding: 4px 5px; box-shadow: inset 2px 2px #808080, inset -2px -2px #fff; }
 .ms-led { background: #000; box-shadow: inset 1px 1px #808080, inset -1px -1px #fff; padding: 1px; line-height: 0; }
@@ -215,7 +216,6 @@
 .ms-cfs { display: flex; flex-direction: column; gap: 8px; }
 .ms-cf { display: grid; grid-template-columns: 60px 70px; align-items: center; }
 .win.max .ms-wrap { overflow: auto; }
-.win.max .ms { align-self: center; margin-top: 8px; }
 
 /* ---------- Solitaire ---------- */
 .sol { display: flex; flex-direction: column; flex: 1; min-height: 0; }
