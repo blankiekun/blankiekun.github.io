@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get help</title>
+<style>
+/* Help in 10 and 11 is a support site: flat, white, a search box over the topics (js/helptopics.js). */
+body { margin: 0; background: #fff; color: #1b1b1b; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; }
+a { color: #0067b8; text-decoration: none; } a:hover { text-decoration: underline; }
+header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; border-bottom: 1px solid #e5e5e5; }
+header b { font-size: 16px; font-weight: 600; }
+header span { color: #616161; font-size: 13px; }
+.hero { padding: 28px 24px; background: #f2f2f2; }
+.hero h1 { margin: 0 0 12px; font-size: 28px; font-weight: 600; }
+form { display: flex; max-width: 520px; }
+input { flex: 1; min-width: 0; padding: 8px 10px; font: inherit; border: 1px solid #8a8886; border-right: 0; }
+button { padding: 8px 16px; font: inherit; color: #fff; background: #0067b8; border: 0; cursor: pointer; }
+main { display: grid; grid-template-columns: minmax(160px, 240px) minmax(0, 1fr); gap: 32px; padding: 24px; }
+nav h2 { margin: 16px 0 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; color: #616161; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; padding: 3px 0; }
+nav a.on { font-weight: 600; color: #1b1b1b; }
+article h2 { margin: 0 0 12px; font-size: 24px; font-weight: 600; }
+article table td { padding: 2px 12px 2px 0; }
+code { font-family: Consolas, monospace; background: #f2f2f2; padding: 0 3px; }
+@media (max-width: 600px) { main { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<header><b>blankiekun Support</b><span id="os"></span></header>
+<div class="hero"><h1>How can we help you?</h1>
+  <form id="find"><input id="q" type="search" placeholder="Search help" aria-label="Search help"><button>Search</button></form></div>
+<main><nav id="nav"></nav><article id="page"></article></main>
+<script type="module">
+import { TOPICS } from '../js/helptopics.js';
+import { OS } from '../js/version.js';
+
+const pages = TOPICS.flatMap(t => t.pages.map(([title, html]) => ({ book: t.book, title, html })));
+const nav = document.getElementById('nav'), page = document.getElementById('page'), q = document.getElementById('q');
+document.getElementById('os').textContent = OS;
+const link = (p, on) => `<a href="#${encodeURIComponent(p.title)}"${on ? ' class="on"' : ''}>${p.title}</a>`;
+
+function show() {
+  const hash = decodeURIComponent(location.hash.slice(1));
+  const cur = pages.find(p => p.title === hash) || pages[0];
+  nav.innerHTML = TOPICS.map(t => `<h2>${t.book}</h2>` + pages.filter(p => p.book === t.book).map(p => link(p, p === cur)).join('')).join('');
+  page.innerHTML = `<h2>${cur.title}</h2>${cur.html}`;
+  // Topics link to the homepage for Internet Explorer; here it's just the page next door.
+  page.querySelectorAll('a[data-ie]').forEach(a => { a.href = a.dataset.ie + '.html'; });
+  scrollTo(0, 0);
+}
+document.getElementById('find').addEventListener('submit', e => {
+  e.preventDefault();
+  const w = q.value.trim().toLowerCase();
+  const hits = pages.filter(p => (p.title + ' ' + p.html.replace(/<[^>]+>/g, ' ')).toLowerCase().includes(w));
+  page.innerHTML = `<h2>Results for "${w.replace(/[<&"]/g, '')}"</h2>` + (hits.length ? hits.map(p => `<p>${link(p)}</p>`).join('') : '<p>No results. Try other words.</p>');
+});
+addEventListener('hashchange', show);
+show();
+</script>
+</body>
+</html>

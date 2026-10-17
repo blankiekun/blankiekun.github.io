@@ -18,7 +18,10 @@ export const PAGES = {
   conscripter: { file: 'sites/conscripter.html', url: 'http://www.geocities.com/TimesSquare/Arcade/1995/conscripter.html', label: 'CONscripter', icon: 'i-game' },
   games: { file: 'sites/games.html', url: 'http://www.angelfire.com/biz/blankiekun/games.html', label: 'Games', icon: 'i-game' },
   guestbook: { file: 'sites/guestbook.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/guestbook.html', label: 'Guestbook', icon: 'i-htm' },
+  // Help in 10 and 11 (js/apps/system.js); not a project page, so not in Links or Favorites.
+  help: { file: 'sites/help.html', url: 'https://blankiekun.github.io/help', label: 'Get help', icon: 'i-helpbook', unlisted: true },
 };
+const LISTED = Object.entries(PAGES).filter(([, p]) => !p.unlisted);
 const GITHUB = 'https://github.com/blankiekun';
 const FILES = Object.fromEntries(Object.entries(PAGES).map(([k, p]) => [p.file.split('/').pop(), k]));
 
@@ -73,7 +76,7 @@ function open(arg) {
     toolBtn('i-printer', 'Print', () => { try { tab.iframe.contentWindow.print(); } catch {} }),
   );
   const links = h('div', { class: 'ie-links' }, h('span', { class: 'ie-label' }, 'Links'),
-    ...Object.entries(PAGES).map(([k, p]) => h('button', { type: 'button', class: 'ie-link', onclick: () => navigate(k) }, icon('i-htm'), h('span', null, p.label))),
+    ...LISTED.map(([k, p]) => h('button', { type: 'button', class: 'ie-link', onclick: () => navigate(k) }, icon('i-htm'), h('span', null, p.label))),
     h('a', { class: 'ie-link', href: GITHUB, target: '_blank', rel: 'noopener' }, icon('i-github'), h('span', null, 'GitHub')));
   const addrForm = h('form', { class: 'ie-addr' }, h('label', { class: 'ie-label', for: 'ie-address', html: 'A<u>d</u>dress' }),
     h('div', { class: 'ie-addr-field' }, icon('i-htm'), address));
@@ -83,7 +86,7 @@ function open(arg) {
     { label: '&Add To Favorites...', action: () => msgbox({ title: 'Add to Favorites', icon: 'info', parent: win, text: 'This page is already in your Favorites.\n\nEverything here is a favorite.' }) },
     { label: '&Organize Favorites...', disabled: true },
     '-',
-    ...Object.entries(PAGES).map(([k, p]) => ({ label: p.label, icon: 'i-htm', action: () => navigate(k) })),
+    ...LISTED.map(([k, p]) => ({ label: p.label, icon: 'i-htm', action: () => navigate(k) })),
     '-',
     { label: 'blankiekun on GitHub', icon: 'i-github', action: () => window.open(GITHUB, '_blank', 'noopener') },
     { label: 'chimimouryou repository', icon: 'i-github', action: () => window.open(GITHUB + '/chimimouryou', '_blank', 'noopener') },
