@@ -16,6 +16,7 @@ import * as anki from './consanki.js';
 const NO_TIP = 'w95.cons.notip';
 const NO_OFFLINE_TIP = 'w95.cons.noofflinetip';
 const FLAGS = 'w95.cons.flags';
+const TEXT_OVERLAY = 'w95.cons.textoverlay'; // Debug > Text Overlay (for Scanning), on at first
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
 const KEEP_GAMES = 'w95.cons.keepgames';
@@ -34,7 +35,6 @@ const FLAG_LIST = [
   { flag: '--render-font-outline', label: 'Text &Outline Instead of Shadow' },
   { flag: '--no-video', label: '&No Movies' },
   { flag: '--disable-rescale', label: 'Don\'t &Rescale Images' },
-  { flag: '--no-text-overlay', label: 'No Text Overla&y (for Scanning)' },
   '-',
   { flag: '--fontcache', label: '&Cache Font' },
   { flag: '--no-vsync', label: 'No &VSync' },
@@ -407,7 +407,9 @@ function open() {
   let frame = null;     // the running player
   let skip = false;
   let showText = false;
+  let textOverlay = store.get(TEXT_OVERLAY, true);
   const flags = new Set(store.get(FLAGS, ['--debug:1', '--trace'])); // on at first, so a bug report has them
+  flags.delete('--no-text-overlay'); // was an engine flag; now Debug > Text Overlay, at once
 
   // Google Drive sync (further down)
   let syncState = '';   // '', 'busy', 'ok', 'signin' (waiting for a sign-in), 'error'
@@ -789,7 +791,8 @@ function open() {
       { label: 'Save Game State as &JSON', disabled: !tracing(), action: () => dumpState(true) },
       { label: 'Engine L&og', disabled: !player(), action: engineLog },
       { label: 'Save Tr&ace', disabled: !tracing(), action: saveTrace },
-      { label: 'Show &Text Overlay', checked: showText, disabled: !player(), action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
+      { label: 'Te&xt Overlay (for Scanning)', checked: textOverlay, action: () => { textOverlay = !textOverlay; store.set(TEXT_OVERLAY, textOverlay); if (player()) { player().setTextOverlay(textOverlay); frame.focus(); } } },
+      { label: 'Show &Text Overlay', checked: showText, disabled: !player() || !textOverlay, action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
       '-',
       { label: 'Storage &Used...', action: storageUsed },
       { label: '&Reset Tips', disabled: !store.get(NO_TIP, false) && !store.get(NO_OFFLINE_TIP, false), action: () => { store.set(NO_TIP, false); store.set(NO_OFFLINE_TIP, false); tipShown = false; showOfflineTip(); say('Tips will show again'); } },
@@ -884,6 +887,7 @@ function open() {
       w.onGameDrop = takeDrop;
       w.onSaved = () => { if (frame === me) savedSoon(); };
       w.showText(showText);
+      w.setTextOverlay(textOverlay);
       w.start({
         files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags].flatMap(f => f === '--trace' ? [f, '/dev/null'] : f).concat(args), // the trace's records go to the page
         keepLines: g.jp && anki.settings().on,
