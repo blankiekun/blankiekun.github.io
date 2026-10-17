@@ -69,7 +69,13 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 .vpop > p { margin: 0; padding: 10px 8px; }
 .vbar { height: 16px; margin: 0 8px 10px; border: 2px inset #fff; background: #fff; }
 .vbar i { display: block; height: 100%; width: 0; background: #000080; }
-@media (prefers-reduced-motion: reduce) { .v-shake { animation: none; } .v-flip { transition: none; } }
+.v-comic * { font-family: "Comic Sans MS", "Comic Neue", cursive !important; color: hsl(var(--h, 300), 100%, 45%) !important; }
+.v-zoom { transform: scale(2.5); transition: transform 1s; }
+.v-bsod { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 24px; background: #0000aa; color: #fff; font: 15px/1.4 "Courier New", monospace; }
+.v-bsod b { align-self: center; background: #aaa; color: #0000aa; padding: 0 6px; }
+.v-heart { position: fixed; z-index: 15; top: -40px; font-size: 28px; color: #ff1493; pointer-events: none; animation: v-fall 1.6s linear forwards; }
+@keyframes v-fall { to { transform: translateY(110vh) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .v-zoom { transition: none; } .v-heart { animation-duration: 0s; } .v-shake { animation: none; } .v-flip { transition: none; } }
 </style>
 </head>
 <body>
@@ -214,6 +220,42 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
         var els = document.querySelectorAll('h1, h2, p, td, li, img');
         for (var i = 0; i < els.length; i++) els[i].style.transform = 'rotate(' + (Math.random() * 30 - 15) + 'deg)';
         await wait(1200);
+      },
+      async function () {
+        var els = document.querySelectorAll('*');
+        for (var i = 0; i < els.length; i++) els[i].style.setProperty('--h', Math.floor(Math.random() * 360));
+        document.body.classList.add('v-comic'); await wait(1200); document.body.classList.remove('v-comic');
+      },
+      async function () {
+        var hs = document.querySelectorAll('h1, h2');
+        for (var i = 0; i < hs.length; i++) { hs[i].textContent = pick(['HOT BABES', 'SINGLES NEAR YOU', 'u up?', 'CLICK HERE', 'FREE SCREENSAVERS']); await wait(150); }
+        await wait(600);
+      },
+      async function () {
+        var d = document.createElement('div'), b = document.createElement('b'), p = document.createElement('p');
+        d.className = 'v-bsod'; b.textContent = 'Windows'; p.textContent = 'A fatal exception 0E has occurred at 0028:C0BABE5. Too many babes have been loaded into memory. Press any key to find more babes.';
+        d.append(b, p); document.body.appendChild(d);
+        await wait(1600); d.remove();
+      },
+      async function () {
+        for (var i = 0; i < 30; i++) {
+          var h = document.createElement('span'); h.className = 'v-heart'; h.textContent = pick(['\u2665', '\u2661', '\u{1F48B}']);
+          h.style.left = Math.random() * 95 + 'vw'; document.body.appendChild(h); await wait(50);
+        }
+        await wait(1000);
+      },
+      async function () {
+        var c = document.querySelectorAll('#counter span');
+        for (var t = 0; t < 25; t++) { for (var i = 0; i < c.length; i++) c[i].textContent = Math.floor(Math.random() * 10); await wait(50); }
+        for (var j = 0; j < c.length; j++) c[j].textContent = '6969696'[j] || '9';
+        popup('Visitor Counter', 'You are visitor number 6,969,696. A babe has been notified.'); await wait(900);
+      },
+      toggle(document.querySelector('.wrap'), 'v-zoom'),
+      async function () {
+        var w = popup('Norton AntiVirus 95', 'Scanning...'), p = w.querySelector('p');
+        var files = ['C:\\WINDOWS\\WIN.COM', 'C:\\homework\\definitely_homework.zip', 'C:\\WINDOWS\\babes.dll', 'C:\\My Documents\\diary.txt', 'C:\\AUTOEXEC.BAT', 'C:\\WINDOWS\\SYSTEM\\waifu32.drv'];
+        for (var i = 0; i < files.length; i++) { p.textContent = 'Scanning ' + files[i]; await wait(200); }
+        p.textContent = '1 threat found: you. Threat ignored.'; await wait(800);
       }
     ];
     ad.addEventListener('click', async function (e) {
@@ -221,7 +263,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
       if (busy) return;
       busy = true;
       var left = VIRUS.slice();
-      for (var k = 0; k < 3; k++) await left.splice(Math.floor(Math.random() * left.length), 1)[0]();
+      for (var k = 0; k < 4; k++) await left.splice(Math.floor(Math.random() * left.length), 1)[0]();
       popup('Babe Finder 1.0', 'Babes found in your area: 0. Games found: lots. Taking you there...');
       await wait(1200);
       location.href = ad.href;
