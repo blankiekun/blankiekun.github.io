@@ -8,6 +8,10 @@ import { rename, V, VERSIONS } from './version.js';
 // From XP on, windows show their contents while dragged instead of an outline, and a
 // maximized window can be pulled down off the top by its title bar.
 const LIVE = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === 'xp');
+// 1.0 tiled its windows: they split the screen between them and can't be moved or sized.
+// Dialogs and fixed-size windows still float over the tiles.
+const TILED = V.id === '1.0';
+let opened = 0;
 
 const layer = document.getElementById('windows');
 const tasks = document.getElementById('tasks');
@@ -54,6 +58,7 @@ export function createWindow(o) {
   const win = {
     app: o.app || null, opts: o, state: 'normal', route: o.route || null,
     minW: o.minW || 160, minH: o.minH || 90,
+    tiled: TILED && !o.dialog && resizable, seq: opened++,
   };
 
   const title = h('span', { class: 't' }, o.title);
@@ -93,7 +98,7 @@ export function createWindow(o) {
   const body = h('div', { class: 'win-body' });
   if (o.body) body.append(o.body);
   const el = h('section', {
-    class: 'win' + (o.dialog ? ' dialog' : '') + (o.className ? ' ' + o.className : '') + (o.width === 'auto' ? ' autosize' : ''),
+    class: 'win' + (win.tiled ? ' tiled' : '') + (o.dialog ? ' dialog' : '') + (o.className ? ' ' + o.className : '') + (o.width === 'auto' ? ' autosize' : ''),
     'aria-label': o.title, tabindex: '-1',
   }, bar, body);
 
@@ -165,6 +170,7 @@ export function createWindow(o) {
   if (o.parent && o.modal !== false && o.dialog) o.parent.modal = win;
   wins.push(win);
   if ((small.matches && !o.dialog) || o.maximized) maximize(win);
+  retile();
   focus(win);
   el.classList.add('opening');
   el.addEventListener('animationend', () => el.classList.remove('opening'), { once: true });
@@ -183,6 +189,7 @@ export function focus(win) {
     win.state = win.wasMax ? 'max' : 'normal';
     zoom(win, false);
     win.task?.classList.remove('min');
+    retile();
   }
   wins.splice(wins.indexOf(win), 1);
   wins.push(win);
@@ -244,6 +251,7 @@ export function minimize(win) {
   win.wasMax = win.state === 'max';
   win.state = 'min';
   win.el.classList.add('min');
+  retile();
   const next = topVisible();
   if (next) focus(next); else blurAll();
 }
@@ -254,6 +262,7 @@ export function maximize(win) {
   win.maxBtn.querySelector('use').setAttribute('href', '#i-restore');
   win.maxBtn.setAttribute('aria-label', 'Restore');
   if (win.opts.onResize) win.opts.onResize();
+  retile();
 }
 
 export function restore(win) {
@@ -264,6 +273,7 @@ export function restore(win) {
   win.maxBtn.setAttribute('aria-label', 'Maximize');
   fit(win);
   if (win.opts.onResize) win.opts.onResize();
+  retile();
 }
 
 export function toggleMax(win) {
@@ -281,6 +291,7 @@ export async function close(win, force) {
   wins.splice(wins.indexOf(win), 1);
   if (win.opts.parent && win.opts.parent.modal === win) win.opts.parent.modal = null;
   win.el.remove();
+  retile();
   if (win.task) { win.task.remove(); sound('Close program'); }
   if (win.opts.onClosed) win.opts.onClosed();
   if (active === win) {
@@ -314,7 +325,7 @@ function center(win) {
 // Moving and resizing draw a dithered outline that follows the pointer;
 // the window itself only jumps there when the button is released.
 function outlineDrag(win, e, mode) {
-  if (e.button !== 0 || (small.matches && !win.opts.dialog)) return;
+  if (e.button !== 0 || (small.matches && !win.opts.dialog) || (win.tiled && win.state === 'normal')) return;
   // A maximized window can't be moved or sized, as in Windows 95.
   let wasMax = win.state === 'max';
   if (wasMax && !(LIVE && mode === 'move')) return;
@@ -443,6 +454,7 @@ function onViewport() {
     else if (w.state !== 'max') fit(w);
     if (w.opts.onResize) w.opts.onResize();
   });
+  retile();
 }
 window.addEventListener('resize', onViewport);
 small.addEventListener('change', onViewport);
@@ -466,8 +478,8 @@ export function systemMenu(win, at) {
     ? [{ label: '&Move', action: () => keyMove(win, 'move') }, '-', { label: '&Close', key: 'Alt+F4', className: 'bold', action: () => close(win) }]
     : [
       { label: '&Restore', disabled: normal, action: () => win.state === 'min' ? focus(win) : restore(win) },
-      { label: '&Move', disabled: !normal, action: () => keyMove(win, 'move') },
-      { label: '&Size', disabled: !normal || !resizable, action: () => keyMove(win, 'size') },
+      { label: '&Move', disabled: !normal || win.tiled, action: () => keyMove(win, 'move') },
+      { label: '&Size', disabled: !normal || !resizable || win.tiled, action: () => keyMove(win, 'size') },
       { label: 'Mi&nimize', disabled: win.state === 'min', action: () => minimize(win) },
       { label: 'Ma&ximize', disabled: win.state === 'max' || win.maxBtn.disabled, action: () => { if (win.state === 'min') focus(win); maximize(win); } },
       '-',
@@ -574,6 +586,17 @@ export function tile(vertical) {
   const list = arrangeable();
   if (!list.length) return;
   remember(list, '&Undo Tile');
+  layout(list, vertical);
+}
+
+// 1.0's tiles, oldest window first, side by side.
+function retile() {
+  if (!TILED) return;
+  const list = wins.filter(w => w.tiled && w.state === 'normal').sort((a, b) => a.seq - b.seq);
+  if (list.length) layout(list, true);
+}
+
+function layout(list, vertical) {
   const A = area();
   const n = list.length;
   const lines = n <= 3 ? n : Math.ceil(Math.sqrt(n));

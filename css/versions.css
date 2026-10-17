@@ -22,6 +22,8 @@ html:is([data-win="1.0"], [data-win="2.0"]) {
 /* 1.0 tiled its windows, so they had no minimize or maximize buttons (the system menu still has both).
    2.0 brought overlapping windows and its own buttons: a down arrow, an up arrow, and both to restore. */
 [data-win="1.0"] .tbtn:is([aria-label="Minimize"], [aria-label="Maximize"], [aria-label="Restore"]) { display: none; }
+.win.tiled:not(.max, .min) .resize { display: none; }
+.win.tiled.autosize:not(.min) .win-body { flex: 1; overflow: auto; }
 [data-win="2.0"] .tbtn:is([aria-label="Minimize"], [aria-label="Maximize"], [aria-label="Restore"]) svg { display: none; }
 [data-win="2.0"] .tbtn:is([aria-label="Minimize"], [aria-label="Maximize"], [aria-label="Restore"])::before { font: 8px/1 sans-serif; color: #000; }
 [data-win="2.0"] .tbtn[aria-label="Minimize"]::before { content: "\25BC"; }
