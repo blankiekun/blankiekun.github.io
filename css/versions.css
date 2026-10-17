@@ -87,12 +87,12 @@ html[data-win="xp"] {
 [data-win="xp"] .tray { color: #fff; box-shadow: inset 1px 0 #1042af; background: linear-gradient(#0c59b9, #139ee9 10%, #18b9ed 15%, #1170cf 90%); }
 [data-win="xp"] .menu { background: #fff; box-shadow: 0 0 0 1px #aca899, 2px 2px 4px rgba(0, 0, 0, .3); }
 /* Buttons after XP.css: orange rim on hover, blue rim when focused or the default */
-[data-win="xp"] :is(.btn, .mbtn) { border-radius: 3px; border: 1px solid #003c74; box-shadow: none; color: #000; background: linear-gradient(#fff, #ecebe5 86%, #d8d0c4); }
+[data-win="xp"] :is(.btn, .mbtn, .cdp-tb, .dos-tb) { border-radius: 3px; border: 1px solid #003c74; box-shadow: none; color: #000; background: linear-gradient(#fff, #ecebe5 86%, #d8d0c4); }
 [data-win="xp"] :is(.btn.default, .btn:focus-visible) { box-shadow: inset -1px 1px #cee7ff, inset 1px 2px #98b8ea, inset -2px 2px #bcd4f6, inset 1px -1px #89ade4, inset 2px -2px #89ade4; }
-[data-win="xp"] :is(.btn, .mbtn):hover:not(:disabled) { box-shadow: inset -1px 1px #fff0cf, inset 1px 2px #fdd889, inset -2px 2px #fbc761, inset 2px -2px #e5a01a; }
+[data-win="xp"] :is(.btn, .mbtn, .cdp-tb, .dos-tb):hover:not(:disabled) { box-shadow: inset -1px 1px #fff0cf, inset 1px 2px #fdd889, inset -2px 2px #fbc761, inset 2px -2px #e5a01a; }
 [data-win="xp"] .btn:active:not(:disabled) { box-shadow: none; background: linear-gradient(#cdcac3, #e3e3db 8%, #e5e5de 94%, #f2f2f1); padding: 0 10px; }
-[data-win="xp"] :is(.mbtn:active:not(:disabled), .mbtn.on) { box-shadow: none; background: linear-gradient(#cdcac3, #e3e3db 8%, #e5e5de 94%, #f2f2f1); }
-[data-win="xp"] :is(.btn, .mbtn):disabled { border-color: #c9c7ba; color: #a1a192; text-shadow: none; background: #f5f4ea; }
+[data-win="xp"] :is(.mbtn:active:not(:disabled), .mbtn.on, .cdp-tb:active:not(:disabled), .cdp-tb[aria-pressed="true"], .dos-tb:active) { box-shadow: none; background: linear-gradient(#cdcac3, #e3e3db 8%, #e5e5de 94%, #f2f2f1); }
+[data-win="xp"] :is(.btn, .mbtn, .cdp-tb, .dos-tb):disabled { border-color: #c9c7ba; color: #a1a192; text-shadow: none; background: #f5f4ea; }
 [data-win="xp"] .field, [data-win="xp"] .listbox { box-shadow: none; border: 1px solid #7f9db9; }
 [data-win="xp"] select.field { background: #fff url(../img/skins/xp/dropdown.svg) right 1px center / 15px 17px no-repeat; padding-right: 18px; }
 [data-win="xp"] select.field:hover { background-image: url(../img/skins/xp/dropdown-hover.svg); }
@@ -173,14 +173,14 @@ html:is([data-win="vista"], [data-win="7"]) {
 :is([data-win="vista"], [data-win="7"]) .menu { background: #f5f5f5; box-shadow: 0 0 0 1px #979797, 2px 2px 4px rgba(0, 0, 0, .3); }
 :is([data-win="vista"], [data-win="7"]) .menu .mi.hot { background: linear-gradient(#eaf2fb, #d4e6fa); color: #000; border-radius: 3px; box-shadow: inset 0 0 0 1px #a8d8eb; }
 /* Buttons, fields, checkboxes and radio buttons after 7.css; the default button glows on and off. */
-:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn) { border-radius: 3px; border: 1px solid #8e8f8f; color: #222; box-shadow: inset 0 0 0 1px #fffc;
+:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn, .cdp-tb, .dos-tb) { border-radius: 3px; border: 1px solid #8e8f8f; color: #222; box-shadow: inset 0 0 0 1px #fffc;
   background: linear-gradient(#f2f2f2 45%, #ebebeb 0, #cfcfcf); }
 :is([data-win="vista"], [data-win="7"]) :is(.btn.default, .btn:focus-visible) { border-color: #5586a3; background: linear-gradient(#eaf6fd 45%, #bee6fd 0, #a7d9f5); animation: pulse7 1s ease infinite alternate; }
-:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn):hover:not(:disabled) { border-color: #3c7fb1; background: linear-gradient(#eaf6fd 45%, #bee6fd 0, #a7d9f5); }
+:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn, .cdp-tb, .dos-tb):hover:not(:disabled) { border-color: #3c7fb1; background: linear-gradient(#eaf6fd 45%, #bee6fd 0, #a7d9f5); }
 :is([data-win="vista"], [data-win="7"]) .btn:active:not(:disabled) { border-color: #6d91ab; animation: none; box-shadow: inset 1px 1px #0003, inset -1px 1px #0001; padding: 0 10px;
   background: linear-gradient(#e5f4fc, #c4e5f6 30% 50%, #98d1ef 50%, #68b3db); }
-:is([data-win="vista"], [data-win="7"]) :is(.mbtn:active:not(:disabled), .mbtn.on) { border-color: #6d91ab; box-shadow: inset 1px 1px #0003, inset -1px 1px #0001; background: linear-gradient(#e5f4fc, #c4e5f6 30% 50%, #98d1ef 50%, #68b3db); }
-:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn):disabled { background: #f4f4f4; border-color: #adb2b5; color: #838383; text-shadow: none; animation: none; }
+:is([data-win="vista"], [data-win="7"]) :is(.mbtn:active:not(:disabled), .mbtn.on, .cdp-tb:active:not(:disabled), .cdp-tb[aria-pressed="true"], .dos-tb:active) { border-color: #6d91ab; box-shadow: inset 1px 1px #0003, inset -1px 1px #0001; background: linear-gradient(#e5f4fc, #c4e5f6 30% 50%, #98d1ef 50%, #68b3db); }
+:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn, .cdp-tb, .dos-tb):disabled { background: #f4f4f4; border-color: #adb2b5; color: #838383; text-shadow: none; animation: none; }
 @keyframes pulse7 { from { box-shadow: inset 0 0 3px 1px #34deffdd; } to { box-shadow: inset 0 0 1px 1px #34deffdd; } }
 @media (prefers-reduced-motion: reduce) { :is([data-win="vista"], [data-win="7"]) .btn { animation: none !important; } }
 :is([data-win="vista"], [data-win="7"]) :is(.field, .listbox) { box-shadow: none; border: 1px solid; border-color: #abadb3 #dbdfe6 #e3e9ef #e2e3ea; border-radius: 2px; }
@@ -237,12 +237,12 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 :is([data-win="8"], [data-win="10"]) .startmenu .mi { color: #fff; }
 :is([data-win="8"], [data-win="10"]) .startmenu .mi.hot { background: rgba(255, 255, 255, .14); color: #fff; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .menu hr { box-shadow: inset 0 1px #ccc; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.btn, .mbtn) { border: 1px solid #adadad; box-shadow: none; background: #e1e1e1; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.btn, .mbtn):hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.btn, .mbtn, .cdp-tb, .dos-tb) { border: 1px solid #adadad; box-shadow: none; background: #e1e1e1; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.btn, .mbtn, .cdp-tb, .dos-tb):hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .btn.default { border: 2px solid #0078d7; box-shadow: none; }
-:is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .mbtn:disabled svg { filter: none; }
+:is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) :is(.mbtn, .cdp-tb):disabled svg { filter: none; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .btn:active:not(:disabled) { box-shadow: none; background: #cce4f7; padding: 0 10px; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.mbtn:active:not(:disabled), .mbtn.on) { box-shadow: none; background: #cce4f7; border-color: #0078d7; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.mbtn:active:not(:disabled), .mbtn.on, .cdp-tb:active:not(:disabled), .cdp-tb[aria-pressed="true"], .dos-tb:active) { box-shadow: none; background: #cce4f7; border-color: #0078d7; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.field, .listbox) { box-shadow: none; border: 1px solid #7a7a7a; }
 
 /* 8: coloured frames and a centred title */
@@ -274,7 +274,7 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 [data-win="11"] .menu { padding: 4px; box-shadow: 0 0 0 1px #e0e0e0, 0 8px 20px rgba(0, 0, 0, .18); background: #f9f9f9; }
 [data-win="11"] .menu .mi { border-radius: 4px; }
 [data-win="11"] .menu .mi.hot { background: rgba(0, 0, 0, .06); }
-[data-win="11"] :is(.btn, .mbtn) { background: #fbfbfb; border-color: #d0d0d0; }
+[data-win="11"] :is(.btn, .mbtn, .cdp-tb, .dos-tb) { background: #fbfbfb; border-color: #d0d0d0; }
 [data-win="11"] .btn.default { background: #0067c0; color: #fff; border: 1px solid #005ba1; }
 
 /* ---------- 7 on: the superbar. Pins and open programs share one row of icon-only buttons,
@@ -591,6 +591,16 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 :is([data-win="vista"], [data-win="7"], [data-win="8"]) .ie-tool:not(:nth-child(-n+2)):hover:not(:disabled) { background: linear-gradient(#f4f9fe, #d7e8fb); box-shadow: inset 0 0 0 1px #8fb4dd; }
 :is([data-win="vista"], [data-win="7"], [data-win="8"]) .ie-addr-field { box-shadow: inset 0 0 0 1px #8e9cb2; border-radius: 2px; height: 24px; }
 [data-win="8"] .ie-top { background: #fff; }
+
+/* ---------- Flat toolbar buttons (Explorer, HyperTerminal, Inbox) light up like Internet Explorer's ---------- */
+[data-win="xp"] :is(.ex-tb, .ht-tb, .ix-tb):hover:not(:disabled) { background: linear-gradient(#fff, #e3e1d6); box-shadow: inset 0 0 0 1px #c3c0b2; border-radius: 3px; }
+[data-win="xp"] :is(:is(.ex-tb, .ht-tb, .ix-tb):active:not(:disabled), .ex-tb[aria-pressed="true"]) { background: #e3e1d6; box-shadow: inset 1px 1px 2px rgba(0, 0, 0, .25); border-radius: 3px; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"]) :is(.ex-tb, .ht-tb, .ix-tb):hover:not(:disabled) { background: linear-gradient(#f4f9fe, #d7e8fb); box-shadow: inset 0 0 0 1px #8fb4dd; border-radius: 3px; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"]) :is(:is(.ex-tb, .ht-tb, .ix-tb):active:not(:disabled), .ex-tb[aria-pressed="true"]) { background: linear-gradient(#dbeaf9, #c2dcf6); box-shadow: inset 0 0 0 1px #6f9ccf, inset 1px 1px 2px rgba(0, 0, 0, .2); border-radius: 3px; }
+:is([data-win="10"], [data-win="11"]) :is(.ex-tb, .ht-tb, .ix-tb):hover:not(:disabled) { background: rgba(0, 0, 0, .07); box-shadow: none; }
+:is([data-win="10"], [data-win="11"]) :is(:is(.ex-tb, .ht-tb, .ix-tb):active:not(:disabled), .ex-tb[aria-pressed="true"]) { background: rgba(0, 0, 0, .14); box-shadow: none; }
+:is([data-win="xp"], :is([data-win="vista"], [data-win="7"], [data-win="8"]), :is([data-win="10"], [data-win="11"])) :is(.ex-tb, .ht-tb, .ix-tb):active:not(:disabled) svg { transform: none; }
+:is([data-win="xp"], :is([data-win="vista"], [data-win="7"], [data-win="8"]), :is([data-win="10"], [data-win="11"])) :is(.ex-tb, .ht-tb, .ix-tb):disabled svg { filter: grayscale(1) opacity(.45); }
 
 /* ---------- Edge (10 and 11): no menu bar or status bar, line icons, a rounded address box and the ··· menu ---------- */
 :is([data-win="10"], [data-win="11"]) .ie-top { background: #f7f7f7; }
