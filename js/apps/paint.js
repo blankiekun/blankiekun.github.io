@@ -3,7 +3,7 @@
 
 import { h, clamp } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { menubar, openMenu } from '../menu.js';
+import { menubar, openMenu, ribbon, rbtn, hasRibbon } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { saveAs, openFile, saveTo } from '../filedlg.js';
 import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
@@ -49,6 +49,20 @@ const SIZE_KEY = { curve: 'line' };    // the Curve shares the Line's width, as 
 const SHAPES = ['rect', 'ellipse', 'rrect', 'polygon'];
 const SELECTS = ['select', 'freeselect'];
 const ZOOMS = [1, 2, 6, 8];
+// The ribbon's own buttons (the tools keep their toolbox pictures).
+const RB = {
+  paste: svg("<path d='M2.5 2.5h9v12h-9z' fill='#c8a060' stroke='#000'/><path d='M5 1.5h4v2H5z' fill='#ccc' stroke='#000'/><path d='M7.5 6.5h7v8h-7z' fill='#fff' stroke='#000'/><path d='M9 9h4M9 11h4' stroke='#888'/>"),
+  cut: svg("<path d='M5 1l5.5 9M11 1L5.5 10' stroke='#555' stroke-width='1.3'/><circle cx='4.5' cy='12.5' r='2' fill='none' stroke='#000' stroke-width='1.3'/><circle cx='11.5' cy='12.5' r='2' fill='none' stroke='#000' stroke-width='1.3'/>"),
+  copy: svg("<path d='M1.5 1.5h7v9h-7z' fill='#fff' stroke='#000'/><path d='M6.5 5.5h8v9h-8z' fill='#fff' stroke='#000'/><path d='M8 8h5M8 10h5M8 12h3' stroke='#888'/>"),
+  select: svg("<path d='M1.5 2.5h13v11h-13z' fill='none' stroke='#000' stroke-dasharray='2 1'/>"),
+  resize: svg("<path d='M1.5 6.5h7v8h-7z' fill='#9cf' stroke='#000'/><path d='M4.5 1.5h10v10' fill='none' stroke='#000' stroke-dasharray='2 1'/><path d='M8 8l5-5M10 3h3v3' fill='none' stroke='#06c'/>"),
+  rotate: svg("<path d='M3 9a5 5 0 1 0 2-5' fill='none' stroke='#06c' stroke-width='1.5'/><path d='M2 1v5h5' fill='none' stroke='#06c' stroke-width='1.5'/>"),
+  zoomIn: svg("<circle cx='6.5' cy='6.5' r='4.5' fill='#fff' stroke='#000'/><path d='M10 10l4.5 4.5' stroke='#000' stroke-width='2'/><path d='M4 6.5h5M6.5 4v5' stroke='#06c' stroke-width='1.3'/>"),
+  zoomOut: svg("<circle cx='6.5' cy='6.5' r='4.5' fill='#fff' stroke='#000'/><path d='M10 10l4.5 4.5' stroke='#000' stroke-width='2'/><path d='M4 6.5h5' stroke='#06c' stroke-width='1.3'/>"),
+  actual: svg("<circle cx='6.5' cy='6.5' r='4.5' fill='#fff' stroke='#000'/><path d='M10 10l4.5 4.5' stroke='#000' stroke-width='2'/><path d='M5.5 4.5l1-1v6' fill='none' stroke='#06c' stroke-width='1.3'/>"),
+  full: svg("<path d='M1.5 2.5h13v9h-13z' fill='#36c' stroke='#000'/><path d='M6 12v2M10 12v2M4 14.5h8' stroke='#000'/>"),
+  colors: svg("<circle cx='8' cy='8' r='6.5' fill='none' stroke='#f00' stroke-width='3' stroke-dasharray='5 0 0 25'/><circle cx='8' cy='8' r='6' fill='url(#rbc)'/><defs><linearGradient id='rbc'><stop offset='0' stop-color='#f00'/><stop offset='.35' stop-color='#ff0'/><stop offset='.65' stop-color='#0c0'/><stop offset='1' stop-color='#00f'/></linearGradient></defs><circle cx='8' cy='8' r='6' fill='none' stroke='#000'/>"),
+};
 const MODE_ICONS = {
   opaque: svg("<rect x='1.5' y='2.5' width='13' height='11' fill='#fff' stroke='#000'/><circle cx='6' cy='7' r='3' fill='#ff0000'/><rect x='7' y='7' width='6' height='5' fill='#0000ff'/>"),
   transparent: svg("<circle cx='6' cy='7' r='3' fill='#ff0000'/><rect x='7' y='7' width='6' height='5' fill='#0000ff'/><path d='M1.5 2.5h13v11h-13z' fill='none' stroke='#000' stroke-dasharray='1 1'/>"),
@@ -1154,7 +1168,7 @@ function open(arg) {
     action: it.action && (() => { root.focus({ preventScroll: true }); it.action(); }),
     submenu: it.submenu && (() => refocus(typeof it.submenu === 'function' ? it.submenu() : it.submenu)),
   });
-  const bar = menubar([
+  const menus = [
     { label: '&File', items: () => [
       { label: '&New', key: 'Ctrl+N', action: newImage },
       { label: '&Open...', key: 'Ctrl+O', action: openDialog },
@@ -1194,7 +1208,32 @@ function open(arg) {
       '-',
       { label: '&About Paint', action: () => about('Paint', 'i-paint', win) },
     ] },
-  ].map(m => ({ ...m, items: () => refocus(m.items()) })));
+  ].map(m => ({ ...m, items: () => refocus(m.items()) }));
+  // From 7 the tool box, its options and the colour box move into the ribbon.
+  const rb = (label, glyph, action, big) => rbtn(label, glyph, (e, b) => { root.focus({ preventScroll: true }); action(b); }, big);
+  const rbChk = (label, get, flip) => {
+    const c = h('input', { type: 'checkbox' });
+    c.checked = get();
+    c.addEventListener('change', () => { flip(); c.checked = get(); root.focus({ preventScroll: true }); });
+    return h('label', { class: 'rb-chk' }, c, label);
+  };
+  const col = (...kids) => h('div', { class: 'rb-col' }, ...kids);
+  const zoomBy = d => setZoom(ZOOMS[clamp(ZOOMS.findIndex(z => z >= zoom) + d, 0, ZOOMS.length - 1)]);
+  const bar = hasRibbon ? ribbon(menus, [
+    { label: 'Home', groups: [
+      ['Clipboard', rb('Paste', RB.paste, pasteMenu, true), col(rb('Cut', RB.cut, cutSel), rb('Copy', RB.copy, copySel))],
+      ['Image', rb('Select', RB.select, () => setTool('select'), true),
+        col(rb('Resize', RB.resize, stretchSkew), rb('Rotate', RB.rotate, b => openMenu(refocus(imageItems()[0].submenu), { rect: b.getBoundingClientRect() })))],
+      ['Tools', toolbox.firstChild],
+      ['Size', options],
+      ['Colors', colorbox, rb('Edit colors', RB.colors, () => editColors(), true)],
+    ] },
+    { label: 'View', groups: [
+      ['Zoom', rb('Zoom in', RB.zoomIn, () => zoomBy(1), true), rb('Zoom out', RB.zoomOut, () => zoomBy(-1), true), rb('100%', RB.actual, () => setZoom(1), true)],
+      ['Show or hide', col(rbChk('Gridlines', () => grid && zoom >= 4, toggleGrid), rbChk('Status bar', () => !status.hidden, () => { status.hidden = !status.hidden; }))],
+      ['Display', rb('Full screen', RB.full, viewBitmap, true)],
+    ] },
+  ]) : menubar(menus);
 
   function sendDrawing() {
     finishPending();
@@ -1230,7 +1269,7 @@ function open(arg) {
     return true;
   }
 
-  const root = h('div', { class: 'pt', tabindex: '-1' }, bar, fontbar, h('div', { class: 'pt-main' }, toolbox, area, thumb), colorbox, status);
+  const root = h('div', { class: 'pt' + (hasRibbon ? ' rb-on' : ''), tabindex: '-1' }, bar, fontbar, h('div', { class: 'pt-main' }, ...(hasRibbon ? [] : [toolbox]), area, thumb), ...(hasRibbon ? [] : [colorbox]), status);
   if (sendEnabled()) {
     const btn = sendButton('Send to blankiekun...', sendDrawing);
     colorbox.append(btn);
