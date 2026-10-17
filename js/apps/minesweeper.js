@@ -34,8 +34,8 @@ function open() {
   const prefs = { level: 'beginner', marks: true, color: true, custom: { w: 20, h: 12, m: 30 }, ...store.get(PREFS, {}) };
   let cfg, cells, state, opened, flags, timer, seconds, pressed = [], chording = false;
 
-  const counter = h('div', { class: 'ms-led', 'aria-label': 'Mines left', role: 'status' });
-  const clock = h('div', { class: 'ms-led', 'aria-label': 'Seconds' });
+  const counter = h('div', { class: 'ms-led ms-mines', 'aria-label': 'Mines left', role: 'status' });
+  const clock = h('div', { class: 'ms-led ms-time', 'aria-label': 'Seconds' });
   const face = h('button', { class: 'ms-face smile', type: 'button', 'aria-label': 'New game' });
   const board = h('div', { class: 'ms-board', role: 'grid', 'aria-label': 'Minefield', tabindex: '0' });
   const root = h('div', { class: 'ms' + (prefs.color ? '' : ' mono') },
@@ -103,6 +103,9 @@ function open() {
   function updateCounters() {
     counter.innerHTML = sevenSeg(cfg.m - flags);
     clock.innerHTML = sevenSeg(seconds);
+    // From Vista on the counters are plain numbers (css/games.css).
+    counter.dataset.n = cfg.m - flags;
+    clock.dataset.n = seconds;
   }
   function setFace(f) { face.className = 'ms-face ' + f; }
 
