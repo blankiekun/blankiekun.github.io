@@ -272,14 +272,14 @@ body.dragging iframe { pointer-events: none; }
   padding: 4px 2px calc(2px + env(safe-area-inset-bottom, 0px));
   display: flex; gap: 4px; align-items: stretch;
 }
-.start {
+.taskbar .start {
   display: flex; align-items: center; gap: 3px;
   font-weight: bold; padding: 2px 5px 2px 4px;
   background: var(--face); box-shadow: var(--raised-btn); border: 0; cursor: var(--arrow); color: var(--ink);
 }
-.start[aria-expanded="true"] { box-shadow: var(--sunken); padding: 3px 4px 1px 5px; }
-.start[aria-expanded="true"] span { outline: 1px dotted var(--ink); }
-.start svg { width: 20px; height: 18px; }
+.taskbar .start[aria-expanded="true"] { box-shadow: var(--sunken); padding: 3px 4px 1px 5px; }
+.taskbar .start[aria-expanded="true"] span { outline: 1px dotted var(--ink); }
+.taskbar .start svg { width: 20px; height: 18px; }
 .quick { display: flex; align-items: center; gap: 1px; padding: 0 4px 0 6px; flex: none; box-shadow: inset 1px 0 var(--shadow), inset 2px 0 var(--hilite), inset -1px 0 var(--shadow), inset -2px 0 var(--hilite); }
 .quick:empty { display: none; }
 .quick button { touch-action: none; width: 22px; height: 22px; padding: 0; border: 0; background: var(--face); display: grid; place-items: center; cursor: var(--arrow); }

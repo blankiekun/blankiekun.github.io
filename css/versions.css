@@ -10,7 +10,7 @@ html:is([data-win="1.0"], [data-win="2.0"]) {
   --title: #0000aa !important; --title-off: #ffffff !important; --title-ink-off: #000000 !important; --select: #000000 !important;
   --font-ui: var(--font-pixel);
 }
-:is([data-win="1.0"], [data-win="2.0"]) :is(.win, .menu, .btn, .tbtn, .task, .start, .field, .listbox, .tabpanel, .group) { box-shadow: 0 0 0 1px #000 inset; }
+:is([data-win="1.0"], [data-win="2.0"]) :is(.win, .menu, .btn, .tbtn, .task, .taskbar .start, .field, .listbox, .tabpanel, .group) { box-shadow: 0 0 0 1px #000 inset; }
 :is([data-win="1.0"], [data-win="2.0"]) .win { padding: 1px; }
 :is([data-win="1.0"], [data-win="2.0"]) body { font-size: 12px; }
 :is([data-win="1.0"], [data-win="2.0"]) .titlebar { border-bottom: 1px solid #000; }
@@ -37,6 +37,8 @@ html:is([data-win="2000"], [data-win="xp"]) { --font-ui: Tahoma, "Pixelated MS S
 /* ---------- XP on: no 95 banner, and icon labels float over the wallpaper ---------- */
 :is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .startmenu .side { display: none; }
 :is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .icon span { background: none; text-shadow: 1px 1px 2px #000, 0 0 3px rgba(0, 0, 0, .6); }
+/* Their fields have a 1px border, so a 21px dropdown has no room for the bigger font's line once padded */
+:is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) select.field { padding-top: 0; padding-bottom: 0; }
 
 /* ---------- XP: Luna blue ---------- */
 html[data-win="xp"] {
@@ -73,10 +75,10 @@ html[data-win="xp"] {
 [data-win="xp"] .tbtn[aria-label="Close"]:hover:not(:disabled) { background-image: url(../img/skins/xp/close-hover.svg); }
 [data-win="xp"] .tbtn[aria-label="Close"]:active:not(:disabled) { background-image: url(../img/skins/xp/close-active.svg); }
 [data-win="xp"] .taskbar { padding: 0; box-shadow: none; background: linear-gradient(#3168d5, #4993e6 8%, #2157d7 20%, #2663e0 90%, #1941a5); }
-[data-win="xp"] .start { padding: 0 20px 0 8px; margin-right: 6px; border-radius: 0 12px 12px 0; color: #fff; box-shadow: inset -2px 0 3px rgba(0, 0, 0, .2);
+[data-win="xp"] .taskbar .start { padding: 0 20px 0 8px; margin-right: 6px; border-radius: 0 12px 12px 0; color: #fff; box-shadow: inset -2px 0 3px rgba(0, 0, 0, .2);
   background: linear-gradient(#5eac56, #3c9a3c 15%, #389e38 80%, #2b7f2b); font: italic bold 19px/1 "Trebuchet MS", sans-serif; text-shadow: 1px 1px 2px #1a4a1a; }
-[data-win="xp"] .start[aria-expanded="true"] { background: linear-gradient(#2e7f2e, #296f29); padding: 0 20px 0 8px; box-shadow: inset 1px 1px 4px rgba(0, 0, 0, .5); }
-[data-win="xp"] .start[aria-expanded="true"] span { outline: 0; }
+[data-win="xp"] .taskbar .start[aria-expanded="true"] { background: linear-gradient(#2e7f2e, #296f29); padding: 0 20px 0 8px; box-shadow: inset 1px 1px 4px rgba(0, 0, 0, .5); }
+[data-win="xp"] .taskbar .start[aria-expanded="true"] span { outline: 0; }
 [data-win="xp"] .quick { box-shadow: none; }
 [data-win="xp"] .quick button { background: none; }
 [data-win="xp"] .tasks { padding: 3px 0; }
@@ -85,11 +87,12 @@ html[data-win="xp"] {
 [data-win="xp"] .tray { color: #fff; box-shadow: inset 1px 0 #1042af; background: linear-gradient(#0c59b9, #139ee9 10%, #18b9ed 15%, #1170cf 90%); }
 [data-win="xp"] .menu { background: #fff; box-shadow: 0 0 0 1px #aca899, 2px 2px 4px rgba(0, 0, 0, .3); }
 /* Buttons after XP.css: orange rim on hover, blue rim when focused or the default */
-[data-win="xp"] .btn { border-radius: 3px; border: 1px solid #003c74; box-shadow: none; color: #000; background: linear-gradient(#fff, #ecebe5 86%, #d8d0c4); }
+[data-win="xp"] :is(.btn, .mbtn) { border-radius: 3px; border: 1px solid #003c74; box-shadow: none; color: #000; background: linear-gradient(#fff, #ecebe5 86%, #d8d0c4); }
 [data-win="xp"] :is(.btn.default, .btn:focus-visible) { box-shadow: inset -1px 1px #cee7ff, inset 1px 2px #98b8ea, inset -2px 2px #bcd4f6, inset 1px -1px #89ade4, inset 2px -2px #89ade4; }
-[data-win="xp"] .btn:hover:not(:disabled) { box-shadow: inset -1px 1px #fff0cf, inset 1px 2px #fdd889, inset -2px 2px #fbc761, inset 2px -2px #e5a01a; }
+[data-win="xp"] :is(.btn, .mbtn):hover:not(:disabled) { box-shadow: inset -1px 1px #fff0cf, inset 1px 2px #fdd889, inset -2px 2px #fbc761, inset 2px -2px #e5a01a; }
 [data-win="xp"] .btn:active:not(:disabled) { box-shadow: none; background: linear-gradient(#cdcac3, #e3e3db 8%, #e5e5de 94%, #f2f2f1); padding: 0 10px; }
-[data-win="xp"] .btn:disabled { border-color: #c9c7ba; color: #a1a192; text-shadow: none; background: #f5f4ea; }
+[data-win="xp"] :is(.mbtn:active:not(:disabled), .mbtn.on) { box-shadow: none; background: linear-gradient(#cdcac3, #e3e3db 8%, #e5e5de 94%, #f2f2f1); }
+[data-win="xp"] :is(.btn, .mbtn):disabled { border-color: #c9c7ba; color: #a1a192; text-shadow: none; background: #f5f4ea; }
 [data-win="xp"] .field, [data-win="xp"] .listbox { box-shadow: none; border: 1px solid #7f9db9; }
 [data-win="xp"] select.field { background: #fff url(../img/skins/xp/dropdown.svg) right 1px center / 15px 17px no-repeat; padding-right: 18px; }
 [data-win="xp"] select.field:hover { background-image: url(../img/skins/xp/dropdown-hover.svg); }
@@ -157,10 +160,10 @@ html:is([data-win="vista"], [data-win="7"]) {
 :is([data-win="vista"], [data-win="7"]) .taskbar { padding: 0 2px; box-shadow: inset 0 1px rgba(255, 255, 255, .25);
   background: rgba(15, 25, 40, .78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 [data-win="7"] .taskbar { background: rgba(25, 55, 95, .62); }
-:is([data-win="vista"], [data-win="7"]) .start { width: 40px; height: 40px; margin: -1px 4px -1px 2px; padding: 0; justify-content: center; border-radius: 50%;
+:is([data-win="vista"], [data-win="7"]) .taskbar .start { width: 40px; height: 40px; margin: -1px 4px -1px 2px; padding: 0; justify-content: center; border-radius: 50%;
   background: radial-gradient(circle at 50% 30%, #a8e0ff, #2a7fd6 50%, #0c3a7a); box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), inset 0 1px 1px rgba(255, 255, 255, .7); align-self: center; }
-:is([data-win="vista"], [data-win="7"]) .start[aria-expanded="true"] { padding: 0; box-shadow: 0 0 10px #7cd0ff, 0 0 0 1px rgba(0, 0, 0, .6); }
-:is([data-win="vista"], [data-win="7"]) .start svg { width: 22px; height: 20px; }
+:is([data-win="vista"], [data-win="7"]) .taskbar .start[aria-expanded="true"] { padding: 0; box-shadow: 0 0 10px #7cd0ff, 0 0 0 1px rgba(0, 0, 0, .6); }
+:is([data-win="vista"], [data-win="7"]) .taskbar .start svg { width: 22px; height: 20px; }
 :is([data-win="vista"], [data-win="7"]) .quick { box-shadow: none; }
 :is([data-win="vista"], [data-win="7"]) .quick button { background: none; }
 :is([data-win="vista"], [data-win="7"]) .tasks { padding: 4px 0; }
@@ -170,13 +173,14 @@ html:is([data-win="vista"], [data-win="7"]) {
 :is([data-win="vista"], [data-win="7"]) .menu { background: #f5f5f5; box-shadow: 0 0 0 1px #979797, 2px 2px 4px rgba(0, 0, 0, .3); }
 :is([data-win="vista"], [data-win="7"]) .menu .mi.hot { background: linear-gradient(#eaf2fb, #d4e6fa); color: #000; border-radius: 3px; box-shadow: inset 0 0 0 1px #a8d8eb; }
 /* Buttons, fields, checkboxes and radio buttons after 7.css; the default button glows on and off. */
-:is([data-win="vista"], [data-win="7"]) .btn { border-radius: 3px; border: 1px solid #8e8f8f; color: #222; box-shadow: inset 0 0 0 1px #fffc;
+:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn) { border-radius: 3px; border: 1px solid #8e8f8f; color: #222; box-shadow: inset 0 0 0 1px #fffc;
   background: linear-gradient(#f2f2f2 45%, #ebebeb 0, #cfcfcf); }
 :is([data-win="vista"], [data-win="7"]) :is(.btn.default, .btn:focus-visible) { border-color: #5586a3; background: linear-gradient(#eaf6fd 45%, #bee6fd 0, #a7d9f5); animation: pulse7 1s ease infinite alternate; }
-:is([data-win="vista"], [data-win="7"]) .btn:hover:not(:disabled) { border-color: #3c7fb1; background: linear-gradient(#eaf6fd 45%, #bee6fd 0, #a7d9f5); }
+:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn):hover:not(:disabled) { border-color: #3c7fb1; background: linear-gradient(#eaf6fd 45%, #bee6fd 0, #a7d9f5); }
 :is([data-win="vista"], [data-win="7"]) .btn:active:not(:disabled) { border-color: #6d91ab; animation: none; box-shadow: inset 1px 1px #0003, inset -1px 1px #0001; padding: 0 10px;
   background: linear-gradient(#e5f4fc, #c4e5f6 30% 50%, #98d1ef 50%, #68b3db); }
-:is([data-win="vista"], [data-win="7"]) .btn:disabled { background: #f4f4f4; border-color: #adb2b5; color: #838383; text-shadow: none; animation: none; }
+:is([data-win="vista"], [data-win="7"]) :is(.mbtn:active:not(:disabled), .mbtn.on) { border-color: #6d91ab; box-shadow: inset 1px 1px #0003, inset -1px 1px #0001; background: linear-gradient(#e5f4fc, #c4e5f6 30% 50%, #98d1ef 50%, #68b3db); }
+:is([data-win="vista"], [data-win="7"]) :is(.btn, .mbtn):disabled { background: #f4f4f4; border-color: #adb2b5; color: #838383; text-shadow: none; animation: none; }
 @keyframes pulse7 { from { box-shadow: inset 0 0 3px 1px #34deffdd; } to { box-shadow: inset 0 0 1px 1px #34deffdd; } }
 @media (prefers-reduced-motion: reduce) { :is([data-win="vista"], [data-win="7"]) .btn { animation: none !important; } }
 :is([data-win="vista"], [data-win="7"]) :is(.field, .listbox) { box-shadow: none; border: 1px solid; border-color: #abadb3 #dbdfe6 #e3e9ef #e2e3ea; border-radius: 2px; }
@@ -213,13 +217,13 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn:active:not(:disabled) svg { transform: none; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn svg { width: 10px; height: 10px; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar { padding: 0; box-shadow: none; background: rgba(16, 16, 16, .92); }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .start { width: 48px; padding: 0; justify-content: center; background: none; box-shadow: none; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .start:hover, :is([data-win="8"], [data-win="10"], [data-win="11"]) .start[aria-expanded="true"] { background: rgba(255, 255, 255, .12); padding: 0; box-shadow: none; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .start svg { display: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar .start { width: 48px; padding: 0; justify-content: center; background: none; box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar .start:hover, :is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar .start[aria-expanded="true"] { background: rgba(255, 255, 255, .12); padding: 0; box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar .start svg { display: none; }
 /* The four-pane logo: a white square cut by a cross in the taskbar's colour. */
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .start::before { content: ''; width: 16px; height: 16px;
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar .start::before { content: ''; width: 16px; height: 16px;
   background: linear-gradient(90deg, transparent 45%, #101010 45% 55%, transparent 55%), linear-gradient(transparent 45%, #101010 45% 55%, transparent 55%), #fff; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .start[aria-expanded="true"] span { outline: 0; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar .start[aria-expanded="true"] span { outline: 0; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .quick { box-shadow: none; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .quick button { background: none; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .quick button:hover { background: rgba(255, 255, 255, .12); box-shadow: none; }
@@ -233,10 +237,12 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 :is([data-win="8"], [data-win="10"]) .startmenu .mi { color: #fff; }
 :is([data-win="8"], [data-win="10"]) .startmenu .mi.hot { background: rgba(255, 255, 255, .14); color: #fff; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .menu hr { box-shadow: inset 0 1px #ccc; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .btn { border: 1px solid #adadad; box-shadow: none; background: #e1e1e1; }
-:is([data-win="8"], [data-win="10"], [data-win="11"]) .btn:hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.btn, .mbtn) { border: 1px solid #adadad; box-shadow: none; background: #e1e1e1; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.btn, .mbtn):hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .btn.default { border: 2px solid #0078d7; box-shadow: none; }
+:is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .mbtn:disabled svg { filter: none; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .btn:active:not(:disabled) { box-shadow: none; background: #cce4f7; padding: 0 10px; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.mbtn:active:not(:disabled), .mbtn.on) { box-shadow: none; background: #cce4f7; border-color: #0078d7; }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.field, .listbox) { box-shadow: none; border: 1px solid #7a7a7a; }
 
 /* 8: coloured frames and a centred title */
@@ -245,7 +251,7 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 [data-win="8"] .titlebar .t { text-align: center; }
 [data-win="8"] .tbtn.x { background: #c75050; color: #fff; width: 46px; }
 [data-win="8"] .taskbar { background: rgba(20, 40, 70, .85); }
-[data-win="8"] .start::before { background: linear-gradient(90deg, transparent 45%, #142846 45% 55%, transparent 55%), linear-gradient(transparent 45%, #142846 45% 55%, transparent 55%), #fff; }
+[data-win="8"] .taskbar .start::before { background: linear-gradient(90deg, transparent 45%, #142846 45% 55%, transparent 55%), linear-gradient(transparent 45%, #142846 45% 55%, transparent 55%), #fff; }
 
 /* 11: rounded corners, a light taskbar with its buttons in the middle */
 [data-win="11"] .win { border-radius: 8px; }
@@ -256,19 +262,19 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
 [data-win="11"] .titlebar, [data-win="11"] .win.active > .titlebar { background: #f3f3f3; }
 [data-win="11"] .tbtn.x:hover { border-top-right-radius: 8px; }
 [data-win="11"] .taskbar { background: rgba(243, 243, 243, .9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: inset 0 1px #ddd; }
-[data-win="11"] .start { margin-left: auto; border-radius: 4px; }
-[data-win="11"] .start::before { background: linear-gradient(90deg, transparent 45%, #f3f3f3 45% 55%, transparent 55%), linear-gradient(transparent 45%, #f3f3f3 45% 55%, transparent 55%), #0078d4; }
+[data-win="11"] .taskbar .start { margin-left: auto; border-radius: 4px; }
+[data-win="11"] .taskbar .start::before { background: linear-gradient(90deg, transparent 45%, #f3f3f3 45% 55%, transparent 55%), linear-gradient(transparent 45%, #f3f3f3 45% 55%, transparent 55%), #0078d4; }
 [data-win="11"] .tasks { flex: 0 1 auto; padding: 3px 0; }
 [data-win="11"] .tray { margin-left: auto; color: #000; }
 [data-win="11"] .task { color: #000; border-radius: 4px; }
 [data-win="11"] .task.on { background: rgba(0, 0, 0, .06); box-shadow: inset 0 -3px #0067c0; }
-[data-win="11"] .start:hover, [data-win="11"] .start[aria-expanded="true"], [data-win="11"] .quick button:hover { background: rgba(0, 0, 0, .06); }
+[data-win="11"] .taskbar .start:hover, [data-win="11"] .taskbar .start[aria-expanded="true"], [data-win="11"] .quick button:hover { background: rgba(0, 0, 0, .06); }
 [data-win="11"] .quick svg { filter: none; }
 [data-win="11"] :is(.menu, .btn, .field, .listbox) { border-radius: 6px; }
 [data-win="11"] .menu { padding: 4px; box-shadow: 0 0 0 1px #e0e0e0, 0 8px 20px rgba(0, 0, 0, .18); background: #f9f9f9; }
 [data-win="11"] .menu .mi { border-radius: 4px; }
 [data-win="11"] .menu .mi.hot { background: rgba(0, 0, 0, .06); }
-[data-win="11"] .btn { background: #fbfbfb; border-color: #d0d0d0; }
+[data-win="11"] :is(.btn, .mbtn) { background: #fbfbfb; border-color: #d0d0d0; }
 [data-win="11"] .btn.default { background: #0067c0; color: #fff; border: 1px solid #005ba1; }
 
 /* ---------- 7 on: the superbar. Pins and open programs share one row of icon-only buttons,
