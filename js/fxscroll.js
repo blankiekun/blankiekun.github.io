@@ -2,6 +2,8 @@
 // hidden and drawn as elements instead, styled by the very same ::-webkit-scrollbar rules: each
 // stylesheet's scrollbar rules are rewritten to classes (::-webkit-scrollbar-thumb:vertical:hover
 // becomes .fxsb-thumb.fxsb-v:hover), so every era's skin keeps a single source.
+// Pages in Internet Explorer windows are other documents without those rules, so in every browser
+// their bars are drawn the same way, beside the iframe, scrolling the page inside it.
 
 const LINE = 20, DELAY = 400, REPEAT = 50;
 
@@ -18,7 +20,10 @@ function rewrite(css, base) {
 }
 
 const bars = new Map();   // scroller -> { v, h, corner }
-let thick = 16;
+let thick = 16, native = false;
+
+// What actually scrolls: the element itself, or the page inside an iframe.
+const target = el => el.tagName === 'IFRAME' ? el.contentDocument?.scrollingElement : el;
 
 const part = (cls, dir) => { const d = document.createElement('div'); d.className = `${cls} fxsb-${dir}`; return d; };
 
@@ -28,7 +33,7 @@ function makeBar(el, dir) {
   dec.classList.add('fxsb-start', 'fxsb-decrement'); inc.classList.add('fxsb-end', 'fxsb-increment');
   track.append(thumb); bar.append(dec, track, inc);
   const v = dir === 'vertical';
-  const by = n => v ? el.scrollBy(0, n) : el.scrollBy(n, 0);
+  const by = n => v ? target(el).scrollBy(0, n) : target(el).scrollBy(n, 0);
   // Hold a button or the track and it keeps going, as Windows does.
   const hold = (e, step) => {
     e.preventDefault(); e.stopPropagation();
@@ -43,17 +48,17 @@ function makeBar(el, dir) {
     if (e.target !== track) return;
     const at = v ? e.clientY : e.clientX;
     hold(e, () => {
-      const r = thumb.getBoundingClientRect(), page = (v ? el.clientHeight : el.clientWidth) - LINE;
+      const r = thumb.getBoundingClientRect(), sc = target(el), page = (v ? sc.clientHeight : sc.clientWidth) - LINE;
       if (at < (v ? r.top : r.left)) by(-page); else if (at > (v ? r.bottom : r.right)) by(page); else return false;
     });
   });
   thumb.addEventListener('pointerdown', e => {
     e.preventDefault(); e.stopPropagation();
     thumb.setPointerCapture(e.pointerId);
-    const from = v ? e.clientY : e.clientX, start = v ? el.scrollTop : el.scrollLeft;
+    const sc = target(el), from = v ? e.clientY : e.clientX, start = v ? sc.scrollTop : sc.scrollLeft;
     const room = (v ? track.clientHeight - thumb.offsetHeight : track.clientWidth - thumb.offsetWidth) || 1;
-    const range = v ? el.scrollHeight - el.clientHeight : el.scrollWidth - el.clientWidth;
-    const move = m => { const p = start + ((v ? m.clientY : m.clientX) - from) * range / room; if (v) el.scrollTop = p; else el.scrollLeft = p; };
+    const range = v ? sc.scrollHeight - sc.clientHeight : sc.scrollWidth - sc.clientWidth;
+    const move = m => { const p = start + ((v ? m.clientY : m.clientX) - from) * range / room; if (v) sc.scrollTop = p; else sc.scrollLeft = p; };
     thumb.addEventListener('pointermove', move);
     thumb.addEventListener('lostpointercapture', () => thumb.removeEventListener('pointermove', move), { once: true });
   });
@@ -62,14 +67,15 @@ function makeBar(el, dir) {
   // The wheel over the bar scrolls what it belongs to; a horizontal bar turns it sideways.
   bar.addEventListener('wheel', e => {
     e.preventDefault();
-    const k = [1, LINE, el.clientHeight][e.deltaMode], d = (e.deltaY || e.deltaX) * k;
-    if (v) el.scrollBy(e.deltaX * k, d); else el.scrollBy(d, 0);
+    const sc = target(el), k = [1, LINE, sc.clientHeight][e.deltaMode], d = (e.deltaY || e.deltaX) * k;
+    if (v) sc.scrollBy(e.deltaX * k, d); else sc.scrollBy(d, 0);
   }, { passive: false });
   return bar;
 }
 
 function wants(el) {
-  if (el === document.documentElement || el === document.body || el.tagName === 'SELECT' || el.closest('.fxsb')) return null;
+  if (el.tagName === 'IFRAME') return el.name === 'ie-view' && target(el) ? { overflowX: 'auto', overflowY: 'auto' } : null;
+  if (native || el === document.documentElement || el === document.body || el.tagName === 'SELECT' || el.closest('.fxsb')) return null;
   const s = getComputedStyle(el), y = s.overflowY, x = s.overflowX;
   if (!/auto|scroll/.test(x + y)) return null;
   return s;
@@ -85,12 +91,19 @@ function update(el) {
     el.classList.add('fxsb-host');
     bars.set(el, b);
   }
+  // Each page an iframe loads is a new document: hide its own bars and follow its scrolling.
+  const sc = target(el);
+  if (sc !== el && b.doc !== sc.ownerDocument) {
+    b.doc = sc.ownerDocument;
+    b.doc.head?.append(Object.assign(b.doc.createElement('style'), { textContent: ':root { scrollbar-width: none; } ::-webkit-scrollbar { display: none; }' }));
+    b.doc.addEventListener('scroll', () => update(el));
+  }
   // The bars sit beside the scroller, not in it, so they don't scroll away with the content.
   if (el.nextSibling !== b.v) el.after(b.v, b.h, b.corner);
   // Make room for the bars the way a real scrollbar takes it from the content box.
   // shortcut: this replaces any inline padding the app set on a scroller; none do yet.
-  const sv = s.overflowY === 'scroll' || (s.overflowY === 'auto' && el.scrollHeight > el.clientHeight + 1);
-  const sh = s.overflowX === 'scroll' || (s.overflowX === 'auto' && el.scrollWidth > el.clientWidth + 1);
+  const sv = s.overflowY === 'scroll' || (s.overflowY === 'auto' && sc.scrollHeight > sc.clientHeight + 1);
+  const sh = s.overflowX === 'scroll' || (s.overflowX === 'auto' && sc.scrollWidth > sc.clientWidth + 1);
   if (sv !== b.sv || sh !== b.sh || el.dataset.fxsbT != thick) {
     el.style.paddingRight = el.style.paddingBottom = '';
     const cs = getComputedStyle(el);
@@ -104,8 +117,8 @@ function update(el) {
   place(b.v, shown && sv, x + w, y, thick, h);
   place(b.h, shown && sh, x, y + h, w, thick);
   place(b.corner, shown && sv && sh, x + w, y + h, thick, thick);
-  if (sv) thumb(b.v, el.clientHeight, el.scrollHeight, el.scrollTop, true);
-  if (sh) thumb(b.h, el.clientWidth, el.scrollWidth, el.scrollLeft, false);
+  if (sv) thumb(b.v, sc.clientHeight, sc.scrollHeight, sc.scrollTop, true);
+  if (sh) thumb(b.h, sc.clientWidth, sc.scrollWidth, sc.scrollLeft, false);
 }
 
 function place(d, on, x, y, w, h) {
@@ -137,17 +150,19 @@ function scan() {
   if (pending) return;
   pending = requestAnimationFrame(() => {
     pending = 0;
-    for (const el of document.body.getElementsByTagName('*')) if (!bars.has(el) && wants(el)) update(el);
+    for (const el of native ? document.getElementsByTagName('iframe') : document.body.getElementsByTagName('*')) if (!bars.has(el) && wants(el)) update(el);
     for (const el of [...bars.keys()]) update(el);
   });
 }
 
 export async function initScrollbars() {
-  if (CSS.supports('selector(::-webkit-scrollbar)')) return;
+  // Browsers that skin ::-webkit-scrollbar themselves only need drawn bars for iframes.
+  native = CSS.supports('selector(::-webkit-scrollbar)');
   const sheets = [...document.querySelectorAll('link[rel=stylesheet]')].filter(l => new URL(l.href).origin === location.origin);
   const css = await Promise.all(sheets.map(l => fetch(l.href).then(r => r.text()).then(t => rewrite(t, l.href)).catch(() => '')));
   const style = document.createElement('style');
   style.textContent = '.fxsb-host { scrollbar-width: none; }\n'
+    + 'iframe.fxsb-host { box-sizing: border-box; }\n'
     + '.fxsb, .fxsb-corner { position: absolute; z-index: 1; box-sizing: border-box; }\n'
     + '.fxsb { display: flex; }\n.fxsb.fxsb-vertical { flex-direction: column; }\n'
     + '.fxsb[hidden], .fxsb-corner[hidden], .fxsb-thumb[hidden] { display: none; }\n'
