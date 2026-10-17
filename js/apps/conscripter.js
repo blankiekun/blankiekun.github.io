@@ -808,7 +808,8 @@ function open() {
   const syncBtn = h('button', { class: 'cons-fs cons-sync', type: 'button', onclick: syncMenu }, driveLogo(), syncLabel);
   const ankiLabel = h('span', { class: 'cons-sync-label' });
   const ankiBtn = h('button', { class: 'cons-fs cons-sync cons-anki', type: 'button', hidden: true, onclick: ankiMenu }, h('b', { class: 'anki-logo', 'aria-hidden': 'true' }, '★'), ankiLabel);
-  bar.append(fsBtn, ankiBtn);
+  const ankiRetry = h('button', { class: 'cons-fs cons-sync', type: 'button', hidden: true, title: 'Try connecting to AnkiConnect again', onclick: () => ankiReconnect() }, 'Retry');
+  bar.append(fsBtn, ankiBtn, ankiRetry);
   if (drive.available) bar.append(syncBtn);
 
   // In full screen: point at (or click) the top edge for the menu bar.
@@ -1249,6 +1250,13 @@ function open() {
     showAnki();
   }
 
+  function ankiReconnect() {
+    if (ankiStop) { ankiStop(); ankiStop = null; }
+    ankiError = '';
+    say('Connecting to Anki...');
+    ankiWatch();
+  }
+
   // The card gets the screen and sound of the line its sentence was mined from, kept by the
   // player as it was shown, or of the backlog it was mined from. Cards from elsewhere are left alone.
   async function ankiNote(note) {
@@ -1273,6 +1281,7 @@ function open() {
     ankiBtn.title = !s.on ? 'Anki mining is off. Click to turn it on.' : ankiError || 'Cards added to Anki while playing get a screenshot and the line\'s voice.';
     ankiBtn.classList.toggle('off', !s.on);
     ankiBtn.classList.toggle('warn', s.on && !!ankiError);
+    ankiRetry.hidden = ankiBtn.hidden || !s.on || !ankiError;
   }
 
   async function ankiField(key, label) {
@@ -1297,7 +1306,7 @@ function open() {
       '<p>Cards you add to Anki while playing (with Yomitan, for example) get a screenshot of the game and the line\'s voice.</p>' +
       '<ol style="margin:6px 0;padding-left:20px;line-height:1.5">' +
       '<li>In Anki, choose <b>Tools &gt; Add-ons &gt; Get Add-ons</b> and enter the code <b>2055492159</b> (AnkiConnect).</li>' +
-      '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>:<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
+      '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>, exactly as shown (no slash at the end):<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
       '<li>Restart Anki and leave it open while you play.</li>' +
       '<li>If the browser asks to let this site reach apps on your device (or local network), choose <b>Allow</b>.</li>' +
       '<li>Your note type needs the fields named in the Anki menu (<b>Sentence</b>, <b>Picture</b> and <b>SentenceAudio</b> unless you change them). Filled fields are left alone.</li></ol>' +

@@ -16,7 +16,7 @@ export async function invoke(action, params = {}) {
     // No Content-Type: a simple request, as Yomitan sends it.
     res = await fetch(settings().url, { method: 'POST', body: JSON.stringify({ action, version: 6, params }) });
   } catch {
-    throw new Error('Anki is not reachable: is it running with AnkiConnect, and is this site allowed?');
+    throw new Error('Anki is not reachable: is it running with AnkiConnect, and is ' + location.origin + ' in its webCorsOriginList (no slash at the end)?');
   }
   const body = await res.json();
   if (body.error) throw new Error('AnkiConnect: ' + body.error);
