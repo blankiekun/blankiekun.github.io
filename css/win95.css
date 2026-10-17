@@ -355,8 +355,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 /* ---------- boot & shutdown ---------- */
 .screen { position: fixed; inset: 0; z-index: 90000; }
 .screen.post { background: #000; color: #aaa; font: 20px/1.2 var(--font-dos); padding: 16px; }
-.screen.splash {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+/* Boot screens, one look per era (desktop.js bootParts) */
+.screen.splash { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: #000; color: #fff; cursor: var(--wait); }
+.splash .copy { position: absolute; bottom: 24px; font: 12px Arial, sans-serif; }
+.screen.splash.b-9x {
+  gap: 0;
   background:
     radial-gradient(ellipse 18% 9% at 18% 22%, #fff 0 60%, transparent 100%),
     radial-gradient(ellipse 12% 7% at 26% 25%, #f4f8ff 0 55%, transparent 100%),
@@ -366,7 +369,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
     radial-gradient(ellipse 18% 8% at 84% 72%, #fff 0 55%, transparent 100%),
     radial-gradient(ellipse 12% 6% at 60% 86%, #f4f8ff 0 55%, transparent 100%),
     linear-gradient(#3a6ee8, #79a6f6 60%, #9cc0fa);
-  color: #000; cursor: var(--wait);
+  color: #000;
 }
 .splash .logo { display: flex; align-items: center; gap: 18px; }
 .splash .logo svg { width: 120px; height: 108px; filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, .25)); }
@@ -374,6 +377,82 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 .splash .word small { display: block; font: italic bold 15px/1.4 Arial, sans-serif; }
 .splash .word b { display: block; font: bold 64px/0.95 "Franklin Gothic Medium", "Arial Black", Arial, sans-serif; letter-spacing: -.03em; }
 .splash .word b sup { font-size: 34px; vertical-align: top; color: #c00000; margin-left: 4px; }
+
+/* 1.0 and 2.0: a ruled box on white */
+.splash.b-1 { background: #fff; color: #000; }
+.splash.b-1 .box { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 48px; border: 3px double #000; box-shadow: 6px 6px 0 #0000aa; background: #fff; font: 20px var(--font-pixel); }
+.splash.b-1 .box b { font: bold 44px/1 var(--font-pixel); letter-spacing: .08em; padding: 4px 18px; color: #fff; background: #0000aa; }
+.splash.b-1 .copy { font: 16px var(--font-pixel); }
+
+/* 3.1: the flag beside the name on white, the copyright under it */
+.splash.b-3 { background: #fff; color: #000; }
+.splash.b-3 .logo svg { width: 132px; height: 118px; filter: none; }
+.splash.b-3 .word b { font: bold 58px/1 "Times New Roman", serif; letter-spacing: -.02em; }
+.splash.b-3 .word i { display: block; margin-top: 8px; font: italic 22px "Times New Roman", serif; }
+.splash.b-3 .copy { position: static; font: 13px "Pixelated MS Sans Serif", Arial, sans-serif; }
+
+/* 2000: a white band with the logo over black, then a blue block bar */
+.splash.b-2000 { gap: 14px; }
+.splash.b-2000 .band { display: flex; align-items: center; gap: 22px; padding: 26px 56px; width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
+  background: linear-gradient(#fff 70%, #d8e0f0); color: #000; box-shadow: 0 6px 0 #1a3e9c, 0 10px 0 #5c80d8; }
+.splash.b-2000 .band svg { width: 76px; height: 68px; flex: none; }
+.splash.b-2000 .word b { font: bold 40px/1 Arial, sans-serif; }
+.splash.b-2000 .word b sup { color: #000; font-size: 40px; vertical-align: baseline; margin-left: 8px; }
+.splash.b-2000 .word span { display: block; font: bold 18px Arial, sans-serif; color: #1a3e9c; }
+.splash.b-2000 .word small { display: block; margin-top: 6px; font: 12px Arial, sans-serif; color: #555; }
+.splash.b-2000 .prog { width: min(560px, calc(100vw - 32px)); height: 14px; margin-top: 18px; box-sizing: border-box; padding: 2px; border: 1px solid #888; }
+.splash.b-2000 .prog i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, #2c4fb8 0 9px, transparent 9px 11px); animation: fill2000 2.2s steps(24) forwards; }
+.splash.b-2000 p { margin: 0; font: 12px Tahoma, "Pixelated MS Sans Serif", sans-serif; }
+@keyframes fill2000 { to { width: 100%; } }
+
+/* XP: the logo on black, three blue blocks running through a rounded track */
+.splash.b-xp { gap: 40px; }
+.splash.b-xp .logo svg { width: 92px; height: 82px; filter: drop-shadow(0 0 6px #fff3); }
+.splash.b-xp .word b { font: bold 54px/1 "Franklin Gothic Medium", Arial, sans-serif; font-style: normal; }
+.splash.b-xp .word b sup { color: #ff7a00; font: italic bold 28px Arial, sans-serif; }
+.splash .track { position: relative; width: 120px; height: 14px; border: 2px solid #b2b2b2; border-radius: 5px; overflow: hidden; }
+.splash.b-xp .track span { position: absolute; top: 2px; left: 0; display: flex; gap: 2px; animation: xpblocks 2.4s linear infinite; }
+.splash.b-xp .track i { width: 8px; height: 10px; border-radius: 1px; background: linear-gradient(#2838c7, #3d5cef 30%, #8e9fff 50%, #3d5cef 70%, #2838c7); }
+.splash.b-xp .copy { left: 24px; }
+.splash.b-xp .maker { position: absolute; bottom: 20px; right: 28px; font: italic bold 20px Arial, sans-serif; }
+@keyframes xpblocks { from { transform: translateX(-32px); } to { transform: translateX(124px); } }
+
+/* Vista: a green glow running through a thin bar on black */
+.splash.b-vista .track { width: 180px; height: 9px; border: 1px solid #555; border-radius: 3px; }
+.splash.b-vista .track i { position: absolute; inset: 0; width: 70px; background: linear-gradient(90deg, transparent, #2bd34b 30%, #c8ffcf 50%, #2bd34b 70%, transparent);
+  animation: vistaglow 1.6s linear infinite; }
+@keyframes vistaglow { from { transform: translateX(-70px); } to { transform: translateX(180px); } }
+.splash.b-vista .copy, .splash.b-7 .copy { font: 13px "Segoe UI", Arial, sans-serif; color: #ccc; }
+
+/* 7: "Starting" under a glowing flag that brightens in */
+.splash.b-7 .logo svg { width: 100px; height: 90px; animation: glow7 2.2s ease-out forwards; }
+.splash.b-7 p { margin: 0; font: 18px "Segoe UI", Arial, sans-serif; letter-spacing: .02em; }
+@keyframes glow7 { from { opacity: 0; transform: scale(.7); filter: blur(6px) drop-shadow(0 0 30px #fff); } 60% { opacity: 1; filter: blur(0) drop-shadow(0 0 26px #fffc); } to { opacity: 1; transform: none; filter: drop-shadow(0 0 10px #fff6); } }
+
+/* 8, 10 and 11: the four-pane logo over a ring of orbiting dots */
+.splash.b-metro { gap: 70px; }
+.splash .panes { width: 110px; height: 110px; background: linear-gradient(90deg, transparent 47%, #000 47% 53%, transparent 53%), linear-gradient(transparent 47%, #000 47% 53%, transparent 53%), #00a3ef; }
+[data-win="10"] .splash .panes { background-color: #0078d7; transform: perspective(300px) rotateY(-14deg); clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 92%); }
+[data-win="11"] .splash .panes { width: 96px; height: 96px; background: linear-gradient(90deg, transparent 48%, #000 48% 52%, transparent 52%), linear-gradient(transparent 48%, #000 48% 52%, transparent 52%), linear-gradient(135deg, #3ccdfd, #0078d4 60%, #0050a8); }
+.splash .spin { position: relative; width: 40px; height: 40px; }
+.splash .spin i { position: absolute; inset: 0; opacity: 0; animation: orbit 5.5s infinite; animation-delay: calc(var(--n) * .24s); }
+.splash .spin i::before { content: ""; position: absolute; top: 0; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #fff; }
+@keyframes orbit {
+  0% { transform: rotate(225deg); opacity: 1; animation-timing-function: ease-out; }
+  7% { transform: rotate(345deg); animation-timing-function: linear; }
+  30% { transform: rotate(455deg); animation-timing-function: ease-in-out; }
+  39% { transform: rotate(690deg); animation-timing-function: linear; }
+  70% { transform: rotate(815deg); opacity: 1; animation-timing-function: ease-out; }
+  75% { transform: rotate(945deg); animation-timing-function: ease-out; }
+  76%, 100% { transform: rotate(945deg); opacity: 0; }
+}
+/* Phones: shrink the big logos to fit */
+@media (max-width: 600px) { .splash :is(.logo, .box, .band) { zoom: .55; } .splash.b-2000 .band { width: auto; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash :is(.prog i, .track span, .track i, .logo svg, .spin i) { animation: none !important; }
+  .splash .spin i, .splash.b-2000 .prog i { opacity: 1; width: 100%; }
+}
+
 .splash .bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 18px;
   background: linear-gradient(90deg, #00f, #0ff, #0f0, #ff0, #f00, #f0f, #00f) 0 0 / 50% 100%;

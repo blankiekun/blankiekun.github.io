@@ -781,6 +781,25 @@ function logOn() {
 
 // ---------- boot ----------
 
+// Which era's boot screen; versions.css draws each from the parts below.
+const bootLook = () => ({ '1.0': '1', '2.0': '1', '3.1': '3', 95: '9x', 98: '9x', me: '9x', 2000: '2000', xp: 'xp', vista: 'vista', 7: '7' })[V.id] || 'metro';
+function bootParts() {
+  const copy = h('small', { class: 'copy' }, 'Copyright \u00a9 ' + V.copy + ' blankiekun');
+  const name = h('b', null, 'blankiekun', h('sup', null, V.short));
+  switch (bootLook()) {
+    case '1': return [h('div', { class: 'box' }, h('b', null, 'blankiekun'), h('span', null, 'Version ' + V.number)), copy];
+    case '3': return [h('div', { class: 'logo' }, icon('i-flag'), h('div', { class: 'word' }, h('b', null, 'blankiekun'), h('i', null, 'Version ' + V.short))), copy];
+    case '9x': return [h('div', { class: 'logo' }, icon('i-flag'), h('div', { class: 'word' }, h('small', null, 'Starting'), name)), h('div', { class: 'bar' })];
+    case '2000': return [h('div', { class: 'band' }, icon('i-flag'), h('div', { class: 'word' }, name, h('span', null, 'Professional'), h('small', null, 'Built on NT Technology'))),
+      h('div', { class: 'prog' }, h('i')), h('p', null, 'Starting Up...')];
+    case 'xp': return [h('div', { class: 'logo' }, icon('i-flag'), h('div', { class: 'word' }, name)), h('div', { class: 'track' }, h('span', null, h('i'), h('i'), h('i'))),
+      copy, h('em', { class: 'maker' }, 'blankiekun')];
+    case 'vista': return [h('div', { class: 'track' }, h('i')), h('small', { class: 'copy' }, '\u00a9 blankiekun')];
+    case '7': return [h('div', { class: 'logo' }, icon('i-flag')), h('p', null, 'Starting ' + OS), h('small', { class: 'copy' }, '\u00a9 blankiekun')];
+    default: return [h('div', { class: 'panes' }), h('div', { class: 'spin' }, ...[0, 1, 2, 3, 4].map(n => h('i', { style: '--n:' + n })))];
+  }
+}
+
 export async function boot() {
   let booted = false;
   try { booted = sessionStorage.getItem('w95.booted') === '1'; sessionStorage.setItem('w95.booted', '1'); } catch {}
@@ -794,9 +813,7 @@ export async function boot() {
   addEventListener('keydown', onKey);
   post.addEventListener('pointerdown', skip);
   await Promise.race([wait(fast ? 200 : 900), skipped]);
-  const splash = h('div', { class: 'screen splash', role: 'img', 'aria-label': OS + ' is starting' },
-    h('div', { class: 'logo' }, icon('i-flag'), h('div', { class: 'word' }, h('small', null, 'Starting'), h('b', null, 'blankiekun', h('sup', null, V.short)))),
-    h('div', { class: 'bar' }));
+  const splash = h('div', { class: 'screen splash b-' + bootLook(), role: 'img', 'aria-label': OS + ' is starting' }, ...bootParts());
   splash.addEventListener('pointerdown', skip);
   post.replaceWith(splash);
   await Promise.race([wait(fast ? 600 : 2200), skipped]);
