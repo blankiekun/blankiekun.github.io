@@ -21,6 +21,9 @@ let busyTimer = 0;
 export function register(app) { apps.set(app.id, app); }
 export function appInfo(id) { return apps.get(id); }
 export function onRouteChange(fn) { routeListener = fn; }
+// Where a new window's taskbar button goes; the desktop moves it next to its pin from 7 on.
+let placeTask = w => tasks.append(w.task);
+export function onPlaceTask(fn) { placeTask = fn; }
 export function all() { return wins.slice(); }
 export function find(pred) { return wins.find(pred); }
 export function activeWindow() { return active; }
@@ -153,7 +156,7 @@ export function createWindow(o) {
       if (win.state !== 'min') focus(win);
       systemMenu(win, { x: e.clientX, y: e.clientY });
     });
-    tasks.append(win.task);
+    placeTask(win);
   }
 
   if (o.parent && o.modal !== false && o.dialog) o.parent.modal = win;
@@ -316,7 +319,7 @@ function outlineDrag(win, e, mode) {
   let sx = e.clientX, sy = e.clientY;
   const before = { left: win.el.style.left, top: win.el.style.top, width: win.el.style.width, height: win.el.style.height };
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
-  let outline = null, drawn = -Infinity, snap = false;
+  let outline = null, drawn = -Infinity, snap = false, preview = null, frame = 0;
   // Dragging to the top edge offers to maximize, as later Windows does.
   const canSnap = mode === 'move' && !win.opts.dialog && !win.maxBtn.disabled;
   const id = e.pointerId;
@@ -351,6 +354,11 @@ function outlineDrag(win, e, mode) {
       const was = snap;
       snap = canSnap && ev.clientY <= A.top + 2;
       if (snap !== was && !LIVE) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
+      // A live drag can't stretch the window itself, so a frame shows where it will go.
+      if (snap !== was && LIVE) {
+        if (snap) { preview = h('div', { class: 'snap-preview' }); document.body.append(preview); Object.assign(preview.style, { left: A.left + 6 + 'px', top: A.top + 6 + 'px', width: A.width - 12 + 'px', height: A.height - 12 + 'px' }); }
+        else { preview.remove(); preview = null; }
+      }
     } else {
       const minW = win.minW, minH = win.minH;
       let { left, top, right, bottom } = r;
@@ -361,7 +369,11 @@ function outlineDrag(win, e, mode) {
       Object.assign(box, { x: left, y: top, w: right - left, h: bottom - top });
     }
     // The real XOR rectangle couldn't keep up with the mouse, so redraw in steps.
-    if (LIVE) { place(); return; }
+    if (LIVE) {
+      place();
+      if (mode !== 'move' && win.opts.onResize && !frame) frame = requestAnimationFrame(() => { frame = 0; win.opts.onResize(); });
+      return;
+    }
     if (ev.timeStamp - drawn < 70) return;
     drawn = ev.timeStamp;
     draw();
@@ -379,10 +391,12 @@ function outlineDrag(win, e, mode) {
     try { target.releasePointerCapture(id); } catch {}
     if (!outline) return;
     if (!LIVE) outline.remove();
+    if (preview) preview.remove();
+    cancelAnimationFrame(frame);
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
     if (cancel) {
-      if (LIVE) { Object.assign(win.el.style, before); if (wasMax) maximize(win); }
+      if (LIVE) { Object.assign(win.el.style, before); if (wasMax) maximize(win); else if (mode !== 'move' && win.opts.onResize) win.opts.onResize(); }
       return;
     }
     if (snap) { maximize(win); sound('Maximize'); return; }

@@ -3,13 +3,13 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel, onPlaceTask } from './wm.js';
 import { msgbox } from './dialogs.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
 import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
 import { properties, iconOf } from './props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut, undo as undoFile, undoLabel as fileUndoLabel, renameNode, makeShortcut } from './fileops.js';
-import { OS, V, rename, absent } from './version.js';
+import { OS, V, VERSIONS, rename, absent } from './version.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 const desktopEl = document.getElementById('desktop');
@@ -439,7 +439,7 @@ function startItems() {
     { label: 'CONscripter', icon: 'i-game', action: () => launch('ie', 'conscripter') },
   ];
   const docs = recentDocs();
-  return [
+  return some([
     { label: 'blankiekun', sub: 'GitHub profile', img: GITHUB + '.png?size=64', className: 'account', href: GITHUB },
     '-',
     { label: '&Programs', icon: 'i-programs', submenu: [
@@ -468,7 +468,7 @@ function startItems() {
     '-',
     V.logoff && { label: '&' + V.logoff, icon: 'i-logoff', action: logOff },
     { label: 'Sh&ut Down...', icon: 'i-shutdown', action: shutDown },
-  ];
+  ]);
 }
 
 // The Documents menu: README and TODO, then whatever the visitor opened lately.
@@ -482,9 +482,10 @@ function recentDocs() {
 }
 
 function toggleStart(keyboard) {
-  if (startBtn.getAttribute('aria-expanded') === 'true') { closeMenus('toggle'); return; }
+  if (startBtn.getAttribute('aria-expanded') === 'true') { closeMenus('toggle'); closePanel(); return; }
   document.querySelector('.begin-hint')?.remove();
   store.set(BEGUN, true);
+  if (PANEL) { openPanel(); startBtn.setAttribute('aria-expanded', 'true'); return; }
   openMenu(startItems(), { rect: startBtn.getBoundingClientRect(), above: true }, {
     className: 'startmenu' + (taskbarPrefs().small ? ' small' : ''), banner, focusFirst: keyboard,
     onClose: () => startBtn.setAttribute('aria-expanded', 'false'),
@@ -496,6 +497,166 @@ startBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === '
 document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'Escape' && !isOpen()) { e.preventDefault(); toggleStart(true); }
 });
+
+// ---------- XP on: the Start panel ----------
+// XP's two columns, Vista and 7's search box, 8's full-screen Start, 10's tiles and 11's grid.
+// 95 to 2000 keep the cascading menu above.
+
+const PANEL = { xp: 'xp', vista: 'aero', 7: 'aero', 8: 'screen', 10: 'ten', 11: 'eleven' }[V.id];
+let panel = null;
+
+function closePanel() {
+  if (!panel) return;
+  panel.remove();
+  panel = null;
+  startBtn.setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('pointerdown', closePanel);
+window.addEventListener('blur', closePanel);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && panel && !isOpen()) { closePanel(); startBtn.focus(); } });
+
+const strip = label => rename(label.replace('&', ''));
+const subOf = it => typeof it.submenu === 'function' ? it.submenu() : it.submenu;
+const leaves = list => list.flatMap(it => !it || it === '-' || it.disabled ? [] : it.submenu ? leaves(subOf(it)) : [it]);
+const uniq = list => list.filter((it, i) => list.findIndex(o => strip(o.label) === strip(it.label)) === i);
+
+function openPanel() {
+  const items = startItems();
+  const programs = items.find(it => it.label === '&Programs').submenu;
+  const go = fn => () => { closePanel(); closeMenus('chosen'); fn(); };
+  const item = (label, ic, fn, cls, sub) => h('button', { type: 'button', class: 'sp-item' + (cls ? ' ' + cls : ''), onclick: fn && go(fn) },
+    icon(ic || 'i-exe'), h('span', null, strip(label), sub ? h('small', null, sub) : null));
+  // The programs everyone pinned or ran most.
+  const fav = [['Internet Explorer', 'ie', 'i-ie', 'home'], ['Inbox', 'inbox', 'i-inbox'], ['Notepad', 'notepad', 'i-notepad'], ['Paint', 'paint', 'i-paint'],
+    ['Calculator', 'calc', 'i-calc'], ['CONscripter', 'cons', 'i-game'], ['Solitaire', 'solitaire', 'i-sol'], ['Minesweeper', 'minesweeper', 'i-mine'],
+    ['MS-DOS Prompt', 'dos', 'i-dos'], ['Windows Setup', 'setup', 'i-setup']]
+    .filter(([, id]) => appInfo(id) && !absent(id)).map(([label, id, ic, arg]) => ({ label, icon: ic, action: () => launch(id, arg) }));
+  const xp = PANEL === 'xp';
+  const places = [
+    [xp ? 'My Documents' : 'Documents', 'i-docs', () => launch('explorer', 'C:\\My Documents')],
+    ['My Computer', 'i-computer', () => launch('mycomputer')],
+    ['Network Neighborhood', 'i-network', () => launch('network')],
+    '-',
+    ['Control Panel', 'i-ctrl', () => launch('explorer', 'Control Panel')],
+    [xp ? 'Printers and Faxes' : 'Devices and Printers', 'i-printer', () => launch('explorer', 'Printers')],
+    ['Windows Setup', 'i-setup', () => launch('setup')],
+    '-',
+    ['Help and Support', 'i-helpbook', () => launch('help')],
+    ['Search', 'i-find', () => launch('find')],
+    ['Run...', 'i-run', runDialog],
+  ].map(p => p === '-' ? h('hr') : item(...p));
+  const user = (cls = 'sp-user') => h('a', { class: cls, href: GITHUB, target: '_blank', rel: 'noopener', onclick: () => closePanel() },
+    h('img', { src: GITHUB + '.png?size=64', alt: '', width: 48, height: 48 }), h('span', null, 'blankiekun'));
+  const power = (label = V.id === 'xp' ? 'Turn Off Computer' : 'Shut down') => item(label, 'i-shutdown', shutDown, 'sp-power');
+  const logoff = () => V.logoff ? item(V.logoff, 'i-logoff', logOff, 'sp-logoff') : null;
+
+  // A folder tree that opens in place, for Vista on.
+  function tree(list) {
+    const out = h('div', { class: 'sp-folders' });
+    for (const it of list) {
+      if (!it || it === '-' || it.disabled) continue;
+      if (!it.submenu) { out.append(item(it.label, it.icon, it.action)); continue; }
+      const kids = tree(subOf(it));
+      kids.hidden = true;
+      const b = h('button', { type: 'button', class: 'sp-item sp-folder', 'aria-expanded': 'false' }, icon(it.icon || 'i-programs'), h('span', null, strip(it.label)));
+      b.addEventListener('click', () => { kids.hidden = !kids.hidden; b.setAttribute('aria-expanded', String(!kids.hidden)); });
+      out.append(b, kids);
+    }
+    return out;
+  }
+  // A search box over every program; Enter opens the first match, or runs what was typed.
+  function search(list, placeholder) {
+    const all = uniq([...fav, ...leaves(programs)]);
+    const box = h('input', { class: 'field sp-search', type: 'search', placeholder, 'aria-label': placeholder });
+    const found = h('div', { class: 'sp-folders sp-found', hidden: true });
+    box.addEventListener('input', () => {
+      const q = box.value.trim().toLowerCase();
+      found.hidden = !q;
+      list.hidden = !!q;
+      found.replaceChildren(...all.filter(it => strip(it.label).toLowerCase().includes(q)).map(it => item(it.label, it.icon, it.action)));
+      if (q && !found.children.length) found.append(h('p', null, 'No items match your search.'));
+    });
+    box.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const first = found.querySelector('button');
+      if (first) first.click();
+      else if (box.value.trim()) { const v = box.value; closePanel(); run(v); }
+    });
+    return { box, found };
+  }
+  const az = () => uniq(leaves(programs)).sort((a, b) => strip(a.label).localeCompare(strip(b.label))).map(it => item(it.label, it.icon, it.action));
+  const allBtn = (label, onclick) => h('button', { type: 'button', class: 'sp-item sp-all', onclick }, h('span', null, label));
+
+  let el, focus;
+  if (PANEL === 'xp') {
+    const all = allBtn('All Programs', e => {
+      e.stopPropagation();
+      openMenu(programs, { rect: all.getBoundingClientRect(), side: true }, { onClose: r => { if (r === 'chosen') closePanel(); } });
+    });
+    const recent = item('My Recent Documents', 'i-docs', null, 'sp-sub');
+    recent.onclick = e => { e.stopPropagation(); openMenu(recentDocs(), { rect: recent.getBoundingClientRect(), side: true }, { onClose: r => { if (r === 'chosen') closePanel(); } }); };
+    places.splice(1, 0, recent);
+    el = h('div', { class: 'startpanel sp-xp' },
+      h('header', null, user()),
+      h('div', { class: 'sp-cols' },
+        h('div', { class: 'sp-left' }, item('Internet', 'i-ie', () => launch('ie', 'home'), 'sp-pinned', 'Internet Explorer'),
+          appInfo('inbox') ? item('E-mail', 'i-inbox', () => launch('inbox'), 'sp-pinned', 'blankiekun Exchange') : null, h('hr'),
+          ...fav.slice(2, 8).map(it => item(it.label, it.icon, it.action)), h('div', { class: 'sp-grow' }), h('hr'), all),
+        h('div', { class: 'sp-right' }, ...places)),
+      h('footer', null, logoff(), power()));
+  } else if (PANEL === 'aero') {
+    const list = h('div', { class: 'sp-list' }, ...fav.slice(0, 9).map(it => item(it.label, it.icon, it.action)));
+    const progs = tree(programs);
+    progs.hidden = true;
+    const all = allBtn('All Programs', () => { progs.hidden = !progs.hidden; list.hidden = !progs.hidden; all.firstChild.textContent = progs.hidden ? 'All Programs' : 'Back'; });
+    const box = h('div', { class: 'sp-list-wrap' }, list, progs);
+    const s = search(box, V.id === 'vista' ? 'Start Search' : 'Search programs and files');
+    el = h('div', { class: 'startpanel sp-aero' },
+      h('div', { class: 'sp-left' }, box, s.found, h('hr'), all, s.box),
+      h('div', { class: 'sp-right' }, user(), ...places, h('div', { class: 'sp-grow' }), h('div', { class: 'sp-foot' }, power(), logoff())));
+    focus = s.box;
+  } else if (PANEL === 'screen') {
+    const tiles = h('div', { class: 'sp-tiles' },
+      h('button', { type: 'button', class: 'sp-tile wide', onclick: () => closePanel() }, icon('i-computer'), h('span', null, 'Desktop')),
+      ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label)))));
+    const apps = h('div', { class: 'sp-folders', hidden: true }, ...az());
+    const all = h('button', { type: 'button', class: 'sp-arrow', 'aria-label': 'All apps', onclick: () => { apps.hidden = !apps.hidden; tiles.hidden = !apps.hidden; all.classList.toggle('up', !apps.hidden); } });
+    el = h('div', { class: 'startpanel sp-screen' },
+      h('header', null, h('h1', null, 'Start'), user(), power('Power')),
+      tiles, apps, all);
+    // Clicking the background goes back to the desktop, like Escape.
+    el.addEventListener('click', e => { if (e.target === el) closePanel(); });
+  } else if (PANEL === 'ten') {
+    el = h('div', { class: 'startpanel sp-ten' },
+      h('div', { class: 'sp-rail' }, user(), item('Documents', 'i-docs', () => launch('explorer', 'C:\\My Documents')),
+        item('Settings', 'i-ctrl', () => launch('explorer', 'Control Panel')), logoff(), power('Power')),
+      h('div', { class: 'sp-apps' }, ...az()),
+      h('div', { class: 'sp-tiles' }, ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label))))));
+  } else {
+    const grid = h('div', { class: 'sp-grid' }, ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label)))));
+    const recent = h('div', { class: 'sp-recent' }, ...recentDocs().slice(0, 6).map(it => item(it.label, it.icon, it.action)));
+    const home = h('div', null, grid, h('div', { class: 'sp-head' }, h('b', null, 'Recommended')), recent);
+    const apps = h('div', { class: 'sp-apps', hidden: true }, ...az());
+    const title = h('b', null, 'Pinned');
+    const toggle = allBtn('All apps', () => {
+      apps.hidden = !apps.hidden; home.hidden = !apps.hidden;
+      title.textContent = apps.hidden ? 'Pinned' : 'All apps'; toggle.firstChild.textContent = apps.hidden ? 'All apps' : 'Back';
+    });
+    const body = h('div', { class: 'sp-body' }, h('div', { class: 'sp-head' }, title, toggle), home, apps);
+    const s = search(body, 'Type here to search');
+    el = h('div', { class: 'startpanel sp-eleven' }, s.box, body, s.found, h('footer', null, user(), power('Power')));
+    focus = s.box;
+  }
+  el.addEventListener('pointerdown', e => e.stopPropagation());
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  closeMenus('replaced');
+  closePanel();
+  panel = el;
+  document.body.append(el);
+  sound('Menu popup');
+  el.tabIndex = -1;
+  (focus || el).focus({ preventScroll: true });
+}
 
 // ---------- Run ----------
 
@@ -848,15 +1009,27 @@ const QUICK_DEFAULT = [
   { label: 'Show Desktop', id: 'showdesktop', icon: 'i-computer' },
 ];
 let pins = store.get(QUICK, QUICK_DEFAULT);
-const quickEl = h('nav', { class: 'quick', 'aria-label': 'Quick Launch' });
+// From 7 on, pins are taskbar buttons; opening one swaps the pin for the window's button.
+const SUPERBAR = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === '7');
+const quickEl = h('nav', SUPERBAR ? { class: 'pins' } : { class: 'quick', 'aria-label': 'Quick Launch' });
+const pinOf = app => [...quickEl.children].find(b => b.dataset.app === app && b.classList.contains('pin'));
+// CSS hides a pin while a window's button follows it.
+function placeTask(w) {
+  let at = SUPERBAR && pinOf(w.app);
+  if (!at) { document.getElementById('tasks').append(w.task); return; }
+  while (at.nextElementSibling?.matches('.task:not(.pin)')) at = at.nextElementSibling;
+  w.task.dataset.app = w.app;
+  at.after(w.task);
+}
 const savePins = () => { store.set(QUICK, pins); renderQuick(); };
 const isPinned = id => pins.some(p => p.id === id);
 const pin = p => { if (!isPinned(p.id)) { pins.push(p); savePins(); } };
 const unpin = id => { pins = pins.filter(p => p.id !== id); savePins(); };
 
 function renderQuick() {
-  quickEl.replaceChildren(...pins.filter(p => p.id === 'showdesktop' || appInfo(p.id)).map(p => {
-    const b = h('button', { type: 'button', title: rename(p.label), 'aria-label': rename(p.label) }, icon(p.icon));
+  const running = all().filter(w => w.task && quickEl.contains(w.task));
+  quickEl.replaceChildren(...pins.filter(p => p.id === 'showdesktop' ? !SUPERBAR : appInfo(p.id)).map(p => {
+    const b = h('button', { type: 'button', class: SUPERBAR ? 'task pin' : null, 'data-app': p.id, title: rename(p.label), 'aria-label': rename(p.label) }, icon(p.icon));
     b.addEventListener('click', () => { if (!b.dragged) p.id === 'showdesktop' ? minimizeAll() : launch(p.id, p.arg); });
     b.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
@@ -870,14 +1043,18 @@ function renderQuick() {
       const move = ev => {
         if (!b.dragged && Math.abs(ev.clientX - x0) < 5) return;
         b.dragged = true;
-        const over = [...quickEl.children].find(o => o !== b && ev.clientX >= o.getBoundingClientRect().left && ev.clientX < o.getBoundingClientRect().right);
-        if (over) over.getBoundingClientRect().left > b.getBoundingClientRect().left ? over.after(b) : over.before(b);
+        const over = [...quickEl.children].find(o => o !== b && !o.matches('.task:not(.pin)') && ev.clientX >= o.getBoundingClientRect().left && ev.clientX < o.getBoundingClientRect().right);
+        if (over && over.getBoundingClientRect().left > b.getBoundingClientRect().left) {
+          let at = over;
+          while (at.nextElementSibling?.matches('.task:not(.pin)')) at = at.nextElementSibling;
+          at.after(b);
+        } else if (over) over.before(b);
       };
       const up = () => {
         document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
         if (!b.dragged) return;
-        const order = [...quickEl.children].map(o => o.getAttribute('aria-label'));
-        pins.sort((a, c) => order.indexOf(a.label) - order.indexOf(c.label));
+        const order = [...quickEl.children].filter(o => !o.matches('.task:not(.pin)')).map(o => o.dataset.app);
+        pins.sort((a, c) => order.indexOf(a.id) - order.indexOf(c.id));
         store.set(QUICK, pins);
         setTimeout(() => { b.dragged = false; });
       };
@@ -886,10 +1063,13 @@ function renderQuick() {
     });
     return b;
   }));
+  running.forEach(placeTask);
 }
 function quickLaunch() {
   renderQuick();
-  document.getElementById('start').after(quickEl);
+  if (SUPERBAR) document.getElementById('tasks').prepend(quickEl);
+  else document.getElementById('start').after(quickEl);
+  onPlaceTask(placeTask);
 }
 
 export function initDesktop() {

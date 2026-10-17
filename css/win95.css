@@ -185,6 +185,8 @@ a { color: var(--link); }
 /* The drag rectangle: a dithered frame inverted over whatever is underneath,
    like Win95 with "Show window contents while dragging" turned off. */
 .drag-outline.snap { padding: 6px; }
+/* From XP on the window drags itself; the top-edge maximize shows as a translucent frame. */
+.snap-preview { position: fixed; z-index: 99999; pointer-events: none; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, .7); border-radius: 6px; background: rgba(160, 200, 255, .3); box-shadow: 0 0 0 1px rgba(0, 0, 0, .3); }
 .marquee { position: fixed; z-index: 100000; pointer-events: none; border: 1px dotted #fff; mix-blend-mode: difference; }
 .drag-outline {
   position: fixed; z-index: 100000; pointer-events: none;
