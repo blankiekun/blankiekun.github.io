@@ -400,6 +400,49 @@ body { transition: rotate 1s, scale 2s; }
       ta.value += '\r\n\r\nok you can keep them. babes don\'t hold grudges';
     }
 
+    // Calculator does your homework by itself: it types 58008 and leaves it there, upside-down.
+    async function calcAct() {
+      var w = D.wm.launch('calc'); if (!w) return;
+      wins.push(w);
+      var keys = w.el.querySelectorAll('.calc-key');
+      var click = function (lbl) { for (var i = 0; i < keys.length; i++) if (keys[i].textContent === lbl) return keys[i].click(); };
+      buddy.say('I\'ll do your math homework! I\'m good at numbers.');
+      var seq = ['5', '8', '0', '0', '8'];
+      for (var i = 0; i < seq.length && chaos; i++) { click(seq[i]); await wait(420); }
+    }
+
+    // A console opens and installs a "keylogger" itself, one keystroke at a time (echo, so the output is real).
+    async function consoleAct() {
+      var w = D.wm.launch('dos'); if (!w) return;
+      wins.push(w);
+      var input = w.el.querySelector('.dos-input'), v = T.defaultView;
+      async function type(cmd) {
+        for (var i = 0; i < cmd.length && chaos; i++) { input.value += cmd[i]; input.dispatchEvent(new v.Event('input', { bubbles: true })); await wait(50); }
+        input.dispatchEvent(new v.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await wait(400);
+      }
+      buddy.say('Just installing a little keylogger. For safety!');
+      await type('echo Installing keylogger . . .');
+      await type('echo   [##########] 100%');
+      await type('echo Keylogger installed. Now logging every key you type.');
+      await type('echo ...i can see you typing right now. hi!');
+    }
+
+    // Opens the computer's real programs one after another, cascading across the screen, until the taskbar is full.
+    async function cascadeAct() {
+      var apps = ['mplayer', 'cdplayer', 'sndrec', 'paint', 'solitaire', 'minesweeper', 'freecell', 'charmap', 'clock', 'dialer', 'reversi'];
+      var layer = T.getElementById('windows'), L = layer.getBoundingClientRect(), step = 28, i = 0;
+      buddy.say('I\'m running all your programs at once to make the computer faster!');
+      for (var a = 0; chaos && a < apps.length; a++) {
+        var w = D.wm.launch(apps[a]); if (!w) continue;
+        wins.push(w);
+        var r = w.el.getBoundingClientRect(), span = i * step;
+        w.el.style.left = Math.min(span % Math.max(L.width - r.width, 1), L.width - r.width) + 'px';
+        w.el.style.top = Math.min(span % Math.max(L.height - r.height, 1), L.height - r.height) + 'px';
+        i++;
+        await wait(rnd(450, 750));
+      }
+    }
+
     // The famous one: a hung error box dragged across the screen, leaving copies of itself everywhere it went.
     async function trailAct() {
       if (still) return;
@@ -518,7 +561,7 @@ body { transition: rotate 1s, scale 2s; }
       var start = Date.now(), page = PAGE.slice(), n = D ? 3 : 6;
       if (D) {
         renameAct(); startAct();
-        go(fallAct, 6000); go(ransomAct, 8000); go(trailAct, 15000);
+        go(fallAct, 6000); go(ransomAct, 8000); go(calcAct, 9000); go(consoleAct, 10000); go(cascadeAct, 13000); go(trailAct, 17000);
         // Message boxes on their own as well, so the screen fills even if you never close one.
         go(async function () { while (chaos) { hydra(); await wait(1600); } });
       }
