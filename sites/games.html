@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>blankiekun's Software Depot</title>
+<link rel="stylesheet" href="retro.css">
+<style>
+/* A 1997 online software store: navy masthead, yellow price tags, a members' login, a catalog table per product. */
+body { background: #fff; color: #000; font: 14px/1.45 Verdana, Arial, Helvetica, sans-serif; }
+a { color: #0000cc; } a:visited { color: #660099; }
+.mast { background: #000080; color: #fff; border: 3px outset #3a3ad0; padding: 10px 12px; text-align: center; }
+.mast h1 { margin: 0; font: italic 900 clamp(26px, 7vw, 44px)/1 "Arial Black", Impact, sans-serif; color: #ffcc00; text-shadow: 3px 3px 0 #c00000; }
+.mast p { margin: 4px 0 0; font-weight: bold; }
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: #ffcc00; border: 2px solid #000; padding: 4px 8px; font: bold 12px Arial, sans-serif; }
+.bar .lock { background: #fff; border: 1px solid #000; padding: 1px 6px; }
+
+.login { background: #e8e8ff; border: 2px ridge #000080; padding: 10px; font-size: 13px; }
+.login h2 { margin: 0 0 6px; font: bold 15px Arial, sans-serif; color: #000080; }
+.login form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.login input { font: 14px Arial, sans-serif; padding: 2px 4px; border: 2px inset #c0c0c0; }
+.login button { font: bold 13px Arial, sans-serif; padding: 2px 10px; background: #c0c0c0; border: 2px outset #fff; }
+.login button:active { border-style: inset; }
+.msg { margin: 6px 0 0; font-weight: bold; }
+.msg.bad { color: #c00000; }
+.msg.ok { color: #008000; }
+
+#catalog { display: flex; flex-direction: column; gap: 12px; }
+table.item { width: 100%; border: 2px solid #000080; }
+.item td { padding: 8px; vertical-align: top; }
+.item td.box { width: 130px; background: #f0f0f0; border-right: 1px dashed #000080; text-align: center; }
+.item td.box img { width: 110px; border: 1px solid #000; }
+.item .nobox { display: flex; align-items: center; justify-content: center; width: 110px; height: 150px; margin: 0 auto; background: #c0c0c0; border: 2px outset #fff; font: bold 11px Arial, sans-serif; }
+.item h3 { margin: 0; font: bold 18px Arial, sans-serif; color: #000080; }
+.item .alt { margin: 0; font-size: 13px; }
+.item dl { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 6px 0; font-size: 12px; }
+.item dt { font-weight: bold; }
+.item dd { margin: 0; }
+.item .blurb { margin: 0 0 8px; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.buy { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.price { font: bold 20px Arial, sans-serif; color: #c00000; }
+.price s { color: #000; font-size: 14px; }
+.stock { font: bold 12px Arial, sans-serif; color: #008000; }
+.btn3d { background: #ffcc00; color: #000; border-color: #ffe680 #806600 #806600 #ffe680; font-size: 14px; padding: 5px 12px; }
+.btn3d.locked { background: #c0c0c0; border-color: #fff #808080 #808080 #fff; }
+.empty { text-align: center; border: 2px dashed #000080; padding: 16px; }
+.fine { font-size: 11px; color: #404040; }
+footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 480px) { .item td.box { width: 90px; } .item td.box img, .item .nobox { width: 76px; } .item .nobox { height: 104px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <h1>Software Depot</h1>
+    <p>Visual novels, rebuilt for <a href="conscripter.html" style="color:#fff">CONscripter</a>. Shipped by Mega.</p>
+  </header>
+  <div class="bar">
+    <span>FREE SHIPPING ON ALL ORDERS!</span>
+    <span class="lock" title="AES-256">&#128274; Secure Server</span>
+  </div>
+
+  <section class="login" aria-labelledby="login-h">
+    <h2 id="login-h">Customer Login</h2>
+    <p style="margin:0 0 6px">Downloads are for friends I've confirmed own the game. I gave you a password.</p>
+    <form id="login">
+      <label for="pass">Password:</label>
+      <input id="pass" type="password" autocomplete="current-password" required>
+      <button type="submit">Sign In</button>
+    </form>
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <div id="catalog"><p class="empty">Loading the catalog...</p></div>
+
+  <p class="fine">* Price assumes you already bought the game. Each download is the game's files converted by <a href="convert.html">conscripter-convert</a>: unzip it and open the folder in CONscripter. No refunds, it was free.</p>
+
+  <footer>
+    <hr class="groove">
+    <div><a href="home.html">blankiekun's Homepage</a> | <a href="conscripter.html">CONscripter</a> | <a href="convert.html">conscripter-convert</a></div>
+  </footer>
+</div>
+<script>
+let games = [];
+const catalog = document.getElementById("catalog"), msg = document.getElementById("msg"), pass = document.getElementById("pass");
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text != null) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+
+// The links are `openssl enc -aes-256-cbc -pbkdf2 -iter 100000` output (tools/add-game.sh).
+async function unlock(b64, password) {
+  const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const salt = raw.slice(8, 16), ct = raw.slice(16);
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, base, 384));
+  const key = await crypto.subtle.importKey("raw", bits.slice(0, 32), "AES-CBC", false, ["decrypt"]);
+  const url = new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-CBC", iv: bits.slice(32) }, key, ct));
+  // CBC has no check of its own, so a wrong password can rarely decrypt to junk.
+  if (!url.startsWith("https://mega.nz/")) throw new Error("wrong password");
+  return url;
+}
+
+function render() {
+  catalog.textContent = "";
+  if (!games.length) { catalog.append(el("p", "Sold out! New stock arriving soon.", "empty")); return; }
+  for (const g of games) {
+    const table = el("table", null, "item"), tr = table.insertRow();
+    const box = tr.insertCell();
+    box.className = "box";
+    if (g.img) {
+      const img = el("img");
+      img.src = g.img; img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+      box.append(img);
+    } else box.append(el("div", "NO BOX ART", "nobox"));
+
+    const info = tr.insertCell();
+    const h3 = el("h3"), name = el("a", g.title);
+    name.href = g.src; name.target = "_blank"; name.rel = "noopener";
+    h3.append(name);
+    info.append(h3);
+    if (g.alt && g.alt !== g.title) { const alt = el("p", g.alt, "alt"); alt.lang = "ja"; info.append(alt); }
+    const dl = el("dl");
+    for (const [k, v] of [["Developer", g.by], ["Released", g.released], ["Originally", g.platform], ["In stock since", g.added]])
+      if (v) dl.append(el("dt", k + ":"), el("dd", v));
+    info.append(dl);
+    if (g.blurb) info.append(el("p", g.blurb, "blurb"));
+
+    const buy = el("div", null, "buy");
+    const price = el("span", null, "price");
+    price.append(el("s", "$49.95"), " FREE*");
+    const btn = el("a", "Download", "btn3d");
+    if (g.url) { btn.href = g.url; btn.target = "_blank"; btn.rel = "noopener"; }
+    else {
+      btn.classList.add("locked");
+      btn.href = "#login";
+      btn.textContent = "Members Only";
+      btn.onclick = e => { e.preventDefault(); pass.focus(); };
+    }
+    buy.append(price, el("span", "IN STOCK", "stock"), btn);
+    info.append(buy);
+    catalog.append(table);
+  }
+}
+
+async function signIn(password, quiet) {
+  try {
+    for (const g of games) g.url = await unlock(g.link, password);
+    try { localStorage.setItem("depot-pass", password); } catch {}
+    msg.className = "msg ok";
+    msg.textContent = "Welcome back! Your downloads are ready.";
+    document.getElementById("login").hidden = true;
+  } catch {
+    for (const g of games) delete g.url;
+    if (!quiet) { msg.className = "msg bad"; msg.textContent = "Sorry, that password isn't on file."; }
+  }
+  render();
+}
+
+document.getElementById("login").addEventListener("submit", e => { e.preventDefault(); signIn(pass.value); });
+
+fetch("games.json", { cache: "no-store" })
+  .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(list => {
+    games = list.sort((a, b) => a.title.localeCompare(b.title));
+    let saved = null;
+    try { saved = localStorage.getItem("depot-pass"); } catch {}
+    if (saved && games.length) signIn(saved, true); else render();
+  })
+  .catch(e => { catalog.textContent = ""; catalog.append(el("p", "The catalog is out to lunch (" + e.message + ").", "empty")); });
+</script>
+</body>
+</html>
