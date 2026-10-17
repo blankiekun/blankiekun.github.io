@@ -137,6 +137,18 @@ a { color: var(--link); }
 .icon .lnk::after { content: ""; position: absolute; inset: 2px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h4v4H6V2H5v1H4v1H3v1H2v1H0V5h1V4h1V3h1V2h1V1H3z'/%3E%3C/svg%3E") no-repeat; }
 
 .windows { position: absolute; inset: 0; pointer-events: none; }
+/* 98's Channel Bar (js/desktop.js): a column of channel buttons at the top right of the desktop */
+.channelbar { position: absolute; top: 12px; right: 12px; width: 132px; display: flex; flex-direction: column; gap: 3px; padding: 4px; background: #0008; border: 1px solid #fff6; border-radius: 4px; }
+.ch-head { color: #fff; font-weight: bold; text-align: center; padding: 2px 0 4px; }
+.ch-btn { height: 26px; border: 1px solid #0006; border-radius: 3px; color: #fff; font: bold 11px var(--font-ui); text-shadow: 1px 1px #0008; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: var(--arrow); }
+.ch-btn:hover { filter: brightness(1.15); }
+.ch-btn.c1 { background: linear-gradient(#ff5c8a, #b0003a); }
+.ch-btn.c2 { background: linear-gradient(#5aa0ff, #0b3fa8); }
+.ch-btn.c3 { background: linear-gradient(#7ad35a, #1d7a10); }
+.ch-btn.c4 { background: linear-gradient(#ffb347, #b85f00); }
+.ch-btn.c5 { background: linear-gradient(#b67cff, #5410a8); }
+.ch-btn.c6 { background: linear-gradient(#4fd9d9, #00707a); }
+@media (max-width: 640px) { .channelbar { display: none; } }
 .windows > * { pointer-events: auto; }
 
 /* ---------- window chrome ---------- */

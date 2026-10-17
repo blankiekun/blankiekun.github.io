@@ -441,9 +441,14 @@ function startItems() {
     { label: 'CONscripter', icon: 'i-game', action: () => launch('ie', 'conscripter') },
   ];
   const docs = recentDocs();
+  // 98 to 2000 put Windows Update at the top (here it's Windows Setup, which moves between versions);
+  // 98 also had Favorites on, with IE 4's Channels.
+  const update = ['98', 'me', '2000'].includes(V.id);
   return some([
     { label: 'blankiekun', sub: 'GitHub profile', img: GITHUB + '.png?size=64', className: 'account', href: GITHUB },
     '-',
+    update && prog('Windows Update', 'setup', 'i-globe'),
+    update && '-',
     { label: '&Programs', icon: 'i-programs', submenu: [
       { label: 'Accessories', icon: 'i-programs', submenu: accessories },
       { label: 'Projects', icon: 'i-programs', submenu: projects },
@@ -453,6 +458,10 @@ function startItems() {
       { label: 'MS-DOS Prompt', icon: 'i-dos', action: () => launch('dos') },
       { label: 'Windows Explorer', icon: 'i-folder-open', action: () => launch('explorer', { path: 'C:\\', explore: true }) },
     ] },
+    V.id === '98' && { label: 'F&avorites', icon: 'i-fav', submenu: [
+      { label: 'Channels', icon: 'i-folder', submenu: projects.filter(p => p !== '-') },
+      { label: 'Links', icon: 'i-folder', submenu: [{ label: 'blankiekun on GitHub', icon: 'i-github', action: () => window.open(GITHUB, '_blank', 'noopener') }] },
+      '-', ...projects] },
     { label: '&Documents', icon: 'i-docs', submenu: docs.length ? docs : [{ label: '(Empty)', disabled: true }] },
     { label: '&Settings', icon: 'i-ctrl', submenu: [
       prog('Windows &Setup...', 'setup', 'i-setup'),
@@ -1138,6 +1147,15 @@ function quickLaunch() {
   });
 }
 
+// 98's Channel Bar, down the right of the desktop: a button per project page.
+function channelBar() {
+  const ch = (label, page, cls) => h('button', { type: 'button', class: 'ch-btn ' + cls, onclick: () => launch('ie', page) }, label);
+  desktopEl.insertBefore(h('div', { class: 'channelbar', role: 'toolbar', 'aria-label': 'Channel Bar' },
+    h('div', { class: 'ch-head' }, 'Channels'),
+    ch('Homepage', 'home', 'c1'), ch('chimimouryou', 'chimimouryou', 'c2'), ch('CONscripter', 'conscripter', 'c3'),
+    ch('Converter', 'convert', 'c4'), ch('Software Depot', 'games', 'c5'), ch('Guestbook', 'guestbook', 'c6')), document.getElementById('windows'));
+}
+
 export function initDesktop() {
   register({ id: 'volume', title: 'Volume Control', icon: 'i-speaker', open: () => volumeControl() });
   register({ id: 'taskbarprops', title: 'Taskbar Properties', icon: 'i-taskbar', open: taskbarProps });
@@ -1150,6 +1168,7 @@ export function initDesktop() {
   applyTaskbar();
   quickLaunch();
   renderIcons();
+  if (V.id === '98') channelBar();
   lastH = desktopEl.clientHeight;
   startBtn.querySelector('span').textContent = V.start;
   startBtn.setAttribute('aria-label', 'Start');
