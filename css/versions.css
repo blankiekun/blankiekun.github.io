@@ -26,6 +26,27 @@ html:is([data-win="1.0"], [data-win="2.0"]) {
 [data-win="3.1"] .titlebar .t { text-align: center; }
 [data-win="3.1"] .tbtn svg { transform: scale(1.2); }
 [data-win="3.1"] .startmenu .side { display: none; }
+/* No taskbar or desktop icons: Program Manager starts programs (js/desktop.js), and minimized
+   windows are icons along the bottom of the desktop, under the windows. */
+html[data-win="3.1"] { --tb-h: 0px; }
+[data-win="3.1"] :is(.taskbar, .icons) { display: none; }
+[data-win="3.1"] .desktop > .tasks { position: absolute; left: 0; right: 0; bottom: 0; flex-wrap: wrap-reverse; gap: 0; overflow: visible; pointer-events: none; }
+[data-win="3.1"] .tasks .task { flex: none; width: 86px; height: auto; flex-direction: column; gap: 3px; padding: 2px 0; background: none; box-shadow: none; font-weight: normal;
+  color: #000; font-size: 12px; line-height: 1.2; white-space: normal; text-align: center; pointer-events: auto; }
+[data-win="3.1"] .tasks .task:not(.min) { display: none; }
+[data-win="3.1"] .tasks .task svg { width: 32px; height: 32px; }
+[data-win="3.1"] .tasks .task span { padding: 1px 2px; max-width: 86px; overflow-wrap: break-word; background: var(--desktop); }
+[data-win="3.1"] .tasks .task:focus-visible { outline: none; }
+[data-win="3.1"] .tasks .task:focus-visible span { background: var(--select); color: var(--select-ink); }
+.pm { display: flex; flex-direction: column; height: 100%; }
+.pm-groups { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); align-content: start; gap: 6px; padding: 6px; background: var(--paper); }
+.pm-group { box-shadow: inset 0 0 0 1px #000; padding: 1px; background: var(--paper); }
+.pm-icons { display: flex; flex-wrap: wrap; padding: 4px; }
+.pm-icon { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: center; cursor: var(--arrow); }
+.pm-icon svg { width: 32px; height: 32px; }
+.pm-icon span { padding: 0 2px; overflow-wrap: anywhere; }
+.pm-icon:focus { outline: none; }
+.pm-icon:focus span { background: var(--select); color: var(--select-ink); }
 
 /* ---------- 98, Me and 2000: gradient title bars ---------- */
 :is([data-win="98"], [data-win="me"]) .titlebar { background: linear-gradient(90deg, var(--title-off), #b5b5b5); }

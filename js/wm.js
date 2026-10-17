@@ -182,6 +182,7 @@ export function focus(win) {
     win.el.classList.remove('min');
     win.state = win.wasMax ? 'max' : 'normal';
     zoom(win, false);
+    win.task?.classList.remove('min');
   }
   wins.splice(wins.indexOf(win), 1);
   wins.push(win);
@@ -236,6 +237,8 @@ function zoom(win, down) {
 }
 
 export function minimize(win) {
+  // 3.1 shows only minimized windows' buttons, as icons, so the class goes on before the zoom measures it.
+  win.task?.classList.add('min');
   zoom(win, true);
   sound('Minimize');
   win.wasMax = win.state === 'max';

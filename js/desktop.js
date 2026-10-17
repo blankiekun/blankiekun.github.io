@@ -4,7 +4,8 @@
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
 import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel, onPlaceTask, onTaskMenu, systemMenu } from './wm.js';
-import { msgbox } from './dialogs.js';
+import { msgbox, about } from './dialogs.js';
+import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
 import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
 import { properties, iconOf } from './props.js';
@@ -495,8 +496,38 @@ function toggleStart(keyboard) {
 startBtn.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); toggleStart(false); });
 startBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStart(true); } });
 document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.key === 'Escape' && !isOpen()) { e.preventDefault(); toggleStart(true); }
+  if (e.ctrlKey && e.key === 'Escape' && !isOpen()) { e.preventDefault(); if (V.id === '3.1') launch('taskman'); else toggleStart(true); }
 });
+
+// ---------- 3.1: Program Manager ----------
+// 3.1 has no taskbar. Programs start from Program Manager's groups, which hold the Start menu's
+// programs; closing it exits Windows.
+
+function progman() {
+  const sub = (list, label) => list.find(it => it && it.label === label).submenu;
+  const items = startItems(), programs = sub(items, '&Programs'), acc = sub(programs, 'Accessories');
+  const groups = [
+    ['Main', [...programs.filter(it => it && it !== '-' && !it.submenu), ...sub(items, '&Settings').filter(it => it && it.action !== taskbarProps),
+      { label: 'Read Me', icon: 'i-txt', action: () => run('notepad readme.txt') }]],
+    ['Accessories', leaves(acc.filter(it => it.label !== 'Games'))],
+    ['Games', leaves(sub(acc, 'Games'))],
+    ['Projects', leaves(sub(programs, 'Projects'))],
+  ];
+  // Double-click or Enter starts a program, as in 3.1; a single click only selects it.
+  const prog = it => h('button', { type: 'button', class: 'pm-icon', ondblclick: it.action, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); it.action(); } } },
+    icon(it.icon || 'i-exe'), h('span', null, strip(it.label).replace(/\.\.\.$/, '')));
+  const body = h('div', { class: 'pm' },
+    menubar([
+      { label: '&File', items: [{ label: '&Run...', action: runDialog }, '-', { label: 'E&xit Windows...', action: shutDown }] },
+      { label: '&Help', items: [{ label: '&Contents', action: () => launch('help') }, '-', { label: '&About Program Manager...', action: () => about('Program Manager', 'i-programs', win) }] },
+    ]),
+    h('div', { class: 'pm-groups' }, ...groups.map(([name, list]) => h('section', { class: 'pm-group', 'aria-label': name },
+      h('div', { class: 'titlebar' }, h('span', { class: 't' }, name)),
+      h('div', { class: 'pm-icons' }, ...list.map(prog))))));
+  const win = createWindow({ app: 'progman', title: 'Program Manager', icon: 'i-programs', body, width: 600, height: 400,
+    onClose: () => { shutDown(); return false; } });
+  return win;
+}
 
 // ---------- XP on: the Start panel ----------
 // XP's two columns, Vista and 7's search box, 8's full-screen Start, 10's tiles and 11's grid.
@@ -1108,6 +1139,12 @@ function quickLaunch() {
 export function initDesktop() {
   register({ id: 'volume', title: 'Volume Control', icon: 'i-speaker', open: () => volumeControl() });
   register({ id: 'taskbarprops', title: 'Taskbar Properties', icon: 'i-taskbar', open: taskbarProps });
+  if (V.id === '3.1') {
+    register({ id: 'progman', title: 'Program Manager', icon: 'i-programs', single: true, open: progman });
+    // Minimized windows sit as icons on the desktop, under the windows.
+    desktopEl.insertBefore(document.getElementById('tasks'), document.getElementById('windows'));
+    launch('progman');
+  }
   applyTaskbar();
   quickLaunch();
   renderIcons();
