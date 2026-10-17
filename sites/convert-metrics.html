@@ -77,7 +77,10 @@ const GAMES = [
   ["muramasa", "装甲悪鬼村正", "Nitroplus NSS"],
   ["muramasa-en", "Full Metal Daemon Muramasa (English)", "Nitroplus NSS + the English port"],
   ["django", "続・殺戮のジャンゴ", "Nitroplus NSS"],
+  ["tsukihime", "月姫 -A piece of blue glass moon- (Switch)", "TYPE-MOON"],
 ];
+// Every game with a metrics file on main shows up; GAMES only gives names and order.
+const LIST = "https://api.github.com/repos/blankiekun/conscripter-convert/contents/tests/snapshots?ref=main";
 
 function el(tag, text, cls) {
   const e = document.createElement(tag);
@@ -151,7 +154,8 @@ function render(t, det, name, m) {
 }
 
 const list = document.getElementById("games"), details = document.getElementById("details");
-for (const [id, name, engine] of GAMES) {
+
+function show([id, name, engine]) {
   const t = row(name, engine);
   list.append(t.tr);
   const det = el("details");
@@ -166,6 +170,18 @@ for (const [id, name, engine] of GAMES) {
       t.when.textContent = "No numbers for this game yet (" + e.message + ").";
     });
 }
+
+// The known games first, in GAMES' order, then any new one by its file name.
+fetch(LIST, { cache: "no-store" })
+  .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(files => files.map(f => f.name.match(/^(.+)\.metrics\.json$/)).filter(Boolean).map(m => m[1]))
+  .then(ids => {
+    const known = GAMES.filter(g => ids.includes(g[0]));
+    const added = ids.filter(id => !GAMES.some(g => g[0] === id)).sort().map(id => [id, id, ""]);
+    return known.concat(added);
+  })
+  .catch(() => GAMES) // the API's hourly limit: fall back to the known list
+  .then(games => games.forEach(show));
 </script>
 </body>
 </html>
