@@ -525,7 +525,7 @@ function openPanel() {
   const programs = items.find(it => it.label === '&Programs').submenu;
   const go = fn => () => { closePanel(); closeMenus('chosen'); fn(); };
   const item = (label, ic, fn, cls, sub) => h('button', { type: 'button', class: 'sp-item' + (cls ? ' ' + cls : ''), onclick: fn && go(fn) },
-    icon(ic || 'i-exe'), h('span', null, strip(label), sub ? h('small', null, sub) : null));
+    icon(ic || 'i-exe'), h('span', null, strip(label), sub ? h('small', null, strip(sub)) : null));
   // The programs everyone pinned or ran most.
   const fav = [['Internet Explorer', 'ie', 'i-ie', 'home'], ['Inbox', 'inbox', 'i-inbox'], ['Notepad', 'notepad', 'i-notepad'], ['Paint', 'paint', 'i-paint'],
     ['Calculator', 'calc', 'i-calc'], ['CONscripter', 'cons', 'i-game'], ['Solitaire', 'solitaire', 'i-sol'], ['Minesweeper', 'minesweeper', 'i-mine'],
@@ -538,7 +538,7 @@ function openPanel() {
     ['Network Neighborhood', 'i-network', () => launch('network')],
     '-',
     ['Control Panel', 'i-ctrl', () => launch('explorer', 'Control Panel')],
-    [xp ? 'Printers and Faxes' : 'Devices and Printers', 'i-printer', () => launch('explorer', 'Printers')],
+    [xp ? 'Printers and Faxes' : V.id === 'vista' ? 'Printers' : 'Devices and Printers', 'i-printer', () => launch('explorer', 'Printers')],
     ['Windows Setup', 'i-setup', () => launch('setup')],
     '-',
     ['Help and Support', 'i-helpbook', () => launch('help')],
@@ -547,8 +547,10 @@ function openPanel() {
   ].map(p => p === '-' ? h('hr') : item(...p));
   const user = (cls = 'sp-user') => h('a', { class: cls, href: GITHUB, target: '_blank', rel: 'noopener', onclick: () => closePanel() },
     h('img', { src: GITHUB + '.png?size=64', alt: '', width: 48, height: 48 }), h('span', null, 'blankiekun'));
-  const power = (label = V.id === 'xp' ? 'Turn Off Computer' : 'Shut down') => item(label, 'i-shutdown', shutDown, 'sp-power');
-  const logoff = () => V.logoff ? item(V.logoff, 'i-logoff', logOff, 'sp-logoff') : null;
+  // Named by title and aria-label too, for the panels that show only the icon.
+  const named = (b, label) => Object.assign(b, { title: label, ariaLabel: label });
+  const power = (label = V.id === 'xp' ? 'Turn Off Computer' : 'Shut down') => named(item(label, 'i-shutdown', shutDown, 'sp-power'), label);
+  const logoff = () => V.logoff ? named(item(V.logoff, 'i-logoff', logOff, 'sp-logoff'), V.logoff) : null;
 
   // A folder tree that opens in place, for Vista on.
   function tree(list) {
@@ -849,7 +851,7 @@ taskbarEl.addEventListener('contextmenu', e => {
     { label: 'Tile &Vertically', action: () => tile(true) },
     '-',
     { label: '&Minimize All Windows', action: minimizeAll },
-    { label: 'Reset &Quick Launch', action: () => { pins = QUICK_DEFAULT.slice(); savePins(); } },
+    QUICK_ON && { label: 'Reset &Quick Launch', action: () => { pins = QUICK_DEFAULT.slice(); savePins(); } },
     undoLabel() && { label: undoLabel(), action: undo },
     '-',
     { label: 'P&roperties', action: taskbarProps },
@@ -1024,10 +1026,12 @@ const QUICK_DEFAULT = [
   { label: 'MS-DOS Prompt', id: 'dos', icon: 'i-dos' },
   { label: 'Notepad', id: 'notepad', icon: 'i-notepad' },
   { label: 'Show Desktop', id: 'showdesktop', icon: 'i-computer' },
-];
+].filter(p => !absent(p.id));
 let pins = store.get(QUICK, QUICK_DEFAULT);
 // From 7 on, pins are taskbar buttons; opening one swaps the pin for the window's button.
 const SUPERBAR = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === '7');
+// Quick Launch came with IE4 and 98.
+const QUICK_ON = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === '98');
 const quickEl = h('nav', SUPERBAR ? { class: 'pins' } : { class: 'quick', 'aria-label': 'Quick Launch' });
 const pinOf = app => [...quickEl.children].find(b => b.dataset.app === app && b.classList.contains('pin'));
 // CSS hides a pin while a window's button follows it.
@@ -1083,6 +1087,7 @@ function renderQuick() {
   running.forEach(placeTask);
 }
 function quickLaunch() {
+  if (!QUICK_ON) return;
   renderQuick();
   if (SUPERBAR) document.getElementById('tasks').prepend(quickEl);
   else document.getElementById('start').after(quickEl);
