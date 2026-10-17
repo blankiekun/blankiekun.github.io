@@ -49,6 +49,9 @@ function open() {
     win.close(true);
     await copying(r);
     store.set(KEY, r.id);
+    // The desktop colour and wallpaper go back to the new version's own.
+    const d = store.get('w95.display', null);
+    if (d) { for (const k of ['color', 'wallpaper', 'scheme', 'vars']) delete d[k]; store.set('w95.display', d); }
     store.set(HINT, true);
     try { sessionStorage.removeItem('w95.booted'); } catch {}
     location.hash = '';

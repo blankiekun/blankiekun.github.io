@@ -1,0 +1,192 @@
+/* Skins for the other Windows versions (Windows Setup, js/version.js). 95 is win95.css as is.
+   index.html sets <html data-win> before first paint. The 9x/2000 skins keep Display's colour
+   schemes; from XP on the colours are the version's own, so they win over the scheme with !important. */
+
+/* ---------- 1.0 and 2.0: white, black outlines, a pixel font ---------- */
+html:is([data-win="1.0"], [data-win="2.0"]) {
+  --face: #ffffff !important; --light: #ffffff !important; --shadow: #808080 !important;
+  --title: #0000aa !important; --title-off: #ffffff !important; --title-ink-off: #000000 !important; --select: #000000 !important;
+  --font-ui: var(--font-pixel);
+}
+:is([data-win="1.0"], [data-win="2.0"]) :is(.win, .menu, .btn, .tbtn, .task, .start, .field, .listbox, .tabpanel, .group) { box-shadow: 0 0 0 1px #000 inset; }
+:is([data-win="1.0"], [data-win="2.0"]) .win { padding: 1px; }
+:is([data-win="1.0"], [data-win="2.0"]) .titlebar { border-bottom: 1px solid #000; }
+:is([data-win="1.0"], [data-win="2.0"]) .titlebar .t { text-align: center; font-weight: normal; }
+:is([data-win="1.0"], [data-win="2.0"]) .btn { border-radius: 6px; }
+:is([data-win="1.0"], [data-win="2.0"]) .taskbar { box-shadow: inset 0 1px #000; }
+:is([data-win="1.0"], [data-win="2.0"]) .icon { color: #000; }
+:is([data-win="1.0"], [data-win="2.0"]) .startmenu .side { display: none; }
+
+/* ---------- 3.1: thick black-edged frames, centred titles ---------- */
+[data-win="3.1"] .win { padding: 5px; box-shadow: inset 0 0 0 1px #000, inset 0 0 0 4px var(--face), inset 0 0 0 5px #000; }
+[data-win="3.1"] .titlebar { border-bottom: 1px solid #000; margin-bottom: 1px; }
+[data-win="3.1"] .titlebar .t { text-align: center; }
+[data-win="3.1"] .tbtn svg { transform: scale(1.2); }
+[data-win="3.1"] .startmenu .side { display: none; }
+
+/* ---------- 98, Me and 2000: gradient title bars ---------- */
+:is([data-win="98"], [data-win="me"]) .titlebar { background: linear-gradient(90deg, var(--title-off), #b5b5b5); }
+:is([data-win="98"], [data-win="me"]) .win.active > .titlebar { background: linear-gradient(90deg, var(--title), #1084d0); }
+[data-win="2000"] .titlebar { background: linear-gradient(90deg, var(--title-off), #c0c0c0); }
+[data-win="2000"] .win.active > .titlebar { background: linear-gradient(90deg, var(--title), #a6caf0); }
+
+/* ---------- XP on: no 95 banner, and icon labels float over the wallpaper ---------- */
+:is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .startmenu .side { display: none; }
+:is([data-win="xp"], [data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .icon span { background: none; text-shadow: 1px 1px 2px #000, 0 0 3px rgba(0, 0, 0, .6); }
+
+/* ---------- XP: Luna blue ---------- */
+html[data-win="xp"] {
+  --face: #ece9d8 !important; --light: #f1efe2 !important; --shadow: #aca899 !important; --dark: #716f64;
+  --title: #0058ee !important; --title-off: #7a96df !important; --title-ink-off: #d8e4f8 !important; --select: #316ac5 !important;
+  --tb-h: 30px;
+}
+[data-win="xp"] .win { padding: 0 3px 3px; border-radius: 8px 8px 0 0; background: #0831d9; box-shadow: 1px 2px 8px rgba(0, 0, 0, .35); }
+[data-win="xp"] .win:not(.active) { background: #7a96df; }
+[data-win="xp"] .win-body { background: var(--face); }
+[data-win="xp"] .titlebar { height: 29px; margin: 0 -3px; padding: 0 5px 0 7px; border-radius: 7px 7px 0 0;
+  background: linear-gradient(#a6b8ec, #7a96df 10%, #8aa4e6 85%, #7a96df); }
+[data-win="xp"] .win.active > .titlebar { background: linear-gradient(#0997ff, #0053ee 10%, #0050ee 40%, #0066ff 88%, #003dd7); }
+[data-win="xp"] .titlebar .t { font: bold 13px "Trebuchet MS", Tahoma, sans-serif; text-shadow: 1px 1px #0f1089; }
+[data-win="xp"] .tbtns { gap: 2px; }
+[data-win="xp"] .tbtn { width: 21px; height: 21px; border-radius: 3px; border: 1px solid #fff; color: #fff; box-shadow: none;
+  background: linear-gradient(135deg, #5a9bff, #2663e0 60%, #1d4fc8); }
+[data-win="xp"] .tbtn.x { background: linear-gradient(135deg, #f0a080, #e2562b 50%, #c6361e); }
+[data-win="xp"] .tbtn:active:not(:disabled) { box-shadow: inset 1px 1px 3px rgba(0, 0, 0, .5); }
+[data-win="xp"] .tbtn svg { width: 9px; height: 9px; }
+[data-win="xp"] .tbtn.help { color: #fff; }
+[data-win="xp"] .taskbar { padding: 0; box-shadow: none; background: linear-gradient(#3168d5, #4993e6 8%, #2157d7 20%, #2663e0 90%, #1941a5); }
+[data-win="xp"] .start { padding: 0 20px 0 8px; margin-right: 6px; border-radius: 0 12px 12px 0; color: #fff; box-shadow: inset -2px 0 3px rgba(0, 0, 0, .2);
+  background: linear-gradient(#5eac56, #3c9a3c 15%, #389e38 80%, #2b7f2b); font: italic bold 19px/1 "Trebuchet MS", sans-serif; text-shadow: 1px 1px 2px #1a4a1a; }
+[data-win="xp"] .start[aria-expanded="true"] { background: linear-gradient(#2e7f2e, #296f29); padding: 0 20px 0 8px; box-shadow: inset 1px 1px 4px rgba(0, 0, 0, .5); }
+[data-win="xp"] .start[aria-expanded="true"] span { outline: 0; }
+[data-win="xp"] .quick { box-shadow: none; }
+[data-win="xp"] .quick button { background: none; }
+[data-win="xp"] .tasks { padding: 3px 0; }
+[data-win="xp"] .task { color: #fff; border-radius: 3px; background: linear-gradient(#5f9bf6, #3c81f3 20%, #3070e8); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); }
+[data-win="xp"] .task.on { background: #1e52b7; font-weight: normal; padding: 0 5px; box-shadow: inset 1px 1px 3px rgba(0, 0, 0, .5); }
+[data-win="xp"] .tray { color: #fff; box-shadow: inset 1px 0 #1042af; background: linear-gradient(#0c59b9, #139ee9 10%, #18b9ed 15%, #1170cf 90%); }
+[data-win="xp"] .menu { background: #fff; box-shadow: 0 0 0 1px #aca899, 2px 2px 4px rgba(0, 0, 0, .3); }
+[data-win="xp"] .btn { border-radius: 3px; border: 1px solid #003c74; box-shadow: none; background: linear-gradient(#fff, #ece9d8 85%, #d6d0c5); }
+[data-win="xp"] .btn.default { box-shadow: inset 0 0 0 1px #8fb8f7; }
+[data-win="xp"] .btn:active:not(:disabled) { box-shadow: none; background: #e3e2da; padding: 0 10px; }
+[data-win="xp"] .field, [data-win="xp"] .listbox { box-shadow: none; border: 1px solid #7f9db9; }
+
+/* ---------- Vista and 7: Aero glass ---------- */
+html:is([data-win="vista"], [data-win="7"]) {
+  --face: #f0f0f0 !important; --light: #e3e3e3 !important; --shadow: #a0a0a0 !important; --dark: #696969;
+  --title: #4580c4 !important; --title-off: #9fb5d0 !important; --select: #3399ff !important;
+  --font-ui: "Segoe UI", Tahoma, "Noto Sans", sans-serif;
+  --tb-h: 40px;
+}
+:is([data-win="vista"], [data-win="7"]) .win { padding: 0 7px 7px; border-radius: 7px 7px 5px 5px;
+  background: rgba(150, 190, 235, .72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .55), 0 6px 20px rgba(0, 0, 0, .45); }
+:is([data-win="vista"], [data-win="7"]) .win:not(.active) { background: rgba(200, 215, 235, .7); }
+:is([data-win="vista"], [data-win="7"]) .win-body { background: var(--face); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+:is([data-win="vista"], [data-win="7"]) .titlebar,
+:is([data-win="vista"], [data-win="7"]) .win.active > .titlebar { height: 28px; background: none; color: #000; padding: 0 0 0 2px; }
+:is([data-win="vista"], [data-win="7"]) .titlebar .t { font: 12px var(--font-ui); text-shadow: 0 0 8px #fff, 0 0 4px #fff; }
+:is([data-win="vista"], [data-win="7"]) .tbtns { align-self: flex-start; }
+:is([data-win="vista"], [data-win="7"]) .tbtn { width: 26px; height: 19px; color: #333; box-shadow: none; border: 1px solid rgba(0, 0, 0, .4);
+  border-radius: 0; background: linear-gradient(rgba(255, 255, 255, .7), rgba(255, 255, 255, .25) 50%, rgba(255, 255, 255, .1) 51%, rgba(255, 255, 255, .4)); }
+:is([data-win="vista"], [data-win="7"]) .tbtns > :first-child { border-bottom-left-radius: 4px; }
+:is([data-win="vista"], [data-win="7"]) .tbtn.x { width: 43px; margin-left: 0; color: #fff; border-bottom-right-radius: 4px;
+  background: linear-gradient(#e8a493, #d07c64 50%, #c0442b 51%, #d88a6f); }
+:is([data-win="vista"], [data-win="7"]) .taskbar { padding: 0 2px; box-shadow: inset 0 1px rgba(255, 255, 255, .25);
+  background: rgba(15, 25, 40, .78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+[data-win="7"] .taskbar { background: rgba(25, 55, 95, .62); }
+:is([data-win="vista"], [data-win="7"]) .start { width: 40px; height: 40px; margin: -1px 4px -1px 2px; padding: 0; justify-content: center; border-radius: 50%;
+  background: radial-gradient(circle at 50% 30%, #a8e0ff, #2a7fd6 50%, #0c3a7a); box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), inset 0 1px 1px rgba(255, 255, 255, .7); align-self: center; }
+:is([data-win="vista"], [data-win="7"]) .start[aria-expanded="true"] { padding: 0; box-shadow: 0 0 10px #7cd0ff, 0 0 0 1px rgba(0, 0, 0, .6); }
+:is([data-win="vista"], [data-win="7"]) .start svg { width: 22px; height: 20px; }
+:is([data-win="vista"], [data-win="7"]) .quick { box-shadow: none; }
+:is([data-win="vista"], [data-win="7"]) .quick button { background: none; }
+:is([data-win="vista"], [data-win="7"]) .tasks { padding: 4px 0; }
+:is([data-win="vista"], [data-win="7"]) .task { color: #fff; border-radius: 3px; background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); }
+:is([data-win="vista"], [data-win="7"]) .task.on { background: rgba(255, 255, 255, .26); font-weight: normal; padding: 0 5px; }
+:is([data-win="vista"], [data-win="7"]) .tray { color: #fff; background: none; box-shadow: none; }
+:is([data-win="vista"], [data-win="7"]) .menu { background: #f5f5f5; box-shadow: 0 0 0 1px #979797, 2px 2px 4px rgba(0, 0, 0, .3); }
+:is([data-win="vista"], [data-win="7"]) .menu .mi.hot { background: linear-gradient(#eaf2fb, #d4e6fa); color: #000; border-radius: 3px; box-shadow: inset 0 0 0 1px #a8d8eb; }
+:is([data-win="vista"], [data-win="7"]) .btn { border-radius: 3px; border: 1px solid #707070; box-shadow: none;
+  background: linear-gradient(#f2f2f2 50%, #dddddd 51%, #cfcfcf); }
+:is([data-win="vista"], [data-win="7"]) .btn.default { border-color: #3c7fb1; box-shadow: inset 0 0 0 1px #c4e5f6; }
+:is([data-win="vista"], [data-win="7"]) .btn:active:not(:disabled) { box-shadow: none; background: linear-gradient(#e5f4fc 50%, #c4e5f6 51%, #98d1ef); padding: 0 10px; }
+:is([data-win="vista"], [data-win="7"]) :is(.field, .listbox) { box-shadow: none; border: 1px solid #abadb3; }
+
+/* ---------- 8, 10 and 11: flat ---------- */
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) {
+  --face: #f0f0f0 !important; --light: #e5e5e5 !important; --shadow: #a0a0a0 !important; --dark: #696969;
+  --title: #0078d7 !important; --title-off: #ffffff !important; --title-ink-off: #999999 !important; --select: #0078d7 !important;
+  --font-ui: "Segoe UI", Tahoma, "Noto Sans", sans-serif;
+  --tb-h: 40px;
+}
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .win { padding: 0; background: var(--face); box-shadow: 0 0 0 1px #aaa, 0 6px 22px rgba(0, 0, 0, .3); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.active { box-shadow: 0 0 0 1px var(--frame, #1883d7), 0 8px 28px rgba(0, 0, 0, .35); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .titlebar { height: 30px; padding: 0 0 0 8px; background: #fff; color: #999; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.active > .titlebar { background: #fff; color: #000; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .titlebar .t { font: 12px var(--font-ui); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtns { align-self: stretch; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn { width: 46px; height: 30px; background: none; box-shadow: none; color: inherit; margin: 0; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn:hover:not(:disabled) { background: rgba(0, 0, 0, .1); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn.x:hover { background: #e81123; color: #fff; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn:active:not(:disabled) { box-shadow: none; background: rgba(0, 0, 0, .2); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn:active:not(:disabled) svg { transform: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tbtn svg { width: 10px; height: 10px; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .taskbar { padding: 0; box-shadow: none; background: rgba(16, 16, 16, .92); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .start { width: 48px; padding: 0; justify-content: center; background: none; box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .start:hover, :is([data-win="8"], [data-win="10"], [data-win="11"]) .start[aria-expanded="true"] { background: rgba(255, 255, 255, .12); padding: 0; box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .start svg { display: none; }
+/* The four-pane logo: a white square cut by a cross in the taskbar's colour. */
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .start::before { content: ''; width: 16px; height: 16px;
+  background: linear-gradient(90deg, transparent 45%, #101010 45% 55%, transparent 55%), linear-gradient(transparent 45%, #101010 45% 55%, transparent 55%), #fff; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .start[aria-expanded="true"] span { outline: 0; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .quick { box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .quick button { background: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .quick button:hover { background: rgba(255, 255, 255, .12); box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .quick svg { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .5)); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .task { color: #fff; background: none; box-shadow: inset 0 -2px transparent; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .task.on { background: rgba(255, 255, 255, .14); font-weight: normal; padding: 0 5px; box-shadow: inset 0 -2px #76b9ed; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .tray { color: #fff; background: none; box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .menu { background: #f2f2f2; box-shadow: 0 0 0 1px #ccc, 2px 2px 6px rgba(0, 0, 0, .25); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .menu .mi.hot { background: #cce8ff; color: #000; }
+:is([data-win="8"], [data-win="10"]) .menu.startmenu { background: #1f1f1f; box-shadow: 0 0 0 1px #000; }
+:is([data-win="8"], [data-win="10"]) .startmenu .mi { color: #fff; }
+:is([data-win="8"], [data-win="10"]) .startmenu .mi.hot { background: rgba(255, 255, 255, .14); color: #fff; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .menu hr { box-shadow: inset 0 1px #ccc; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .btn { border: 1px solid #adadad; box-shadow: none; background: #e1e1e1; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .btn:hover:not(:disabled) { background: #e5f1fb; border-color: #0078d7; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .btn.default { border: 2px solid #0078d7; box-shadow: none; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .btn:active:not(:disabled) { box-shadow: none; background: #cce4f7; padding: 0 10px; }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) :is(.field, .listbox) { box-shadow: none; border: 1px solid #7a7a7a; }
+
+/* 8: coloured frames and a centred title */
+[data-win="8"] .win.active { --frame: #1979ca; }
+[data-win="8"] .win.active > .titlebar { background: #1979ca; color: #fff; }
+[data-win="8"] .titlebar .t { text-align: center; }
+[data-win="8"] .tbtn.x { background: #c75050; color: #fff; width: 46px; }
+[data-win="8"] .taskbar { background: rgba(20, 40, 70, .85); }
+[data-win="8"] .start::before { background: linear-gradient(90deg, transparent 45%, #142846 45% 55%, transparent 55%), linear-gradient(transparent 45%, #142846 45% 55%, transparent 55%), #fff; }
+
+/* 11: rounded corners, a light taskbar with its buttons in the middle */
+[data-win="11"] .win { border-radius: 8px; }
+[data-win="11"] .win:not(.max) .titlebar { border-radius: 8px 8px 0 0; }
+[data-win="11"] .win-body { border-radius: 0 0 8px 8px; overflow: hidden; }
+[data-win="11"] .win.max, [data-win="11"] .win.max .win-body { border-radius: 0; }
+[data-win="11"] .win.active { --frame: #8a8a8a; }
+[data-win="11"] .titlebar, [data-win="11"] .win.active > .titlebar { background: #f3f3f3; }
+[data-win="11"] .tbtn.x:hover { border-top-right-radius: 8px; }
+[data-win="11"] .taskbar { background: rgba(243, 243, 243, .9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); box-shadow: inset 0 1px #ddd; }
+[data-win="11"] .start { margin-left: auto; border-radius: 4px; }
+[data-win="11"] .start::before { background: linear-gradient(90deg, transparent 45%, #f3f3f3 45% 55%, transparent 55%), linear-gradient(transparent 45%, #f3f3f3 45% 55%, transparent 55%), #0078d4; }
+[data-win="11"] .tasks { flex: 0 1 auto; padding: 3px 0; }
+[data-win="11"] .tray { margin-left: auto; color: #000; }
+[data-win="11"] .task { color: #000; border-radius: 4px; }
+[data-win="11"] .task.on { background: rgba(0, 0, 0, .06); box-shadow: inset 0 -3px #0067c0; }
+[data-win="11"] .start:hover, [data-win="11"] .start[aria-expanded="true"], [data-win="11"] .quick button:hover { background: rgba(0, 0, 0, .06); }
+[data-win="11"] .quick svg { filter: none; }
+[data-win="11"] :is(.menu, .btn, .field, .listbox) { border-radius: 6px; }
+[data-win="11"] .menu { padding: 4px; box-shadow: 0 0 0 1px #e0e0e0, 0 8px 20px rgba(0, 0, 0, .18); background: #f9f9f9; }
+[data-win="11"] .menu .mi { border-radius: 4px; }
+[data-win="11"] .menu .mi.hot { background: rgba(0, 0, 0, .06); }
+[data-win="11"] .btn { background: #fbfbfb; border-color: #d0d0d0; }
+[data-win="11"] .btn.default { background: #0067c0; color: #fff; border: 1px solid #005ba1; }

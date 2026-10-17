@@ -19,11 +19,14 @@
 <link rel="stylesheet" href="css/calc.css">
 <link rel="stylesheet" href="css/comm.css">
 <link rel="stylesheet" href="css/mplayer.css">
+<link rel="stylesheet" href="css/versions.css">
 <script>
   // Apply saved display settings before first paint so the desktop doesn't flash teal.
   try {
     const d = JSON.parse(localStorage.getItem('w95.display') || 'null');
     if (d && d.vars) for (const [k, v] of Object.entries(d.vars)) document.documentElement.style.setProperty(k, v);
+    // Which Windows skin css/versions.css draws (see js/version.js).
+    document.documentElement.dataset.win = JSON.parse(localStorage.getItem('w95.version') || '"95"');
   } catch {}
 </script>
 </head>

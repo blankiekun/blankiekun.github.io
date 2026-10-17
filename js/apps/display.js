@@ -6,6 +6,7 @@ import { createWindow, launch } from '../wm.js';
 import { msgbox } from '../dialogs.js';
 import { screenSaverTab, setScreenSaver, loadScreenSaver, SAVERS } from './screensaver.js';
 import { setSoundMap } from './control.js';
+import { V } from '../version.js';
 
 const KEY = 'w95.display';
 
@@ -43,10 +44,17 @@ const WALLPAPERS = {
   'Blue Rivets': { url: svgUrl(RIVETS), size: 'auto', repeat: 'repeat' },
   'Clouds': { url: svgUrl(CLOUDS), size: 'cover', repeat: 'no-repeat' },
   'Setup': { url: svgUrl(SETUP), size: 'cover', repeat: 'no-repeat' },
+  // The later versions' default wallpapers, drawn with gradients.
+  'Bliss': { url: 'radial-gradient(ellipse 120% 55% at 25% 108%, #6cbb34 0 55%, transparent 56%), radial-gradient(ellipse 90% 45% at 90% 112%, #4f9e25 0 60%, transparent 61%), radial-gradient(ellipse 18% 6% at 70% 22%, #fff, transparent), linear-gradient(#2a6bd4, #6ba5ec 45%, #c4ddf6 72%)', size: 'cover', repeat: 'no-repeat' },
+  'Aurora': { url: 'radial-gradient(ellipse 70% 30% at 35% 62%, rgba(140, 230, 120, .55), transparent 70%), radial-gradient(ellipse 60% 25% at 70% 42%, rgba(70, 170, 255, .5), transparent 70%), linear-gradient(135deg, #0d4433, #0a2a4a 60%, #051a2c)', size: 'cover', repeat: 'no-repeat' },
+  'Harmony': { url: 'radial-gradient(circle at 50% 45%, #bfe6ff 0, #4aa3ec 12%, transparent 34%), radial-gradient(ellipse 80% 40% at 30% 80%, rgba(120, 200, 80, .35), transparent 70%), linear-gradient(#2a74c4, #0f3d7a)', size: 'cover', repeat: 'no-repeat' },
+  'Hero': { url: 'linear-gradient(100deg, transparent 52%, rgba(120, 200, 255, .5) 58%, transparent 66%), radial-gradient(ellipse 30% 45% at 62% 50%, #7cc8ff, #1a73d9 45%, transparent 70%), linear-gradient(#001a40, #003b86)', size: 'cover', repeat: 'no-repeat' },
+  'Bloom': { url: 'radial-gradient(ellipse 30% 40% at 50% 58%, #e4f0ff, #3b82f6 45%, transparent 70%), radial-gradient(ellipse 50% 30% at 50% 70%, rgba(0, 70, 200, .5), transparent 70%), linear-gradient(#d5e6ff, #8fb6f2)', size: 'cover', repeat: 'no-repeat' },
 };
 
 const SCHEMES = {
   'Windows Standard': { face: '#c0c0c0', title: '#000080', desktop: '#008080' },
+  'Windows Classic': { face: '#d4d0c8', title: '#0a246a', desktop: '#3a6ea5' },
   'Brick': { face: '#c2bfa5', title: '#800000', desktop: '#3f1010' },
   'Desert': { face: '#d5ccbb', title: '#008080', desktop: '#a28d68' },
   'Eggplant': { face: '#90b0a8', title: '#588078', desktop: '#400040' },
@@ -94,7 +102,7 @@ function varsFor(s) {
 // Paint's Set As Wallpaper puts the picture here.
 const PAINTED = 'Paint Wallpaper';
 
-const DEFAULTS = { pattern: '(None)', wallpaper: '(None)', color: '#008080', scheme: 'Windows Standard', depth: 'High Color (16 bit)' };
+const DEFAULTS = { pattern: '(None)', wallpaper: V.wallpaper, color: V.desktop, scheme: V.scheme, depth: 'High Color (16 bit)' };
 const DEPTHS = { '16 Color': '16', '256 Color': '256', 'High Color (16 bit)': '', 'True Color (24 bit)': '' };
 function current() { return { ...DEFAULTS, ...(store.get(KEY, null) || {}) }; }
 
@@ -229,7 +237,7 @@ function open() {
 // Plus!-style themes made from what's already here: one pick sets the colours,
 // wallpaper, pattern, event sounds and screen saver together.
 const THEMES = {
-  'Windows Default': { scheme: 'Windows Standard', color: '#008080', wallpaper: '(None)', pattern: '(None)', saver: 'flying', sounds: null },
+  'Windows Default': { scheme: V.scheme, color: V.desktop, wallpaper: V.wallpaper, pattern: '(None)', saver: 'flying', sounds: null },
   'Inside Your Computer': { scheme: 'Slate', color: '#3a5070', wallpaper: '(None)', pattern: 'Circuits', saver: 'pipes',
     sounds: { 'Default sound': 'Ding', 'Asterisk': 'Chord', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' } },
   'Mystery': { scheme: 'Storm', color: '#000000', wallpaper: '(None)', pattern: '(None)', saver: 'mystify',
