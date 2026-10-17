@@ -6,7 +6,7 @@
 <title>Conversion Thermometers</title>
 <link rel="stylesheet" href="retro.css">
 <style>
-/* A 1995 university lab page on Netscape grey, with a charity-drive thermometer per game. */
+/* A 1995 university lab page on Netscape grey, with a web-stats table of the games. */
 body { background: #c0c0c0; color: #000; font: 16px/1.5 "Times New Roman", Times, serif; }
 a { color: #0000ee; } a:visited { color: #551a8b; }
 h1 { margin: 0; text-align: center; font: bold clamp(28px, 6vw, 40px)/1.1 "Times New Roman", Times, serif; }
@@ -15,28 +15,15 @@ h2 { margin: 0 0 6px; font: bold 22px/1.2 "Times New Roman", Times, serif; }
 p { margin: 0; }
 .small { font-size: 13px; }
 
-#games { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 24px 12px; }
-/* Subgrid rows, so every tube starts at the same height however the titles wrap. */
-.therm { margin: 0; display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 6px; justify-items: center; align-items: start; text-align: center; }
-.therm figcaption { align-self: end; font-size: 14px; line-height: 1.25; }
-.therm figcaption b { display: block; font-size: 15px; }
-.therm figcaption small { font: 12px Arial, Helvetica, sans-serif; color: #404040; }
-
-/* The glass: a scale on the left, the tube, and the bulb it rises out of. */
-.gauge { --h: 220px; position: relative; display: grid; grid-template-columns: 30px 24px; column-gap: 4px; padding-bottom: 46px; }
-.scale { position: relative; height: var(--h); font: 11px/1 Arial, Helvetica, sans-serif;
-  background: repeating-linear-gradient(to top, #000 0 1px, transparent 1px 10%) right / 8px 100% no-repeat; }
-.scale span { position: absolute; right: 11px; transform: translateY(50%); }
-.scale .goal { color: #000080; font-weight: bold; }
-.tube { position: relative; height: var(--h); background: #fff; border: 3px solid #000; border-bottom: 0; border-radius: 12px 12px 0 0; overflow: hidden;
-  box-shadow: inset 4px 0 0 #e8e8e8; }
-.merc { position: absolute; left: 3px; right: 3px; bottom: 0; height: calc(var(--p, 0) * 1%);
-  background: linear-gradient(90deg, #a00000, #ff3a3a 45%, #c00000); transition: height 1.4s cubic-bezier(.2, .7, .2, 1); }
-.bulb { position: absolute; left: 30px; bottom: 0; width: 48px; height: 48px; margin-left: -10px; border: 3px solid #000; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ff7a7a, #d40000 45%, #900000); }
-.bulb::before { content: ""; position: absolute; left: 15px; right: 15px; top: -9px; height: 14px; background: #d40000; }
-.pct { font: bold 26px/1 "Times New Roman", Times, serif; }
-.nums { font-size: 13px; color: #202020; max-width: 13em; }
+/* A 1990s web-stats table: one row per game, with a bar in a cell. */
+table.games { width: 100%; background: #fff; border: 2px inset #e0e0e0; font: 13px/1.35 Arial, Helvetica, sans-serif; }
+.games th, .games td { border: 1px solid #808080; padding: 4px 6px; text-align: left; vertical-align: middle; }
+.games th { background: #e0e0e0; }
+.games td.n { text-align: right; white-space: nowrap; }
+.games td.bar { width: 35%; min-width: 90px; }
+.games .b { height: 12px; width: calc(var(--p, 0) * 1%); background: #d40000; border: 1px solid #600000; box-sizing: border-box; transition: width 1.2s cubic-bezier(.2, .7, .2, 1); }
+.games .b:not([style]) { border: 0; }
+.games small { display: block; font-size: 12px; color: #404040; }
 .err { color: #a00000; font-size: 13px; }
 
 .where details { background: #fff; border: 2px inset #e0e0e0; padding: 6px 10px; }
@@ -51,17 +38,21 @@ table.kinds { width: 100%; border: 1px solid #000; font: 13px/1.35 Arial, Helvet
 .kinds ul { margin: 0; padding: 0; list-style: none; }
 
 footer { text-align: center; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
-@media (max-width: 480px) { .gauge { --h: 150px; } }
-@media (prefers-reduced-motion: reduce) { .merc { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .games .b { transition: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>How much of each game converts</h1>
-  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. Calls <b>left out on purpose</b>, in code the game can't reach such as a debug menu, count as done. The red line shows the share that converts fully. A game reaches the top when nothing is left out.</p>
+  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. Calls <b>left out on purpose</b>, in code the game can't reach such as a debug menu, count as done. The red bar shows the share that converts fully; it fills its cell when nothing is missing.</p>
   <hr class="groove">
 
-  <div id="games"></div>
+  <div class="scroll">
+    <table class="games">
+      <thead><tr><th scope="col">Game</th><th scope="col">Converted</th><th scope="col">%</th><th scope="col">Gaps</th><th scope="col">Measured on</th></tr></thead>
+      <tbody id="games"></tbody>
+    </table>
+  </div>
 
   <hr class="groove">
   <section class="where">
@@ -97,29 +88,18 @@ function el(tag, text, cls) {
 const fmt = n => n.toLocaleString("en-US");
 const langOf = s => /[^\x00-\x7f]/.test(s) ? "ja" : "en";
 
-function thermometer(name, engine) {
-  const fig = el("figure", null, "therm");
-  const cap = el("figcaption");
+function row(name, engine) {
+  const tr = el("tr");
+  const game = el("td");
   const b = el("b", name);
   b.lang = langOf(name);
-  cap.append(b, el("small", engine));
-  const gauge = el("div", null, "gauge");
-  gauge.setAttribute("role", "img");
-  gauge.setAttribute("aria-label", "loading");
-  const scale = el("div", null, "scale");
-  for (const v of [100, 75, 50, 25, 0]) {
-    const s = el("span", v === 100 ? "goal" : String(v), v === 100 ? "goal" : null);
-    s.style.bottom = v + "%";
-    scale.append(s);
-  }
-  const merc = el("div", null, "merc");
-  const tube = el("div", null, "tube");
-  tube.append(merc);
-  gauge.append(scale, tube, el("div", null, "bulb"));
-  const pct = el("p", "…", "pct");
-  const nums = el("p", "loading...", "nums");
-  fig.append(cap, gauge, pct, nums);
-  return { fig, gauge, merc, pct, nums };
+  game.append(b, el("small", engine));
+  const bar = el("div", null, "b");
+  const barCell = el("td", null, "bar");
+  barCell.append(bar);
+  const pct = el("td", "…", "n"), gaps = el("td", null, "n"), when = el("td", "loading...");
+  tr.append(game, barCell, pct, gaps, when);
+  return { tr, bar, pct, gaps, when };
 }
 
 function render(t, det, name, m) {
@@ -127,17 +107,19 @@ function render(t, det, name, m) {
   const p = tot.calls ? 100 * (tot.full + (tot.left_out || 0)) / tot.calls : 0;
   // Floor, so a game with any gap never shows 100.0.
   const shown = (Math.floor(p * 10) / 10).toFixed(1);
-  t.gauge.setAttribute("aria-label", shown + "% fully converted");
   t.pct.textContent = shown + "%";
-  // Next frame, so the mercury rises from the bulb instead of appearing.
-  requestAnimationFrame(() => requestAnimationFrame(() => t.merc.style.setProperty("--p", p)));
+  // Next frame, so the bar grows from the left instead of appearing.
+  requestAnimationFrame(() => requestAnimationFrame(() => t.bar.style.setProperty("--p", p)));
 
   const dirty = m.commit.endsWith("-dirty");
   const sha = m.commit.replace(/-dirty$/, "");
   const link = el("a", sha);
   link.href = REPO + "/commit/" + sha;
-  t.nums.textContent = fmt(tot.gaps) + " gaps in " + fmt(tot.calls) + " calls" + (tot.left_out ? ", " + fmt(tot.left_out) + " left out on purpose" : "") + ". Measured on ";
-  t.nums.append(link, (dirty ? " + its PR" : "") + ", " + m.commit_date + ".");
+  t.gaps.textContent = fmt(tot.gaps);
+  t.gaps.append(el("small", "of " + fmt(tot.calls)));
+  if (tot.left_out) t.gaps.append(el("small", fmt(tot.left_out) + " left out on purpose"));
+  t.when.textContent = "";
+  t.when.append(link, (dirty ? " + its PR" : ""), el("small", m.commit_date));
 
   const kinds = Object.entries(m.kinds).sort((a, b) => b[1].gaps - a[1].gaps || b[1].calls - a[1].calls);
   const sum = el("summary");
@@ -170,8 +152,8 @@ function render(t, det, name, m) {
 
 const list = document.getElementById("games"), details = document.getElementById("details");
 for (const [id, name, engine] of GAMES) {
-  const t = thermometer(name, engine);
-  list.append(t.fig);
+  const t = row(name, engine);
+  list.append(t.tr);
   const det = el("details");
   det.hidden = true;
   details.append(det);
@@ -180,9 +162,8 @@ for (const [id, name, engine] of GAMES) {
     .then(m => render(t, det, name, m))
     .catch(e => {
       t.pct.textContent = "?";
-      t.gauge.setAttribute("aria-label", "no numbers yet");
-      t.nums.className = "err";
-      t.nums.textContent = "No numbers for this game yet (" + e.message + ").";
+      t.when.className = "err";
+      t.when.textContent = "No numbers for this game yet (" + e.message + ").";
     });
 }
 </script>
