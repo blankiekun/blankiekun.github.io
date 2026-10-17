@@ -58,8 +58,9 @@ export const VERSIONS = [
     shutTitle: 'Shut Down Windows', shutAsk: 'What do you want the computer to do?', dosMode: false, waitText: 'Shutting down...', offText: '', logoff: 'Log off' },
   { id: '7', short: '7', number: '6.1.7601', sys: 'Service Pack 1', date: [2009, 9, 22], copy: '2009', ramKB: 4194304, ie: '8.0.7601.17514', nt: true, desktop: '#1c5fa8', wallpaper: 'Harmony',
     ver: 'blankiekun [Version 6.1.7601]', dosCopy: 'Copyright (c) 2009 blankiekun. All rights reserved.', names: AERO, absent: NOT_7 },
-  { id: '8', short: '8', number: '6.2.9200', date: [2012, 9, 26], copy: '2012', ramKB: 4194304, ie: '10.0.9200.16384', nt: true, desktop: '#1b6f8c', wallpaper: '(None)',
-    ver: 'blankiekun [Version 6.2.9200]', dosCopy: '(c) 2012 blankiekun. All rights reserved.', names: METRO, absent: NOT_METRO, waitText: 'Shutting down', logoff: 'Sign out' },
+  // 8.1 with IE 11, the version people kept using (and the one with the Start button back); the id stays '8'.
+  { id: '8', short: '8.1', number: '6.3.9600', date: [2013, 9, 17], copy: '2013', ramKB: 4194304, ie: '11.0.9600.16384', nt: true, desktop: '#1b6f8c', wallpaper: '(None)',
+    ver: 'blankiekun [Version 6.3.9600]', dosCopy: '(c) 2013 blankiekun. All rights reserved.', names: METRO, absent: NOT_METRO, waitText: 'Shutting down', logoff: 'Sign out' },
   { id: '10', short: '10', number: '10.0.19045', sys: 'Version 22H2', date: [2015, 6, 29], copy: '', ramKB: 8388608, ie: '', desktop: '#003b86', wallpaper: 'Hero',
     ver: 'blankiekun [Version 10.0.19045]', dosCopy: '(c) blankiekun. All rights reserved.', names: { ...EDGE, 'Sound Recorder': 'Voice Recorder' }, absent: NOT_METRO },
   { id: '11', short: '11', number: '10.0.22631', sys: 'Version 23H2', date: [2021, 9, 5], copy: '', ramKB: 16777216, ie: '', desktop: '#8fb6f2', wallpaper: 'Bloom',
