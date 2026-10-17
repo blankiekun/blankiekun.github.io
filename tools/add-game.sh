@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Adds a prebuilt CONscripter game to the Games store page (sites/games.html).
 #   tools/add-game.sh <vndb.org/v… or thegamesdb.net/game.php?id=… link> <mega.nz link> [version, e.g. EN or JP]
+#   tools/add-game.sh --remove <same vndb/tgdb link> [version]
 # Each version gets its own Download button; adding a version again replaces its link.
+# Removing without a version, or removing a game's last version, takes the game off the page.
 # The title, cover and blurb come from VNDB or TheGamesDB. The site is public, so the
 # Mega link must not carry its key: use a password-protected link (mega.nz/#P!…, made
 # with the one friends' password) or a link exported without its key.
@@ -9,11 +11,25 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 DB=sites/games.json
 
-[[ $# -eq 2 || $# -eq 3 ]] || { sed -n '3p' "$0" | sed 's/^# *//' >&2; exit 2; }
+[[ $# -eq 2 || $# -eq 3 ]] || { sed -n '3,4p' "$0" | sed 's/^# *//' >&2; exit 2; }
+[[ -f $DB ]] || echo '[]' > "$DB"
+
+if [[ $1 == --remove ]]; then
+  src=$2 ver=${3-}
+  jq -e --arg src "$src" --arg ver "$ver" 'any(.src == $src and ($ver == "" or (.links | has($ver))))' "$DB" >/dev/null ||
+    { echo "not on the page: $src${ver:+ ($ver)}" >&2; exit 1; }
+  tmp=$(mktemp)
+  jq --arg src "$src" --arg ver "$ver" \
+    'map(if .src == $src and $ver != "" then .links |= del(.[$ver]) else . end
+         | select(.src != $src or ($ver != "" and (.links | length) > 0)))' "$DB" > "$tmp"
+  mv "$tmp" "$DB"
+  echo "removed: $src${ver:+ ($ver)}"
+  exit
+fi
+
 src=$1 mega=$2 ver=${3:-}
 [[ $mega =~ ^https://mega\.nz/(#P!|(file|folder)/[^#]+$) ]] ||
   { echo "need a password-protected mega.nz/#P!… link, or one without its #key: $mega" >&2; exit 1; }
-[[ -f $DB ]] || echo '[]' > "$DB"
 
 unent() { sed 's/&amp;/\&/g; s/&#0*39;/'"'"'/g; s/&quot;/"/g; s/&lt;/</g; s/&gt;/>/g'; }
 
