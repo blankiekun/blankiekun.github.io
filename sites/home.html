@@ -59,27 +59,30 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 .ad { display: block; text-align: center; text-decoration: none; color: #ff0; background: repeating-linear-gradient(45deg, #ff1493 0 14px, #c00060 14px 28px); border: 4px outset #ff69b4; padding: 8px; font: bold 13px Arial, sans-serif; }
 .ad b { display: block; font: 900 clamp(20px, 5vw, 30px)/1.1 Impact, "Arial Black", sans-serif; color: #fff; text-shadow: 2px 2px 0 #000; }
 .ad u { color: #fff; }
-/* With a CG behind it: taller, the words along the bottom */
-.ad.cg { display: flex; flex-direction: column; justify-content: flex-end; min-height: 220px; background-size: cover; background-position: center 25%; text-shadow: 1px 1px 0 #000; }
+/* With a CG behind it: headline on top, caption at the bottom, faces between. 3:1 or wider shows under half of a 4:3 CG, framed on the faces (each CG's own height, at most 45% down), well above its dialogue box. */
+.ad.cg { display: flex; flex-direction: column; justify-content: space-between; aspect-ratio: 3; max-height: 170px; background-size: cover; text-shadow: 1px 1px 0 #000; }
 </style>
 <style id="virus">
 /* What clicking the ad does before it lands on Games. Copied into the desktop too, so the screen-wide ones reach past IE. */
-@keyframes v-shake { 25% { transform: translate(-8px, 4px) rotate(-1deg); } 75% { transform: translate(8px, -4px) rotate(1deg); } }
+/* translate, rotate and scale are separate properties, so shake, flip and zoom stack when they overlap */
+@keyframes v-shake { 25% { translate: -8px 4px; } 75% { translate: 8px -4px; } }
 .v-shake { animation: v-shake .12s linear infinite; }
 .v-invert { filter: invert(1) hue-rotate(180deg); }
-.v-flip { transform: rotate(180deg); transition: transform 1s; }
+.v-flip { rotate: 180deg; }
+body { transition: rotate 1s, scale 2s; }
 .vpop { position: fixed; z-index: 200000; width: min(260px, 80vw); background: #c0c0c0; border: 2px outset #fff; font: 12px Arial, sans-serif; box-shadow: 2px 2px 0 #000; }
 .vpop > b { display: block; background: #000080; color: #fff; padding: 2px 4px; }
 .vpop > p { margin: 0; padding: 10px 8px; }
 .vbar { height: 16px; margin: 0 8px 10px; border: 2px inset #fff; background: #fff; }
 .vbar i { display: block; height: 100%; width: 0; background: #000080; }
 .v-comic * { font-family: "Comic Sans MS", "Comic Neue", cursive !important; color: hsl(var(--h, 300), 100%, 45%) !important; }
-.v-zoom { transform: scale(2.5); transition: transform 2s; }
-.v-bsod { position: fixed; inset: 0; z-index: 200002; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 24px; background: #0000aa; color: #fff; font: 15px/1.4 "Courier New", monospace; }
-.v-bsod b { align-self: center; background: #aaa; color: #0000aa; padding: 0 6px; }
+.v-zoom { scale: 2.5; }
+.v-bsod { position: fixed; inset: 0; z-index: 200002; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 16px; padding: 24px; background: #0000aa; color: #fff; font: 15px/1.4 "Courier New", monospace; }
+.v-bsod p { max-width: 64ch; margin: 0; }
+.v-bsod b { background: #aaa; color: #0000aa; padding: 0 6px; }
 .v-heart { position: fixed; z-index: 200001; top: -40px; font-size: 28px; color: #ff1493; pointer-events: none; animation: v-fall 3s linear forwards; }
 @keyframes v-fall { to { transform: translateY(110vh) rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .v-zoom { transition: none; } .v-heart { animation-duration: 0s; } .v-shake { animation: none; } .v-flip { transition: none; } }
+@media (prefers-reduced-motion: reduce) { body { transition: none; } .v-heart { animation-duration: 0s; } .v-shake { animation: none; } }
 </style>
 </head>
 <body>
@@ -194,15 +197,17 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   // The ad does what a virus would, a few things picked at random, then goes to Games.
   (function () {
     var ad = document.getElementById('babes'), busy = false;
-    // Screenshots VNDB voters rate safe, from the games conscripter-convert can convert: 俺翼 (v1141), 最果てのイマ (v1278), 村正 (v2016).
-    var CGS = ['28/9328', '29/9329', '32/9332', '36/9336', '34/11134', '98/12398', '90/154990', '49/155449'];
-    ad.classList.add('cg');
-    ad.style.backgroundImage = 'linear-gradient(transparent 35%, rgba(0, 0, 0, .8)), url(https://t.vndb.org/sf/' + CGS[Math.floor(Math.random() * CGS.length)] + '.jpg)';
-    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
     var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+    // 俺翼 (v1141) screenshots VNDB voters rate safe. 最果てのイマ's and 村正's have text mid-screen, which no crop hides.
+    var CGS = [['28/9328', 20], ['29/9329', 25], ['32/9332', 45], ['33/9333', 30], ['34/9334', 35], ['36/9336', 20]], cg = pick(CGS);
+    ad.classList.add('cg');
+    ad.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, .6), transparent 30% 70%, rgba(0, 0, 0, .8)), url(https://t.vndb.org/sf/' + cg[0] + '.jpg)';
+    ad.style.backgroundPosition = 'center 0, center ' + cg[1] + '%';
+    var wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
     // The whole screen: the desktop around IE when this page is inside it, else this page.
     var T = (function () { try { return window.top.document; } catch (e) { return document; } })(), made = [];
-    function add(el) { made.push(el); T.body.appendChild(el); return el; }
+    // On <html>, not <body>, so pop-ups and the crash screen stay put while the body shakes, flips or zooms.
+    function add(el) { made.push(el); T.documentElement.appendChild(el); return el; }
     function cleanup() {
       made.forEach(function (el) { el.remove(); });
       ['v-shake', 'v-invert', 'v-flip', 'v-zoom'].forEach(function (c) { T.documentElement.classList.remove(c); T.body.classList.remove(c); });
@@ -281,7 +286,10 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
       busy = true;
       if (T !== document && !T.getElementById('virus')) T.head.appendChild(document.getElementById('virus').cloneNode(true));
       var left = VIRUS.slice();
-      for (var k = 0; k < 4; k++) await left.splice(Math.floor(Math.random() * left.length), 1)[0]();
+      // Several at once: each starts 1-2.5s after the one before, while the earlier ones are still going.
+      var running = [];
+      for (var k = 0; k < 6; k++) { running.push(left.splice(Math.floor(Math.random() * left.length), 1)[0]()); await wait(1000 + Math.random() * 1500); }
+      await Promise.all(running);
       popup('Babe Finder 1.0', 'Babes found in your area: 0. Games found: lots. Taking you there...');
       await wait(3000);
       cleanup();
