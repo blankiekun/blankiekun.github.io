@@ -14,6 +14,11 @@ a { color: #0000cc; } a:visited { color: #660099; }
 .mast p { margin: 4px 0 0; font-weight: bold; }
 .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: #ffcc00; border: 2px solid #000; padding: 4px 8px; font: bold 12px Arial, sans-serif; }
 .bar .lock { background: #fff; border: 1px solid #000; padding: 1px 6px; }
+.find { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 10px; background: #e0e0f0; border: 2px solid #000080; padding: 8px; font: bold 12px Arial, sans-serif; }
+.find label { display: flex; flex-direction: column; gap: 2px; }
+.find .q { flex: 1 1 200px; }
+.find input, .find select { font: 13px Arial, sans-serif; padding: 2px; border: 2px inset #c0c0c0; background: #fff; color: #000; max-width: 100%; }
+.find output { margin-left: auto; font-weight: normal; }
 
 
 #catalog { display: flex; flex-direction: column; gap: 12px; }
@@ -51,6 +56,17 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   </div>
 
 
+  <form class="find" role="search" onsubmit="return false">
+    <label class="q">Search:<input type="search" id="q" placeholder="Title, developer, story..."></label>
+    <label>Developer:<select id="by"></select></label>
+    <label>Platform:<select id="platform"></select></label>
+    <label>Version:<select id="ver"></select></label>
+    <label>Sort by:<select id="sort">
+      <option value="title">Title</option><option value="added">Newest stock</option><option value="released">Release date</option>
+    </select></label>
+    <output id="count" aria-live="polite"></output>
+  </form>
+
   <div id="catalog"><p class="empty">Loading the catalog...</p></div>
 
   <p class="fine">* Price assumes you already bought the game. Each download is the game's files converted by <a href="convert.html">conscripter-convert</a>: unzip it and open the folder in CONscripter. No refunds, it was free.</p>
@@ -63,6 +79,9 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 <script>
 let games = [];
 const catalog = document.getElementById("catalog");
+const $ = id => document.getElementById(id);
+const platforms = g => (g.platform || "").split(",").map(p => p.trim()).filter(Boolean);
+const versions = g => Object.keys(g.links).map(v => v || "Single");
 
 function el(tag, text, cls) {
   const e = document.createElement(tag);
@@ -72,10 +91,28 @@ function el(tag, text, cls) {
 }
 
 
+// Each dropdown lists what the catalog actually has, with "All" first.
+function fill(select, values) {
+  select.append(new Option("All", ""));
+  for (const v of [...new Set(values)].sort()) select.append(new Option(v, v));
+}
+
+function shown() {
+  const q = $("q").value.trim().toLowerCase(), by = $("by").value, pf = $("platform").value, ver = $("ver").value, sort = $("sort").value;
+  const list = games.filter(g =>
+    (!q || [g.title, g.alt, g.by, g.blurb].some(t => t && t.toLowerCase().includes(q))) &&
+    (!by || g.by === by) && (!pf || platforms(g).includes(pf)) && (!ver || versions(g).includes(ver)));
+  // Dates are ISO strings, so newest first is a reversed string compare; undated ones sink.
+  return sort === "title" ? list : list.sort((a, b) => (b[sort] || "").localeCompare(a[sort] || ""));
+}
+
 function render() {
   catalog.textContent = "";
   if (!games.length) { catalog.append(el("p", "Sold out! New stock arriving soon.", "empty")); return; }
-  for (const g of games) {
+  const list = shown();
+  $("count").textContent = list.length + " of " + games.length + " titles";
+  if (!list.length) catalog.append(el("p", "No titles match. Try a different search.", "empty"));
+  for (const g of list) {
     const table = el("table", null, "item"), tr = table.insertRow();
     const box = tr.insertCell();
     box.className = "box";
@@ -113,10 +150,15 @@ function render() {
 }
 
 
+for (const id of ["q", "by", "platform", "ver", "sort"]) $(id).addEventListener("input", render);
+
 fetch("games.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
   .then(list => {
     games = list.sort((a, b) => a.title.localeCompare(b.title));
+    fill($("by"), games.map(g => g.by).filter(Boolean));
+    fill($("platform"), games.flatMap(platforms));
+    fill($("ver"), games.flatMap(versions));
     render();
   })
   .catch(e => { catalog.textContent = ""; catalog.append(el("p", "The catalog is out to lunch (" + e.message + ").", "empty")); });
