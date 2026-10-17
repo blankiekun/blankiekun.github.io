@@ -44,3 +44,18 @@
 @media (prefers-reduced-motion: no-preference) {
   .hr-board .cd { transition: left .25s ease-out, top .25s ease-out, width .25s, height .25s; }
 }
+
+/* ---------- Reversi ---------- */
+.rv { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rv-board { flex: 1; min-height: 0; aspect-ratio: 1; max-width: 100%; margin: 4px auto; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr);
+  gap: 1px; background: #000; box-shadow: 0 0 0 1px #000; }
+.rv-board.can { cursor: var(--cross); }
+.rv-cell { border: 0; padding: 0; background: #008000; display: grid; place-items: center; cursor: inherit; min-width: 0; }
+.rv-cell i { width: 76%; height: 76%; border-radius: 50%; }
+.rv-cell[data-v="1"] i { background: #000; box-shadow: inset -2px -2px rgba(255, 255, 255, .25); }
+.rv-cell[data-v="2"] i { background: #fff; box-shadow: inset -2px -2px rgba(0, 0, 0, .3); }
+.rv-cell.hint { background: #00c000; }
+/* 1.0 and 2.0 drew it in black and white */
+:is([data-win="1.0"], [data-win="2.0"]) .rv-cell { background: #fff; }
+:is([data-win="1.0"], [data-win="2.0"]) .rv-cell[data-v="2"] i { box-shadow: inset 0 0 0 2px #000; }
+:is([data-win="1.0"], [data-win="2.0"]) .rv-cell.hint { background: #c0c0c0; }

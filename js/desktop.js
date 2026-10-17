@@ -36,6 +36,10 @@ const ICONS = [
   { label: 'HyperTerminal', app: 'hyperterm', icon: 'i-hyperterm', type: 'Application', open: () => launch('hyperterm') },
   { label: 'Calculator', app: 'calc', icon: 'i-calc', type: 'Application', open: () => launch('calc') },
   { label: 'MS-DOS Prompt', app: 'dos', icon: 'i-dos', type: 'Application', open: () => launch('dos') },
+  { label: 'Windows Setup', app: 'setup', icon: 'i-setup', type: 'Application', open: () => launch('setup') },
+  { label: 'Reversi', app: 'reversi', icon: 'i-reversi', type: 'Application', era: true, open: () => launch('reversi') },
+  { label: 'Clock', app: 'clock', icon: 'i-clock', type: 'Application', era: true, open: () => launch('clock') },
+  { label: 'Sticky Notes', app: 'stickynotes', icon: 'i-stickynotes', type: 'Application', era: true, open: () => launch('stickynotes') },
   { label: 'Display', app: 'display', icon: 'i-display', type: 'Control Panel', open: () => launch('display') },
   { label: 'README.TXT', app: 'notepad', icon: 'i-txt', type: 'Text Document', open: () => run('notepad readme.txt') },
   { label: 'GitHub', icon: 'i-github', type: 'Shortcut', shortcut: true, open: () => window.open(GITHUB, '_blank', 'noopener') },
@@ -117,8 +121,8 @@ async function emptyAll() {
 }
 
 function renderIcons() {
-  // Programs that failed to load don't get an icon.
-  for (let i = ICONS.length - 1; i >= 0; i--) if (ICONS[i].app && !appInfo(ICONS[i].app)) ICONS.splice(i, 1);
+  // Programs that failed to load, or that this era didn't have, don't get an icon.
+  for (let i = ICONS.length - 1; i >= 0; i--) if ((ICONS[i].app && !appInfo(ICONS[i].app)) || (ICONS[i].era && absent(ICONS[i].app))) ICONS.splice(i, 1);
   ICONS.forEach((it, i) => iconsEl.append(makeIcon(it, i)));
   for (const n of desktopFolder().children) { const it = fileIcon(n); ICONS.push(it); iconsEl.append(makeIcon(it, ICONS.length)); }
   arrange();
@@ -388,6 +392,8 @@ const banner = h('div', { class: 'side', 'aria-hidden': 'true' }, 'blankiekun', 
 // A Start menu entry for a program, left out when the program didn't load.
 const prog = (label, id, ic, arg) => appInfo(id) ? { label, icon: ic, action: () => launch(id, arg) } : null;
 const some = list => list.filter(Boolean);
+// One this era alone had.
+const era = (label, id, ic) => absent(id) ? null : prog(label, id, ic);
 
 function startItems() {
   const accessories = some([
@@ -396,6 +402,7 @@ function startItems() {
       prog('FreeCell', 'freecell', 'i-freecell'),
       prog('Hearts', 'hearts', 'i-hearts'),
       prog('Minesweeper', 'minesweeper', 'i-mine'),
+      era('Reversi', 'reversi', 'i-reversi'),
       prog('Solitaire', 'solitaire', 'i-sol'),
     ]) },
     { label: 'Multimedia', icon: 'i-programs', submenu: some([
@@ -416,9 +423,11 @@ function startItems() {
     '-',
     prog('Calculator', 'calc', 'i-calc'),
     prog('Clipboard Viewer', 'clipbrd', 'i-clipbrd'),
+    era('Clock', 'clock', 'i-clock'),
     prog('Notepad', 'notepad', 'i-notepad'),
     prog('Paint', 'paint', 'i-paint'),
     prog('Phone Dialer', 'dialer', 'i-dialer'),
+    era('Sticky Notes', 'stickynotes', 'i-stickynotes'),
     prog('WinPopup', 'winpopup', 'i-winpopup'),
     prog('WordPad', 'wordpad', 'i-wordpad'),
   ]);
@@ -444,7 +453,7 @@ function startItems() {
     ] },
     { label: '&Documents', icon: 'i-docs', submenu: docs.length ? docs : [{ label: '(Empty)', disabled: true }] },
     { label: '&Settings', icon: 'i-ctrl', submenu: [
-      prog('Windows &Setup...', 'setup', 'i-computer'),
+      prog('Windows &Setup...', 'setup', 'i-setup'),
       { label: '&Control Panel', icon: 'i-ctrl', action: () => launch('explorer', 'Control Panel') },
       { label: '&Printers', icon: 'i-printer', action: () => launch('explorer', 'Printers') },
       { label: '&Taskbar...', icon: 'i-taskbar', action: taskbarProps },

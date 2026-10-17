@@ -94,7 +94,7 @@ function open(arg) {
     openMenu(favItems(), { rect: btn.getBoundingClientRect() });
   }
 
-  const bar = menubar([
+  const menus = [
     { label: '&File', items: () => [
       { label: '&New Window', key: 'Ctrl+N', action: () => launch('ie', current ? current.key : 'home') },
       { label: '&Open...', key: 'Ctrl+O', action: () => { address.focus(); address.select(); } },
@@ -131,11 +131,15 @@ function open(arg) {
       '-',
       { label: '&About Internet Explorer', action: () => about('Internet Explorer', 'i-ie', win, V.ie ? h('p', null, 'Version ' + V.ie) : null) },
     ] },
-  ]);
+  ];
+  const bar = menubar(menus);
+  // Edge has no menu bar; the same menus sit behind its ··· button (css/versions.css shows it in 10 and 11).
+  const more = h('button', { class: 'ie-more', type: 'button', title: 'Settings and more', 'aria-label': 'Settings and more',
+    onclick: e => openMenu(menus.map(m => ({ label: m.label, submenu: m.items })), { rect: e.currentTarget.getBoundingClientRect() }) }, '···');
 
   const status = h('div', { class: 'statusbar' }, statusText, h('div', { class: 'ie-prog-cell' }, progress), h('div', { class: 'ie-zone' }, icon('i-globe'), 'Internet zone'));
   const body = h('div', { class: 'ie' },
-    h('div', { class: 'ie-top' }, h('div', { class: 'ie-bars' }, bar, tools, addrForm, links), throb),
+    h('div', { class: 'ie-top' }, h('div', { class: 'ie-bars' }, bar, tools, addrForm, more, links), throb),
     h('div', { class: 'ie-view' }, iframe),
     status);
 

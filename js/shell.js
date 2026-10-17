@@ -41,7 +41,7 @@ export const ALIASES = {
     mplayer: 'mplayer', mplay32: 'mplayer', clipbrd: 'clipbrd', printers: 'mycomputer:Printers', 'control printers': 'mycomputer:Printers',
     taskman: 'taskman', welcome: 'welcome', sndvol32: 'volume', network: 'network', 'net view': 'network',
   sysdm: 'sysprops', 'sysdm.cpl': 'sysprops', winver: 'about', help: 'help', winhelp: 'help', find: 'find',
-  regedit: 'regedit', regedt32: 'regedit', dialer: 'dialer', winpopup: 'winpopup', sysmon: 'sysmon', rsrcmtr: 'resmeter',
+  reversi: 'reversi', clock: 'clock', stikynot: 'stickynotes', 'sticky notes': 'stickynotes', regedit: 'regedit', regedt32: 'regedit', dialer: 'dialer', winpopup: 'winpopup', sysmon: 'sysmon', rsrcmtr: 'resmeter',
 };
 
 export const PROJECTS = { chimimouryou: 'chimimouryou', convert: 'convert', 'conscripter-convert': 'convert', conscripter: 'conscripter', home: 'home', index: 'home' };

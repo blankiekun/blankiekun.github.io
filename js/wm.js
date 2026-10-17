@@ -3,7 +3,11 @@
 
 import { h, icon, clamp, small, reducedMotion, sound } from './util.js';
 import { closeMenus, openMenu } from './menu.js';
-import { rename } from './version.js';
+import { rename, V, VERSIONS } from './version.js';
+
+// From XP on, windows show their contents while dragged instead of an outline, and a
+// maximized window can be pulled down off the top by its title bar.
+const LIVE = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === 'xp');
 
 const layer = document.getElementById('windows');
 const tasks = document.getElementById('tasks');
@@ -303,12 +307,14 @@ function center(win) {
 function outlineDrag(win, e, mode) {
   if (e.button !== 0 || (small.matches && !win.opts.dialog)) return;
   // A maximized window can't be moved or sized, as in Windows 95.
-  if (win.state === 'max') return;
+  let wasMax = win.state === 'max';
+  if (wasMax && !(LIVE && mode === 'move')) return;
   closeMenus('drag');
   const target = e.currentTarget;
   const A = area();
-  const r = win.el.getBoundingClientRect();
-  const sx = e.clientX, sy = e.clientY;
+  let r = win.el.getBoundingClientRect();
+  let sx = e.clientX, sy = e.clientY;
+  const before = { left: win.el.style.left, top: win.el.style.top, width: win.el.style.width, height: win.el.style.height };
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
   let outline = null, drawn = -Infinity, snap = false;
   // Dragging to the top edge offers to maximize, as later Windows does.
@@ -324,17 +330,27 @@ function outlineDrag(win, e, mode) {
     const dx = ev.clientX - sx, dy = ev.clientY - sy;
     if (!outline) {
       if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
-      outline = h('div', { class: 'drag-outline' });
-      document.body.append(outline);
+      outline = LIVE ? win.el : h('div', { class: 'drag-outline' });
+      if (!LIVE) document.body.append(outline);
       document.body.classList.add('dragging');
       document.body.style.cursor = cursor;
+      if (wasMax) {
+        // Restored under the pointer, keeping its spot along the title bar.
+        const at = (sx - r.left) / r.width;
+        restore(win);
+        const w = win.el.offsetWidth;
+        win.el.style.left = Math.round(ev.clientX - A.left - w * at) + 'px';
+        win.el.style.top = Math.max(0, Math.round(ev.clientY - A.top - (sy - r.top))) + 'px';
+        r = win.el.getBoundingClientRect(); sx = ev.clientX; sy = ev.clientY;
+        return;
+      }
     }
     if (mode === 'move') {
       box.x = clamp(r.left + dx, A.left - r.width + 40, A.right - 40);
       box.y = clamp(r.top + dy, A.top, A.bottom - 20);
       const was = snap;
       snap = canSnap && ev.clientY <= A.top + 2;
-      if (snap !== was) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
+      if (snap !== was && !LIVE) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
     } else {
       const minW = win.minW, minH = win.minH;
       let { left, top, right, bottom } = r;
@@ -345,6 +361,7 @@ function outlineDrag(win, e, mode) {
       Object.assign(box, { x: left, y: top, w: right - left, h: bottom - top });
     }
     // The real XOR rectangle couldn't keep up with the mouse, so redraw in steps.
+    if (LIVE) { place(); return; }
     if (ev.timeStamp - drawn < 70) return;
     drawn = ev.timeStamp;
     draw();
@@ -361,17 +378,23 @@ function outlineDrag(win, e, mode) {
     document.removeEventListener('keydown', esc, true);
     try { target.releasePointerCapture(id); } catch {}
     if (!outline) return;
-    outline.remove();
+    if (!LIVE) outline.remove();
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
-    if (cancel) return;
+    if (cancel) {
+      if (LIVE) { Object.assign(win.el.style, before); if (wasMax) maximize(win); }
+      return;
+    }
     if (snap) { maximize(win); sound('Maximize'); return; }
+    place();
+    if (mode !== 'move' && win.opts.onResize) win.opts.onResize();
+  }
+  function place() {
     win.el.style.left = Math.round(box.x - A.left) + 'px';
     win.el.style.top = Math.round(box.y - A.top) + 'px';
     if (mode !== 'move') {
       win.el.style.width = Math.round(box.w) + 'px';
       win.el.style.height = Math.round(box.h) + 'px';
-      if (win.opts.onResize) win.opts.onResize();
     }
   }
   const up = ev => end(ev, false);

@@ -38,7 +38,7 @@ function open() {
     h('div', { class: 'btns' }, step(-1), step(1)),
     h('div', { class: 'btns right' }, go, h('button', { class: 'btn', type: 'button', onclick: () => win.close() }, 'Cancel')));
   choose(at);
-  const win = createWindow({ app: 'setup', title: 'Windows Setup', icon: 'i-computer', body, dialog: true, resizable: false, width: 'auto', taskbar: true, route: 'setup' });
+  const win = createWindow({ app: 'setup', title: 'Windows Setup', icon: 'i-setup', body, dialog: true, resizable: false, width: 'auto', taskbar: true, route: 'setup' });
   list.focus();
 
   async function install(i) {
@@ -92,4 +92,4 @@ function balloon() {
 }
 setTimeout(balloon, 60000);
 
-export default { id: 'setup', title: 'Windows Setup', icon: 'i-computer', single: true, open };
+export default { id: 'setup', title: 'Windows Setup', icon: 'i-setup', single: true, open };
