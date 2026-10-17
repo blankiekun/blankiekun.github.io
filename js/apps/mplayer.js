@@ -7,10 +7,12 @@ import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { openFile } from '../filedlg.js';
 import { glyph } from './sndrec.js';
-import { OS } from '../version.js';
+import { OS, V } from '../version.js';
 
 const PREFS = 'w95.mplayer';
 const BASE = 420;      // the window's width with no picture
+// Windows Media Player's look: 7 to 9 in Me and XP, 11 and 12 from Vista on (css/mplayer.css).
+const WMP = ['me', 'xp'].includes(V.id) ? 'wmp9' : ['vista', '7', '8', '10', '11'].includes(V.id) ? 'wmp12' : '';
 const DEMO = 'BLANKIEKUN.AVI';
 const MCI = 'The specified file cannot be played on the specified MCI device. The file may be corrupt, or not in the correct format.';
 
@@ -677,7 +679,8 @@ function open(arg) {
     const sc = scale();
     const text = !has ? '' : sc === 'frames' ? `${Math.round(p * eng.fps)} (frames)`
       : sc === 'tracks' ? `${pad(trackAt(p) + 1)} ${mmss(p - eng.tracks[trackAt(p)]).slice(0, 5)} (tt mm:ss)` : `${mmss(p)} (mm:ss)`;
-    readout.textContent = text;
+    readout.textContent = WMP ? text.replace(/ \(.*\)$/, '') : text;
+    rail.style.setProperty('--played', at(p));
     scaleEl.classList.toggle('off', !has);
     scaleEl.setAttribute('aria-valuemax', String(Math.round(len() * 100) / 100));
     scaleEl.setAttribute('aria-valuenow', String(Math.round(p * 100) / 100));
@@ -709,7 +712,7 @@ function open(arg) {
 
   const screen = h('div', { class: 'mp-screen', hidden: true });
   const sep = () => h('span', { class: 'mp-gap' });
-  const root = h('div', { class: 'mp' }, menu, screen,
+  const root = h('div', { class: 'mp' + (WMP && ' wmp ' + WMP) }, menu, screen,
     h('div', { class: 'mp-ctl' }, scaleEl,
       h('div', { class: 'mp-row' },
         h('div', { class: 'mp-btns' }, bPlay, bStop, bEject, sep(), bPrev, bRew, bFwd, bNext, sep(), bIn, bOut),

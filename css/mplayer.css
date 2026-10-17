@@ -57,6 +57,43 @@
   .mp-selgrid > span { display: none; }
 }
 
+/* ---------- Windows Media Player (Me on): the same player in WMP's clothes ----------
+   A black screen even for sound, a thin seek bar that fills as it plays, and the transport
+   in the middle with a big round Play. No selection marks or tick scale. WMP 7 to 9 (Me, XP)
+   are silver and blue; 11 and 12 (Vista on) black glass with a blue Play. */
+.wmp .mp-screen, .wmp .mp-screen[hidden] { display: flex; flex: 1; min-height: 160px; margin: 0; padding: 0; box-shadow: none; }
+.wmp .mp-ctl { padding: 4px 8px 6px; }
+.wmp .mp-scale { height: 14px; }
+.wmp .mp-rail { left: 6px; right: 6px; top: 0; }
+.wmp .mp-chan { left: -6px; right: -6px; top: 5px; height: 4px; border-radius: 2px; box-shadow: none; background: linear-gradient(90deg, var(--wmp-fill) var(--played, 0%), var(--wmp-chan) 0); }
+.wmp :is(.mp-ticks, .mp-range, .mp-mark, .mp-gap, .mbtn.eject, .mbtn.in, .mbtn.out) { display: none; }
+.wmp .mp-thumb { top: 1px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--wmp-knob); box-shadow: 0 0 0 1px var(--wmp-edge); }
+.wmp .mp-thumb svg { display: none; }
+.wmp .mp-row { position: relative; justify-content: center; min-height: 40px; }
+.wmp .mp-readout { position: absolute; left: 0; margin: 0; box-shadow: none; padding: 0; color: var(--wmp-ink); }
+.wmp .mp-btns { gap: 4px; }
+.wmp .mbtn.stop { order: 1; } .wmp .mbtn.prev { order: 2; } .wmp .mbtn.back { order: 3; }
+.wmp .mbtn.play { order: 4; } .wmp .mbtn.fwd { order: 5; } .wmp .mbtn.next { order: 6; }
+.mp.wmp .mp-ctl .mp-btns > .mbtn { width: 26px; height: 26px; border: 0; border-radius: 50%; color: var(--wmp-glyph); background: var(--wmp-btn); box-shadow: inset 0 0 0 1px var(--wmp-edge); }
+.mp.wmp .mp-ctl .mp-btns > .mbtn.play { width: 38px; height: 38px; margin: 0 4px; color: #fff; background: radial-gradient(circle at 50% 30%, #c4e4ff, #3b86e0 55%, #0d3f8c); box-shadow: inset 0 0 0 1px #0a2f6a, 0 0 5px var(--wmp-glow); }
+.mp.wmp .mp-ctl .mp-btns > .mbtn.play svg { transform: scale(1.5); }
+.mp.wmp .mp-ctl .mp-btns > .mbtn:hover:not(:disabled) { filter: brightness(1.15); }
+.mp.wmp .mp-ctl .mp-btns > .mbtn:active:not(:disabled) { filter: brightness(.85); }
+.mp.wmp .mp-ctl .mp-btns > .mbtn:active:not(:disabled) svg { transform: none; }
+.mp.wmp .mp-ctl .mp-btns > .mbtn.play:active:not(:disabled) svg { transform: scale(1.5); }
+.mp.wmp .mp-ctl .mp-btns > .mbtn:disabled { opacity: .5; }
+.mp.wmp .mp-ctl .mp-btns > .mbtn:disabled svg { filter: none; }
+.wmp9 {
+  --wmp-chan: #fff; --wmp-fill: #3a6fd8; --wmp-knob: radial-gradient(circle at 40% 35%, #fff, #9fb6e0); --wmp-edge: #5b72a3;
+  --wmp-btn: radial-gradient(circle at 50% 30%, #fff, #c7d3ea 60%, #8ea5cf); --wmp-glyph: #1d3466; --wmp-ink: #1d3466; --wmp-glow: transparent;
+}
+.wmp9 .mp-ctl { background: linear-gradient(#eef3fb, #b8c8e6); box-shadow: inset 0 1px #7d93c3; }
+.wmp12 {
+  --wmp-chan: #3a3d42; --wmp-fill: #3aa0ff; --wmp-knob: radial-gradient(circle at 40% 35%, #fff, #8fc6f5); --wmp-edge: #000;
+  --wmp-btn: radial-gradient(circle at 50% 25%, #6a7079, #23262b 60%, #111); --wmp-glyph: #e8eef6; --wmp-ink: #cfe3ff; --wmp-glow: rgba(80, 170, 255, .6);
+}
+.wmp12 .mp-ctl { background: linear-gradient(#4a4f57, #1b1e22 50%, #050607); }
+
 /* ---------- Clipboard Viewer ---------- */
 .cb { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .cb-view { flex: 1; min-height: 0; overflow: auto; margin: 0 2px 2px; padding: 4px 6px; background: var(--paper); box-shadow: var(--sunken); outline: 0; }
