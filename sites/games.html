@@ -107,9 +107,13 @@ function render() {
     const buy = el("div", null, "buy");
     const price = el("span", null, "price");
     price.append(el("s", "$49.95"), " FREE*");
-    const btn = el("a", "Download", "btn3d");
-    btn.href = g.link; btn.target = "_blank"; btn.rel = "noopener";
-    buy.append(price, el("span", "IN STOCK", "stock"), btn);
+    buy.append(price, el("span", "IN STOCK", "stock"));
+    // One button per version (EN, JP, ...); "" is a game with just the one.
+    for (const [ver, link] of Object.entries(g.links)) {
+      const btn = el("a", ver ? "Download " + ver : "Download", "btn3d");
+      btn.href = link; btn.target = "_blank"; btn.rel = "noopener";
+      buy.append(btn);
+    }
     info.append(buy);
     catalog.append(table);
   }

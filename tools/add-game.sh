@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Adds a prebuilt CONscripter game to the Games store page (sites/games.html).
-#   tools/add-game.sh <vndb.org/v… or thegamesdb.net/game.php?id=… link> <mega.nz link>
+#   tools/add-game.sh <vndb.org/v… or thegamesdb.net/game.php?id=… link> <mega.nz link> [version, e.g. EN or JP]
+# Each version gets its own Download button; adding a version again replaces its link.
 # The title, cover and blurb come from VNDB or TheGamesDB. The site is public, so the
 # Mega link must not carry its key: use a password-protected link (mega.nz/#P!…, made
 # with the one friends' password) or a link exported without its key.
@@ -8,12 +9,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 DB=sites/games.json
 
-[[ $# -eq 2 ]] || { sed -n '3p' "$0" | sed 's/^# *//' >&2; exit 2; }
-src=$1 mega=$2
+[[ $# -eq 2 || $# -eq 3 ]] || { sed -n '3p' "$0" | sed 's/^# *//' >&2; exit 2; }
+src=$1 mega=$2 ver=${3:-}
 [[ $mega =~ ^https://mega\.nz/(#P!|(file|folder)/[^#]+$) ]] ||
   { echo "need a password-protected mega.nz/#P!… link, or one without its #key: $mega" >&2; exit 1; }
 [[ -f $DB ]] || echo '[]' > "$DB"
-
 
 unent() { sed 's/&amp;/\&/g; s/&#0*39;/'"'"'/g; s/&quot;/"/g; s/&lt;/</g; s/&gt;/>/g'; }
 
@@ -39,7 +39,8 @@ else
 fi
 
 tmp=$(mktemp)
-jq --argjson g "$game" --arg src "$src" --arg link "$mega" --arg added "$(date +%F)" \
-  '[.[] | select(.src != $src)] + [$g + {src: $src, link: $link, added: $added}]' "$DB" > "$tmp"
+jq --argjson g "$game" --arg src "$src" --arg ver "$ver" --arg link "$mega" --arg added "$(date +%F)" \
+  '(map(select(.src == $src))[0].links // {}) as $old
+   | [.[] | select(.src != $src)] + [$g + {src: $src, links: ($old + {($ver): $link}), added: $added}]' "$DB" > "$tmp"
 mv "$tmp" "$DB"
-echo "added: $(jq -r .title <<<"$game")"
+echo "added: $(jq -r .title <<<"$game")${ver:+ ($ver)}"
