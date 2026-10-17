@@ -63,7 +63,7 @@ export const VERSIONS = [
   { id: '10', short: '10', number: '10.0.19045', sys: 'Version 22H2', date: [2015, 6, 29], copy: '', ramKB: 8388608, ie: '', desktop: '#003b86', wallpaper: 'Hero',
     ver: 'blankiekun [Version 10.0.19045]', dosCopy: '(c) blankiekun. All rights reserved.', names: { ...EDGE, 'Sound Recorder': 'Voice Recorder' }, absent: NOT_METRO },
   { id: '11', short: '11', number: '10.0.22631', sys: 'Version 23H2', date: [2021, 9, 5], copy: '', ramKB: 16777216, ie: '', desktop: '#8fb6f2', wallpaper: 'Bloom',
-    ver: 'blankiekun [Version 10.0.22631]', dosCopy: '(c) blankiekun. All rights reserved.', names: EDGE, absent: NOT_METRO },
+    ver: 'blankiekun [Version 10.0.22631]', dosCopy: '(c) blankiekun. All rights reserved.', names: { ...EDGE, 'MS-DOS Prompt': 'Terminal' }, absent: NOT_METRO },
 // Each row only says what changed since the one before it.
 ].reduce((rows, r) => [...rows, { nt: false, ...rows.at(-1), sys: r.number, ...r }], []);
 

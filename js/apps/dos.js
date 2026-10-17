@@ -1,6 +1,6 @@
 // MS-DOS Prompt. Reads the pretend disk in fs.js and can start the other programs.
 
-import { h } from '../util.js';
+import { h, icon } from '../util.js';
 import { createWindow, launch, toggleMax } from '../wm.js';
 import { resolve, dosName, drive, pathOf, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
 import { run, open as shellOpen, bsod, ALIASES, PROJECTS } from '../shell.js';
@@ -270,11 +270,16 @@ function open(arg) {
   });
   screen.addEventListener('pointerup', () => { if (!window.getSelection().toString()) input.focus({ preventScroll: true }); });
 
+  // 11's console is Windows Terminal: its tab sits in the title bar (css/apps.css), and + opens another.
+  const tabs = V.id === '11' && h('div', { class: 'wt-tabs' },
+    h('div', { class: 'wt-tab' }, icon('i-dos'), h('span', null, 'Command Prompt'), h('button', { type: 'button', class: 'wt-x', 'aria-label': 'Close tab', onclick: () => win.close() }, '×')),
+    h('button', { type: 'button', class: 'wt-new', title: 'New Tab', 'aria-label': 'New Tab', onclick: () => launch('dos') }, '+'));
   const win = createWindow({
-    app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, !V.nt && toolbar, screen),
+    app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, !V.nt && toolbar, screen), className: tabs ? 'terminal' : '',
     width: 640, height: 400, minW: 240, minH: 160, route: 'dos', autofocus: '.dos-input',
     maximized: arg === 'dosmode',
   });
+  if (tabs) win.bar.insertBefore(tabs, win.bar.querySelector('.tbtns'));
 
   print('');
   print(V.ver);

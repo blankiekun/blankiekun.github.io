@@ -389,6 +389,19 @@
 @media (prefers-reduced-motion: reduce) { .dos-cursor { animation: none; } }
 .dos-input { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
 .win.max .dos-screen { font-size: 22px; }
+/* Windows Terminal (11): dark, its one tab laid over the title bar, a bar cursor */
+[data-win="11"] .win.terminal > .titlebar, [data-win="11"] .win.terminal.active > .titlebar { background: #202020; color: #fff; }
+.win.terminal > .titlebar :is(.sysicon, .t) { display: none; }
+.win.terminal .tbtn { color: #fff; }
+.wt-tabs { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: end; gap: 2px; }
+.wt-tab { display: flex; align-items: center; gap: 8px; height: 26px; min-width: 0; max-width: 220px; padding: 0 6px 0 10px; border-radius: 6px 6px 0 0; background: #0c0c0c; color: #fff; font: 12px var(--font-ui); }
+.wt-tab svg { width: 16px; height: 16px; flex: none; }
+.wt-tab span { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wt-x, .wt-new { border: 0; border-radius: 4px; background: none; color: #ccc; font: 16px/1 var(--font-ui); padding: 2px 6px; cursor: var(--arrow); }
+.wt-new { margin-bottom: 2px; }
+:is(.wt-x, .wt-new):hover { background: #ffffff1f; color: #fff; }
+.terminal .dos-screen { background: #0c0c0c; color: #cccccc; box-shadow: none; padding: 6px 10px; font: 14px/1.25 "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; }
+.terminal .dos-cursor { display: inline-block; width: 0; border-left: 1px solid #ccc; color: transparent; }
 
 /* ---------- Send to blankiekun ---------- */
 .send-btn { min-width: 0; padding: 0 8px; flex: none; }
