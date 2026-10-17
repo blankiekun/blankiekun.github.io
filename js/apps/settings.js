@@ -61,6 +61,12 @@ function background() {
   return [preview, h('div', { class: 'st-card' }, row('Background', kind), h('h3', null, kind.value === 'Picture' ? 'Choose your picture' : 'Choose your background color'), grid)];
 }
 
+function lockscreen() {
+  return [h('div', { class: 'st-card' }, h('h3', null, 'Lock screen'),
+    h('p', null, 'The screen saver is still set in the classic dialog.'),
+    linkTo('Screen saver settings', () => launch('display', 'Screen Saver')))];
+}
+
 function apps() {
   return [h('div', { class: 'st-card' }, h('h3', null, 'Apps & features'),
     h('p', null, 'Install programs from a floppy disk or CD-ROM, or remove the ones you added.'),
@@ -89,7 +95,7 @@ function devices() {
 const CATS = [
   ['System', 'i-computer', [['Display', display], ['About', about]]],
   ['Devices', 'i-mouse', [['Mouse', devices]]],
-  ['Personalization', 'i-display', [['Background', background]]],
+  ['Personalization', 'i-display', [['Background', background], ['Lock screen', lockscreen]]],
   ['Apps', 'i-addremove', [['Apps & features', apps]]],
   ['Time & language', 'i-globe', [['Date & time', datetime]]],
 ];

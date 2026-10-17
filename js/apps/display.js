@@ -145,9 +145,9 @@ function listbox(options, value, onpick, label) {
   return lb;
 }
 
-function open() {
-  // 10 and 11 send Display to Settings, as the real ones did.
-  if (['10', '11'].includes(V.id)) return launch('settings', 'Background');
+function open(arg) {
+  // 10 and 11 send Display to Settings, as the real ones did; only its screen saver link comes back here.
+  if (['10', '11'].includes(V.id) && arg !== 'Screen Saver') return launch('settings', 'Background');
   const draft = current();
   const screen = h('div', { class: 'dp-screen' }, h('div', { class: 'dp-win' }, h('div', { class: 'dp-tb' }), h('div', { class: 'dp-wb' })));
   const monitor = h('div', { class: 'dp-monitor', 'aria-hidden': 'true' }, screen, h('div', { class: 'dp-stand' }));
@@ -231,10 +231,11 @@ function open() {
   body.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); win.close(); } });
 
   const win = createWindow({
-    app: 'display', title: 'Display Properties', icon: 'i-display', body, dialog: true, taskbar: true,
+    app: 'display', title: arg === 'Screen Saver' ? 'Screen Saver Settings' : 'Display Properties', icon: 'i-display', body, dialog: true, taskbar: true,
     resizable: false, width: 'auto', route: 'display', help: () => launch('help'),
     onClosed: () => ss.destroy(),
   });
+  if (arg === 'Screen Saver') tabs.children[1].click();
   preview();
   applyBtn.disabled = true;
   return win;

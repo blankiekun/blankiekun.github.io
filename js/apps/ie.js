@@ -209,7 +209,7 @@ function open(arg) {
     const raw = (input || '').trim();
     const key = keyFor(raw);
     let entry;
-    if (key) entry = { key, url: PAGES[key].url };
+    if (key) entry = { key, url: PAGES[key].url, hash: raw.split('#')[1] };
     else if (/(^|\.)github\.com/i.test(raw)) {
       const href = /^https?:/i.test(raw) ? raw : 'https://' + raw;
       window.open(href, '_blank', 'noopener');

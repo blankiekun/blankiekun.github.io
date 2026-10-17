@@ -133,7 +133,7 @@ function helpCenter(arg) {
 // WinHelp's books up to 2000, Help and Support from Me to 8, and in 10 and 11 a page on the web.
 const CENTER = ['me', 'xp', 'vista', '7', '8'];
 function help(arg) {
-  if (['10', '11'].includes(V.id)) return launch('ie', 'help');
+  if (['10', '11'].includes(V.id)) return launch('ie', arg ? 'help#' + encodeURIComponent(arg) : 'help');
   if (CENTER.includes(V.id)) return helpCenter(arg);
   const view = h('div', { class: 'hp-view' });
   let selRow = null;
