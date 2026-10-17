@@ -24,6 +24,7 @@ const ICONS = [
   { label: 'Recycle Bin', app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', node: recycle, open: () => launch('recycle') },
   { label: 'Internet Explorer', app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
   { label: 'CONscripter', app: 'cons', icon: 'i-game', type: 'Application', open: () => launch('cons') },
+  { label: 'Games', app: 'ie', icon: 'i-cd', type: 'Shortcut', shortcut: true, open: () => launch('ie', 'games') },
   { label: 'Minesweeper', app: 'minesweeper', icon: 'i-mine', type: 'Application', open: () => launch('minesweeper') },
   { label: 'Solitaire', app: 'solitaire', icon: 'i-sol', type: 'Application', open: () => launch('solitaire') },
   { label: 'Paint', app: 'paint', icon: 'i-paint', type: 'Application', open: () => launch('paint') },

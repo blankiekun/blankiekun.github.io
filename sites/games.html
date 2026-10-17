@@ -6,7 +6,7 @@
 <title>blankiekun's Software Depot</title>
 <link rel="stylesheet" href="retro.css">
 <style>
-/* A 1997 online software store: navy masthead, yellow price tags, a members' login, a catalog table per product. */
+/* A 1997 online software store: navy masthead, yellow price tags, a catalog table per product. */
 body { background: #fff; color: #000; font: 14px/1.45 Verdana, Arial, Helvetica, sans-serif; }
 a { color: #0000cc; } a:visited { color: #660099; }
 .mast { background: #000080; color: #fff; border: 3px outset #3a3ad0; padding: 10px 12px; text-align: center; }
@@ -17,13 +17,7 @@ a { color: #0000cc; } a:visited { color: #660099; }
 
 .login { background: #e8e8ff; border: 2px ridge #000080; padding: 10px; font-size: 13px; }
 .login h2 { margin: 0 0 6px; font: bold 15px Arial, sans-serif; color: #000080; }
-.login form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.login input { font: 14px Arial, sans-serif; padding: 2px 4px; border: 2px inset #c0c0c0; }
-.login button { font: bold 13px Arial, sans-serif; padding: 2px 10px; background: #c0c0c0; border: 2px outset #fff; }
-.login button:active { border-style: inset; }
-.msg { margin: 6px 0 0; font-weight: bold; }
-.msg.bad { color: #c00000; }
-.msg.ok { color: #008000; }
+.login p { margin: 0; }
 
 #catalog { display: flex; flex-direction: column; gap: 12px; }
 table.item { width: 100%; border: 2px solid #000080; }
@@ -42,7 +36,6 @@ table.item { width: 100%; border: 2px solid #000080; }
 .price s { color: #000; font-size: 14px; }
 .stock { font: bold 12px Arial, sans-serif; color: #008000; }
 .btn3d { background: #ffcc00; color: #000; border-color: #ffe680 #806600 #806600 #ffe680; font-size: 14px; padding: 5px 12px; }
-.btn3d.locked { background: #c0c0c0; border-color: #fff #808080 #808080 #fff; }
 .empty { text-align: center; border: 2px dashed #000080; padding: 16px; }
 .fine { font-size: 11px; color: #404040; }
 footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
@@ -61,14 +54,8 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   </div>
 
   <section class="login" aria-labelledby="login-h">
-    <h2 id="login-h">Customer Login</h2>
-    <p style="margin:0 0 6px">Downloads are for friends I've confirmed own the game. I gave you a password.</p>
-    <form id="login">
-      <label for="pass">Password:</label>
-      <input id="pass" type="password" autocomplete="current-password" required>
-      <button type="submit">Sign In</button>
-    </form>
-    <p class="msg" id="msg" role="status"></p>
+    <h2 id="login-h">Members Only</h2>
+    <p>Downloads are for friends I've confirmed own the game. Click Download and Mega asks for the password I gave you; it's the same one for every game.</p>
   </section>
 
   <div id="catalog"><p class="empty">Loading the catalog...</p></div>
@@ -82,7 +69,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
 </div>
 <script>
 let games = [];
-const catalog = document.getElementById("catalog"), msg = document.getElementById("msg"), pass = document.getElementById("pass");
+const catalog = document.getElementById("catalog");
 
 function el(tag, text, cls) {
   const e = document.createElement(tag);
@@ -91,18 +78,6 @@ function el(tag, text, cls) {
   return e;
 }
 
-// The links are `openssl enc -aes-256-cbc -pbkdf2 -iter 100000` output (tools/add-game.sh).
-async function unlock(b64, password) {
-  const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  const salt = raw.slice(8, 16), ct = raw.slice(16);
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, base, 384));
-  const key = await crypto.subtle.importKey("raw", bits.slice(0, 32), "AES-CBC", false, ["decrypt"]);
-  const url = new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-CBC", iv: bits.slice(32) }, key, ct));
-  // CBC has no check of its own, so a wrong password can rarely decrypt to junk.
-  if (!url.startsWith("https://mega.nz/")) throw new Error("wrong password");
-  return url;
-}
 
 function render() {
   catalog.textContent = "";
@@ -133,42 +108,19 @@ function render() {
     const price = el("span", null, "price");
     price.append(el("s", "$49.95"), " FREE*");
     const btn = el("a", "Download", "btn3d");
-    if (g.url) { btn.href = g.url; btn.target = "_blank"; btn.rel = "noopener"; }
-    else {
-      btn.classList.add("locked");
-      btn.href = "#login";
-      btn.textContent = "Members Only";
-      btn.onclick = e => { e.preventDefault(); pass.focus(); };
-    }
+    btn.href = g.link; btn.target = "_blank"; btn.rel = "noopener";
     buy.append(price, el("span", "IN STOCK", "stock"), btn);
     info.append(buy);
     catalog.append(table);
   }
 }
 
-async function signIn(password, quiet) {
-  try {
-    for (const g of games) g.url = await unlock(g.link, password);
-    try { localStorage.setItem("depot-pass", password); } catch {}
-    msg.className = "msg ok";
-    msg.textContent = "Welcome back! Your downloads are ready.";
-    document.getElementById("login").hidden = true;
-  } catch {
-    for (const g of games) delete g.url;
-    if (!quiet) { msg.className = "msg bad"; msg.textContent = "Sorry, that password isn't on file."; }
-  }
-  render();
-}
-
-document.getElementById("login").addEventListener("submit", e => { e.preventDefault(); signIn(pass.value); });
 
 fetch("games.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
   .then(list => {
     games = list.sort((a, b) => a.title.localeCompare(b.title));
-    let saved = null;
-    try { saved = localStorage.getItem("depot-pass"); } catch {}
-    if (saved && games.length) signIn(saved, true); else render();
+    render();
   })
   .catch(e => { catalog.textContent = ""; catalog.append(el("p", "The catalog is out to lunch (" + e.message + ").", "empty")); });
 </script>
