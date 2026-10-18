@@ -968,6 +968,62 @@ body.dragging-files iframe { pointer-events: none; }
 .su-balloon p { margin: 4px 0 0; }
 .su-x { position: absolute; right: 4px; top: 4px; }
 
+/* ---------- Blankie, the helper (98 to XP) ---------- */
+.bk {
+  position: fixed; right: 16px; bottom: calc(var(--tb-h) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 39000;
+  width: 80px; height: 92px; cursor: var(--hand, pointer); touch-action: none; user-select: none;
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .25));
+}
+.bk svg { display: block; overflow: visible; }
+.bk-sheet, .bk-arm { fill: #eef3ff; stroke: #2b3350; stroke-width: 2; stroke-linejoin: round; }
+.bk-stitch { fill: none; stroke: #9fb3e6; stroke-width: 1.5; stroke-dasharray: 2.5 2.5; }
+.bk-cap { fill: #6b8cff; stroke: #2b3350; stroke-width: 2; stroke-linejoin: round; }
+.bk-pom { fill: #fff; stroke: #2b3350; stroke-width: 2; }
+.bk-white { fill: #fff; stroke: #2b3350; stroke-width: 1.5; }
+.bk-look { fill: #2b3350; }
+.bk-glint { fill: #fff; }
+.bk-lid { fill: #eef3ff; }
+.bk-lash, .bk-shut, .bk-mouth { fill: none; stroke: #2b3350; stroke-width: 2; stroke-linecap: round; }
+.bk-blush { fill: #ffb3c6; opacity: .8; }
+.bk-shut, .bk-pencil, .bk-z { display: none; }
+.bk-z { font: bold 11px sans-serif; fill: #2b3350; }
+.bk-body, .bk-eyes, .bk-wave, .bk-look, .bk-pencil, .bk-z text { transform-box: fill-box; }
+.bk.write .bk-pencil, .bk.sleep .bk-shut, .bk.sleep .bk-z { display: inline; }
+.bk.sleep .bk-eyes { display: none; }
+.bk.write .bk-look { transform: translate(1px, 2px); }
+.bk.think .bk-look { transform: translate(-1px, -3px); }
+@media (prefers-reduced-motion: no-preference) {
+  .bk-body { transform-origin: 50% 100%; animation: bk-sway 4s ease-in-out infinite; }
+  .bk-eyes { transform-origin: 50% 50%; animation: bk-blink 5s infinite; }
+  .bk.think .bk-body { animation: bk-wiggle .35s ease-in-out 2; }
+  .bk-wave { transform-origin: 0 100%; }
+  .bk.wave .bk-wave { animation: bk-wave .4s ease-in-out 4; }
+  .bk.write .bk-pencil { transform-origin: 0 100%; animation: bk-scribble .25s linear infinite alternate; }
+  .bk.sleep .bk-body { animation-duration: 7s; }
+  .bk.sleep .bk-z text { animation: bk-z 2.4s ease-out infinite; }
+  .bk.sleep .bk-z text + text { animation-delay: 1.2s; }
+  .bk-balloon { animation: tip-in .2s steps(3) both; }
+}
+@keyframes bk-sway { 0%, 100% { transform: rotate(-3deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-2px); } }
+@keyframes bk-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+@keyframes bk-wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
+@keyframes bk-wave { 50% { transform: rotate(-30deg); } }
+@keyframes bk-scribble { to { transform: translate(-2px, 1px) rotate(-8deg); } }
+@keyframes bk-z { from { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } to { opacity: 0; transform: translate(4px, -6px); } }
+.bk-balloon {
+  position: fixed; z-index: 39001; width: min(250px, calc(100vw - 16px)); box-sizing: border-box; padding: 8px 10px;
+  background: var(--tip, #ffffe1); color: #000; border: 1px solid #000; border-radius: 8px; box-shadow: 2px 2px 0 rgba(0, 0, 0, .4);
+}
+.bk-balloon::after {
+  content: ''; position: absolute; left: var(--tail, 200px); top: 100%; border: 9px solid transparent; border-top-color: var(--tip, #ffffe1); border-bottom: 0;
+  filter: drop-shadow(0 1px 0 #000);
+}
+.bk-balloon.below::after { top: auto; bottom: 100%; border: 9px solid transparent; border-bottom-color: var(--tip, #ffffe1); border-top: 0; filter: drop-shadow(0 -1px 0 #000); }
+.bk-balloon p { margin: 0 0 6px; }
+.bk-opt { display: flex; align-items: flex-start; gap: 6px; width: 100%; padding: 2px 0; border: 0; background: none; color: #000; font: inherit; text-align: left; cursor: var(--hand, pointer); }
+.bk-opt i { flex: none; width: 9px; height: 9px; margin-top: 3px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #9cf, #1452c4); border: 1px solid #0a2a6b; }
+.bk-opt:hover { color: #1452c4; text-decoration: underline; }
+
 /* ---------- Clock ---------- */
 .ck { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ck-view { flex: 1; min-height: 0; display: grid; place-items: center; background: var(--face); padding: 4px; }
