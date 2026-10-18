@@ -133,6 +133,7 @@ export const root = {
             app('DESK.CPL', 'display', 'i-display', 222208),
             app('CHARMAP.EXE', 'charmap', 'i-charmap', 15872),
             app('FREECELL.EXE', 'freecell', 'i-freecell', 30208),
+            app('SPIDER.EXE', 'spider', 'i-spider', 495616),
             app('MSHEARTS.EXE', 'hearts', 'i-hearts', 30720),
             app('SNDREC32.EXE', 'sndrec', 'i-sndrec', 51200),
             app('CDPLAYER.EXE', 'cdplayer', 'i-cdplayer', 106496),

@@ -8,7 +8,7 @@ import { initScrollbars } from './fxscroll.js';
 document.title = OS;
 
 const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'conscripter', 'paint', 'calc', 'dos', 'display', 'system',
-  'freecell', 'hearts', 'wordpad', 'charmap', 'sndrec', 'cdplayer', 'screensaver', 'control', 'taskman', 'disktools',
+  'freecell', 'spider', 'hearts', 'wordpad', 'charmap', 'sndrec', 'cdplayer', 'screensaver', 'control', 'taskman', 'disktools',
   'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers', 'regedit', 'dialer', 'winpopup', 'sysmon', 'setup', 'reversi', 'clock', 'stickynotes', 'restore', 'settings'];
 
 // Older links to this site used #welcome, #chimimouryou, #convert and #conscripter.
