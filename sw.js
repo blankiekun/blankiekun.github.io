@@ -2,8 +2,8 @@
 // cache as it arrives, and served from there only when the network can't be reached, so
 // online a new deploy still shows on the next load. Files are kept without their ?version,
 // so a new engine release replaces the old one instead of piling up.
-// shortcut: only files fetched once while online are kept (main.js asks for the page's own
-// files and the engine up front); a file list made at deploy time would cover everything.
+// shortcut: only files fetched once while online are kept (main.js hands over the page's own
+// files, the engine is kept when a game first runs it); a file list made at deploy time would cover everything.
 
 const CACHE = 'site';
 const key = url => { const u = new URL(url, location.href); return u.origin + u.pathname; };
@@ -20,7 +20,7 @@ self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 // { cache: [url] } from the page: files it loaded before this worker was running.
 self.addEventListener('message', e => {
   const urls = e.data && e.data.cache;
-  if (Array.isArray(urls)) e.waitUntil(Promise.all(urls.map(u => fetch(u).then(res => keep(u, res)).catch(() => {}))));
+  if (Array.isArray(urls)) e.waitUntil(Promise.all(urls.map(u => fetch(u, { cache: 'force-cache' }).then(res => keep(u, res)).catch(() => {}))));
 });
 
 self.addEventListener('fetch', e => {

@@ -59,14 +59,15 @@ if (solo) document.body.classList.add('solo'); else boot();
 start();
 initScrollbars();
 
-// Offline: sw.js keeps the site's files as they load. The ones loaded before it ran, and
-// CONscripter's engine (only fetched once a game starts), are handed to it the first time.
+// Offline: sw.js keeps the site's files as they load. The ones loaded before it ran are handed
+// to it the first time. CONscripter's engine (5MB, only fetched once a game starts) is not:
+// it's kept when a game first loads it, so a visitor who only reads never downloads it.
 if ('serviceWorker' in navigator) {
   const first = !navigator.serviceWorker.controller;
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(reg => {
     if (!first) return;
     const own = u => new URL(u, location.href).origin === location.origin;
-    reg.active.postMessage({ cache: [location.pathname, 'cons/player.html', 'cons/conscripter.js', 'cons/conscripter.wasm',
+    reg.active.postMessage({ cache: [location.pathname,
       ...performance.getEntriesByType('resource').map(e => e.name).filter(own)] });
   }).catch(() => {}));
 }

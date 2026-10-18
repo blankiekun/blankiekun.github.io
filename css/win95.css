@@ -366,11 +366,15 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 .dlg .btns { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
 .dlg .btns.right { justify-content: flex-end; }
 
+/* Night light and brightness (desktop.js applyQS) */
+.tint { position: fixed; inset: 0; z-index: 89999; pointer-events: none; mix-blend-mode: multiply; }
+
 /* ---------- boot & shutdown ---------- */
 .screen { position: fixed; inset: 0; z-index: 90000; }
 .screen.post { background: #000; color: #aaa; font: 20px/1.2 var(--font-dos); padding: 16px; }
 /* Boot screens, one look per era (desktop.js bootParts) */
 .screen.splash { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: #000; color: #fff; cursor: var(--wait); }
+.splash .skip { position: absolute; top: 16px; font: 12px Arial, sans-serif; opacity: .55; }
 .splash .copy { position: absolute; bottom: 24px; font: 12px Arial, sans-serif; }
 .screen.splash.b-9x {
   gap: 0;
@@ -396,6 +400,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 .splash.b-1 { background: #fff; color: #000; }
 .splash.b-1 .box { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 48px; border: 3px double #000; box-shadow: 6px 6px 0 #0000aa; background: #fff; font: 20px var(--font-pixel); }
 .splash.b-1 .box b { font: bold 44px/1 var(--font-pixel); letter-spacing: .08em; padding: 4px 18px; color: #fff; background: #0000aa; }
+.splash.b-1 .skip { font: 16px var(--font-pixel); }
 .splash.b-1 .copy { font: 16px var(--font-pixel); }
 
 /* 3.1: the flag beside the name on white, the copyright under it */
