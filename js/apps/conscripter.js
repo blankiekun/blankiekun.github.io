@@ -16,6 +16,7 @@ import * as anki from './consanki.js';
 const NO_TIP = 'w95.cons.notip';
 const NO_OFFLINE_TIP = 'w95.cons.noofflinetip';
 const FLAGS = 'w95.cons.flags';
+const FILTERS = 'w95.cons.filters';
 const TEXT_OVERLAY = 'w95.cons.textoverlay'; // Debug > Text Overlay (for Scanning), on at first
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
@@ -38,6 +39,16 @@ const FLAG_LIST = [
   '-',
   { flag: '--fontcache', label: '&Cache Font' },
   { flag: '--no-vsync', label: 'No &VSync' },
+];
+// Game > Display Filter: the engine's --filter, used from the next start; several
+// combine, in this order (colours first, scanlines last).
+const FILTER_LIST = [
+  ['vhs', '&VHS (Colour Bleed)'],
+  ['sepia', '&Sepia'],
+  ['mono', '&Black and White'],
+  ['gameboy', '&Game Boy'],
+  ['pc98', '&PC-98 (64 Colours)'],
+  ['crt', '&CRT Scanlines'],
 ];
 // Help > Report a Bug: where the visitor thinks the bug is.
 const BUG_KINDS = [
@@ -409,6 +420,7 @@ function open() {
   let showText = false;
   let textOverlay = store.get(TEXT_OVERLAY, true);
   const flags = new Set(store.get(FLAGS, ['--debug:1', '--trace'])); // on at first, so a bug report has them
+  const filters = new Set(store.get(FILTERS, []));
   flags.delete('--no-text-overlay'); // was an engine flag; now Debug > Text Overlay, at once
 
   // Google Drive sync (further down)
@@ -559,6 +571,17 @@ function open() {
     if (frame) say('Restart the game to use the new engine flags');
   }
 
+  // f: one filter to turn on or off; null turns them all off
+  function setFilter(f) {
+    if (f === null) filters.clear(); else if (filters.has(f)) filters.delete(f); else filters.add(f);
+    store.set(FILTERS, [...filters]);
+    if (frame) say('Restart the game to use the new display filter');
+  }
+  function filterArgs() {
+    const on = FILTER_LIST.map(([f]) => f).filter(f => filters.has(f));
+    return on.length ? ['--filter', on.join(',')] : [];
+  }
+
   // The bits of the run that don't come from flags: --goto, --load.
   async function restartAt() {
     const label = await inputbox({ title: 'Restart at Label', parent: win, label: 'Start the game at this label (without the *):' });
@@ -634,7 +657,7 @@ function open() {
         fd.append('game', run ? run.title : '');
         const info = {
           engine: ENGINE_VERSION, site: location.href, game: run ? run.title : null, running: !!live,
-          jp: game ? !!game.jp : null, encoding: game ? game.encoding || null : null, flags: [...flags],
+          jp: game ? !!game.jp : null, encoding: game ? game.encoding || null : null, flags: [...flags, ...filterArgs()],
           browser: navigator.userAgent, window: `${innerWidth}x${innerHeight} @${devicePixelRatio}x`, time: new Date().toISOString(), state,
         };
         fd.append('files', new Blob([JSON.stringify(info, null, 2)], { type: 'application/json' }), 'report.json');
@@ -779,6 +802,11 @@ function open() {
       '-',
       { label: '&Restart', disabled: !game, action: () => game && boot(game) },
       { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
+      { label: 'Display Fi&lter', submenu: [
+        { label: '&None', checked: !filters.size, action: () => setFilter(null) },
+        '-',
+        ...FILTER_LIST.map(([f, label]) => ({ label, checked: filters.has(f), action: () => setFilter(f) })),
+      ] },
     ] },
     { label: '&Debug', items: () => [
       { label: 'Engine &Flags', submenu: FLAG_LIST.map(f => f === '-' ? f : { label: f.label, checked: flags.has(f.flag), action: () => setFlag(f.flag) }) },
@@ -889,7 +917,7 @@ function open() {
       w.showText(showText);
       w.setTextOverlay(textOverlay);
       w.start({
-        files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags].flatMap(f => f === '--trace' ? [f, '/dev/null'] : f).concat(args), // the trace's records go to the page
+        files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags].flatMap(f => f === '--trace' ? [f, '/dev/null'] : f).concat(filterArgs(), args), // the trace's records go to the page
         keepLines: g.jp && anki.settings().on,
         recordLines: g.jp && anki.settings().on && anki.settings().audio,
         beforeRun: () => frame === me && syncSaves({ w, starting: true }),
