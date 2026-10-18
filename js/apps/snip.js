@@ -31,9 +31,12 @@ function render(r) {
     ctx.save(); ctx.beginPath(); ctx.rect(wb.x, wb.y, wb.w, wb.h); ctx.clip();
     // Every coloured element as a flat box, in document order, which is near enough to paint order.
     for (const el of [w, ...w.querySelectorAll('*')]) if (!/, 0\)$|transparent/.test(css(el).backgroundColor) && shown(el)) box(el);
-    const t = w.querySelector('.titlebar .t'), tb = local(t.getBoundingClientRect(), r);
-    ctx.fillStyle = css(t).color; ctx.font = css(t).font; ctx.textBaseline = 'middle';
-    ctx.fillText(t.textContent, tb.x, tb.y + tb.h / 2);
+    const t = w.querySelector('.titlebar .t');
+    if (shown(t)) {   // gadgets hide their title bars
+      const tb = local(t.getBoundingClientRect(), r);
+      ctx.fillStyle = css(t).color; ctx.font = css(t).font; ctx.textBaseline = 'middle';
+      ctx.fillText(t.textContent, tb.x, tb.y + tb.h / 2);
+    }
     const body = w.querySelector('.win-body'), inner = local(body.getBoundingClientRect(), r);
     for (const cv of body.querySelectorAll('canvas')) pixels(cv, { x: 0, y: 0 }, inner);
     for (const f of body.querySelectorAll('iframe')) {

@@ -95,7 +95,7 @@ const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: 
 
 // Vista's Sidebar: a translucent strip down the right, with the gadgets stacked in it. In 7 a new
 // gadget starts at the right under the others, then floats wherever it's dragged.
-// shortcut: the Sidebar is laid out when a gadget opens or closes, not on viewport resize or drag; track those if anyone docks many.
+// shortcut: the Sidebar is laid out when a gadget opens or closes or the viewport changes, not on drag; track that if anyone docks many.
 let sidebar = null;
 function restack(added) {
   if (SIDEBAR) {
@@ -114,9 +114,12 @@ function restack(added) {
   }
 }
 
+for (const [t, ev] of [[window, 'resize'], [small, 'change']]) t.addEventListener(ev, () => { if (open.size) restack(); });
+
 const save = () => store.set(KEY, [...open.keys()]);
 
 function add(id) {
+  if (small.matches) return;   // no room beside a maximized window
   const had = open.get(id);
   if (had && all().includes(had)) return had.focus();
   const win = MAKERS[id]();

@@ -338,7 +338,7 @@ html[data-win="11"] { --font-ui: "Segoe UI Variable Text", "Segoe UI Variable", 
 .thumb-view > .win { position: absolute; animation: none; }
 .thumb > svg { display: block; width: 48px; height: 48px; margin: 12px auto; }
 #windows > .win.peeked.min { display: flex; }
-body.peeking #windows > .win:not(.peeked) { opacity: .08; transition: opacity .2s; }
+body.peeking #windows > .win:not(.peeked, .gadget, .ck-gadget) { opacity: .08; transition: opacity .2s; }
 .showdesk { flex: none; width: 15px; margin-right: -2px; padding: 0; border: 0; background: none; box-shadow: inset 1px 0 rgba(255, 255, 255, .25), inset 2px 0 rgba(0, 0, 0, .3); }
 .showdesk:hover { background: rgba(255, 255, 255, .18); }
 :is([data-win="8"], [data-win="10"], [data-win="11"]) .showdesk { width: 6px; margin: 0; box-shadow: inset 1px 0 rgba(255, 255, 255, .3); }

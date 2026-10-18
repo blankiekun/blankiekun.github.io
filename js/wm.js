@@ -173,7 +173,7 @@ export function createWindow(o) {
 
   if (o.parent && o.modal !== false && o.dialog) o.parent.modal = win;
   wins.push(win);
-  if ((small.matches && !o.dialog) || o.maximized) maximize(win);
+  if ((small.matches && !o.dialog && !isGadget(win)) || o.maximized) maximize(win);
   retile();
   focus(win);
   el.classList.add('opening');
@@ -181,8 +181,11 @@ export function createWindow(o) {
   return win;
 }
 
+// Gadgets sit on the desktop layer, behind every window, and never take the focus from one.
+const isGadget = w => /gadget/.test(w.opts.className || '');
+
 function restack() {
-  wins.forEach((w, i) => { w.el.style.zIndex = 10 + i; });
+  wins.forEach((w, i) => { w.el.style.zIndex = isGadget(w) ? 1 : 10 + i; });
 }
 
 export function focus(win) {
@@ -225,7 +228,7 @@ function flash(win) {
 }
 
 function topVisible() {
-  for (let i = wins.length - 1; i >= 0; i--) if (wins[i].state !== 'min') return wins[i];
+  for (let i = wins.length - 1; i >= 0; i--) if (wins[i].state !== 'min' && !isGadget(wins[i])) return wins[i];
   return null;
 }
 
@@ -273,7 +276,6 @@ export function minimize(win) {
 }
 
 export function maximize(win) {
-  win.snapBox = null;
   win.state = 'max';
   win.el.classList.add('max');
   win.maxBtn.querySelector('use').setAttribute('href', '#i-restore');
@@ -398,7 +400,8 @@ function outlineDrag(win, e, mode) {
         // Restored under the pointer, keeping its spot along the title bar.
         const at = (sx - r.left) / r.width;
         if (wasMax) restore(win);
-        else { Object.assign(win.el.style, wasSnap); win.snapBox = null; if (win.opts.onResize) win.opts.onResize(); }
+        // Snapped, perhaps maximized and restored since: back to the size from before the snap.
+        if (wasSnap) { Object.assign(win.el.style, wasSnap); win.snapBox = null; if (win.opts.onResize) win.opts.onResize(); }
         const w = win.el.offsetWidth;
         win.el.style.left = Math.round(ev.clientX - A.left - w * at) + 'px';
         win.el.style.top = Math.max(0, Math.round(ev.clientY - A.top - (sy - r.top))) + 'px';
@@ -501,7 +504,7 @@ window.addEventListener('blur', () => setTimeout(() => {
 
 function onViewport() {
   wins.forEach(w => {
-    if (small.matches && !w.opts.dialog && w.state === 'normal') maximize(w);
+    if (small.matches && !w.opts.dialog && !isGadget(w) && w.state === 'normal') maximize(w);
     else if (w.state !== 'max') fit(w);
     if (w.opts.onResize) w.opts.onResize();
   });
