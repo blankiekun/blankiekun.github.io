@@ -8,6 +8,8 @@ import { menubar, openMenu, ribbon, rbtn, quickBar, hasRibbon } from '../menu.js
 import { msgbox, about } from '../dialogs.js';
 import { openFile, saveAs, saveTo } from '../filedlg.js';
 import { resolve } from '../fs.js';
+import { V } from '../version.js';
+import * as blankie from '../assistant.js';
 
 export const FONTS = {
   'Arial': 'Arial, Helvetica, "Liberation Sans", sans-serif',
@@ -646,6 +648,7 @@ function open(arg) {
     savedHtml = page.innerHTML;
     win.setTitle(title());
     if (path) remember(path);
+    blankie.tip('save');
     return true;
   }
   function blobFor(type, text, html) {
@@ -1241,6 +1244,7 @@ function open(arg) {
     ] },
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help') },
+      ...(['98', 'me', '2000', 'xp'].includes(V.id) ? [{ label: 'Show &Blankie', action: () => blankie.enable(win) }] : []),
       '-',
       { label: '&About WordPad', action: () => about('WordPad', 'i-wordpad', win) },
     ] },
@@ -1303,6 +1307,8 @@ function open(arg) {
     onClose: confirmSave, onResize: layoutRuler,
     onClosed: () => { document.removeEventListener('selectionchange', onSel); if (ro) ro.disconnect(); if (findWin) findWin.close(true); },
   });
+  blankie.summon(win);
+  blankie.watch(page);
   if (hasRibbon) quickBar(win, { save: () => save(), undo: () => cmd('undo'), redo: () => cmd('redo') });
 
   if (arg && arg.text != null) load(arg.name || 'Document', convert(arg.name || '', arg.text), arg.path, typeOf(arg.name || ''));

@@ -7,6 +7,7 @@ import { walk, kindLabel, sizeLabel } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
 import { TOPICS } from '../helptopics.js';
 import { OS, V, ram } from '../version.js';
+import { summon, tip } from '../assistant.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 
@@ -132,9 +133,11 @@ function helpCenter(arg) {
 
 // WinHelp's books up to 2000, Help and Support from Me to 8, and in 10 and 11 a page on the web.
 const CENTER = ['me', 'xp', 'vista', '7', '8'];
+// From 98 to XP Blankie comes along to help with Help.
+const helper = win => { summon(win); tip('help'); return win; };
 function help(arg) {
   if (['10', '11'].includes(V.id)) return launch('ie', arg ? 'help#' + encodeURIComponent(arg) : 'help');
-  if (CENTER.includes(V.id)) return helpCenter(arg);
+  if (CENTER.includes(V.id)) return helper(helpCenter(arg));
   const view = h('div', { class: 'hp-view' });
   let selRow = null;
   const tree = h('div', { class: 'listbox hp-tree', tabindex: '0', role: 'tree', 'aria-label': 'Contents' });
@@ -165,7 +168,7 @@ function help(arg) {
   const win = createWindow({ app: 'help', title: OS + ' Help', icon: 'i-helpbook', body, width: 600, height: 400, minW: 280, minH: 200, route: 'help' });
   const first = rows.find(r => r[1] === arg) || rows[0];
   show(...first);
-  return win;
+  return helper(win);
 }
 
 // ---------- Find ----------
