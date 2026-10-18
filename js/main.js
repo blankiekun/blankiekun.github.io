@@ -5,7 +5,7 @@ import { initDesktop, boot } from './desktop.js';
 import { OS } from './version.js';
 import { initScrollbars } from './fxscroll.js';
 
-document.title = OS;
+document.title = `${OS} - chimimouryou, CONscripter, conscripter-convert`;
 
 const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'conscripter', 'paint', 'calc', 'dos', 'display', 'system',
   'freecell', 'spider', 'viewer', 'hearts', 'wordpad', 'charmap', 'sndrec', 'cdplayer', 'screensaver', 'control', 'taskman', 'disktools',
