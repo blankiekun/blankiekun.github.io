@@ -893,7 +893,8 @@ export async function boot() {
   let booted = false;
   try { booted = sessionStorage.getItem('w95.booted') === '1'; sessionStorage.setItem('w95.booted', '1'); } catch {}
   if (booted) return;
-  const fast = reducedMotion.matches;
+  // A link to something specific (#ie/chimimouryou, #cons/demo) only gets a brief flash of the boot.
+  const deep = location.hash.length > 1, fast = reducedMotion.matches;
   let skip;
   const skipped = new Promise(r => { skip = r; });
   const post = h('div', { class: 'screen post', 'aria-live': 'polite' }, V.start ? 'Starting ' + OS + '...' : 'C:\\>WIN');
@@ -901,11 +902,11 @@ export async function boot() {
   const onKey = () => skip();
   addEventListener('keydown', onKey);
   post.addEventListener('pointerdown', skip);
-  await Promise.race([wait(fast ? 200 : 900), skipped]);
-  const splash = h('div', { class: 'screen splash b-' + bootLook(), role: 'img', 'aria-label': OS + ' is starting' }, ...bootParts());
+  await Promise.race([wait(deep ? 100 : fast ? 200 : 900), skipped]);
+  const splash = h('div', { class: 'screen splash b-' + bootLook(), role: 'img', 'aria-label': OS + ' is starting' }, ...bootParts(), ...deep ? [] : [h('small', { class: 'skip' }, 'Press any key or tap to skip')]);
   splash.addEventListener('pointerdown', skip);
   post.replaceWith(splash);
-  await Promise.race([wait(fast ? 600 : 2200), skipped]);
+  await Promise.race([wait(deep ? 300 : fast ? 600 : 2200), skipped]);
   removeEventListener('keydown', onKey);
   splash.remove();
   sound('Start Windows');
@@ -1214,8 +1215,12 @@ function welcome() {
 const qs = { tablet: false, location: true, focus: false, project: false, bluetooth: true, saver: false, access: false, night: false, bright: 100 };
 // Wi-Fi and airplane mode are Settings' own (settings.js net), once it loads.
 let radio = { wifi: true, airplane: false };
+const tintEl = h('div', { class: 'tint' });
+document.body.append(tintEl);
 function applyQS() {
-  desktopEl.style.filter = [qs.night && 'sepia(.35) saturate(1.4) hue-rotate(-10deg)', qs.bright < 100 && `brightness(${.3 + qs.bright * .007})`].filter(Boolean).join(' ');
+  // A multiply overlay, not a filter on #desktop: a filter would make it the containing block of fixed windows (full screen).
+  const b = .3 + qs.bright * .007, c = (qs.night ? [255, 214, 168] : [255, 255, 255]).map(v => Math.round(v * b));
+  tintEl.style.background = qs.night || qs.bright < 100 ? `rgb(${c})` : '';
   const up = radio.wifi && !radio.airplane;
   netIcon.dataset.tip = up ? 'Connected' : 'Not connected';
   netIcon.setAttribute('aria-label', netIcon.dataset.tip);
