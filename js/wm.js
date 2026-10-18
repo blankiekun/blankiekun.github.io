@@ -35,6 +35,9 @@ export function onLock(fn) { lockScreen = fn; }
 // Win+A: 10's Action Center, 11's Quick Settings; nothing before 10.
 let actionCenter = null;
 export function onActionCenter(fn) { actionCenter = fn; }
+// Win+Tab in 10 and 11: Task View (taskview.js); Vista and 7 have Flip 3D instead.
+let taskView = null;
+export function onTaskView(fn) { taskView = fn; }
 // What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
 let taskMenu = (win, at) => systemMenu(win, at);
 export function onTaskMenu(fn) { taskMenu = fn; }
@@ -65,7 +68,7 @@ export function createWindow(o) {
   const win = {
     app: o.app || null, opts: o, state: 'normal', route: o.route || null,
     minW: o.minW || 160, minH: o.minH || 90,
-    tiled: TILED && !o.dialog && resizable, seq: opened++,
+    tiled: TILED && !o.dialog && resizable, seq: opened++, desk,
   };
 
   const title = h('span', { class: 't' }, o.title);
@@ -193,6 +196,7 @@ function restack() {
 
 export function focus(win) {
   if (!win || !wins.includes(win)) return;
+  if (!here(win)) showDesk(win.desk);
   if (win.modal && wins.includes(win.modal)) { focus(win.modal); return; }
   if (win.state === 'min') {
     win.el.classList.remove('min');
@@ -231,7 +235,7 @@ function flash(win) {
 }
 
 function topVisible() {
-  for (let i = wins.length - 1; i >= 0; i--) if (wins[i].state !== 'min' && !isGadget(wins[i])) return wins[i];
+  for (let i = wins.length - 1; i >= 0; i--) if (wins[i].state !== 'min' && !isGadget(wins[i]) && here(wins[i])) return wins[i];
   return null;
 }
 
@@ -603,7 +607,7 @@ function keyMove(win, mode) {
 
 // ---------- arranging: the taskbar's right-click menu ----------
 
-const arrangeable = () => wins.filter(w => w.state !== 'min' && !w.opts.dialog && w.opts.resizable !== false);
+const arrangeable = () => wins.filter(w => here(w) && w.state !== 'min' && !w.opts.dialog && w.opts.resizable !== false);
 let undoArrange = null;
 
 function remember(list, label) {
@@ -669,7 +673,7 @@ function layout(list, vertical) {
 }
 
 export function minimizeAll() {
-  const list = wins.filter(w => w.state !== 'min' && w.task);
+  const list = wins.filter(w => w.state !== 'min' && w.task && here(w));
   if (!list.length) return;
   remember(list, '&Undo Minimize All');
   for (const w of list) { w.wasMax = w.state === 'max'; w.state = 'min'; w.el.classList.add('min'); }
@@ -678,6 +682,34 @@ export function minimizeAll() {
 
 // Clicking empty desktop deactivates windows, like Windows does.
 export function deactivate() { blurAll(); }
+
+// ---------- virtual desktops (10 and 11, in Task View) ----------
+// A window belongs to the desktop it opened on; the others' windows and taskbar buttons hide.
+// shortcut: desktops live in memory only, a reload puts every window back on one; persist them if anyone asks.
+let desk = 0, deskCount = 1, deskChanged = () => {};
+function here(w) { return w.desk === desk || isGadget(w); }
+export function onDeskChange(fn) { deskChanged = fn; }
+export function desks() { return { n: deskCount, cur: desk }; }
+function showDesk(i) {
+  desk = i;
+  for (const w of wins) { w.el.classList.toggle('off-desk', !here(w)); w.task?.classList.toggle('off-desk', !here(w)); }
+  if (!active || !here(active)) { const next = topVisible(); if (next) focus(next); else blurAll(); }
+  deskChanged();
+}
+export function switchDesk(i) { if (i >= 0 && i < deskCount && i !== desk) showDesk(i); }
+export function addDesk() { deskCount++; deskChanged(); }
+// Its dialogs go with it.
+export function moveToDesk(win, i) {
+  for (const w of wins) if (w === win || w.opts.parent === win) w.desk = i;
+  showDesk(desk);
+}
+// Its windows go to the desktop on its left, or the right for the first.
+export function removeDesk(i) {
+  if (deskCount < 2) return;
+  for (const w of wins) if (w.desk > i || (w.desk === i && i > 0)) w.desk--;
+  deskCount--;
+  showDesk(desk > i || (desk === i && i > 0) ? desk - 1 : desk);
+}
 
 // ---------- Alt+Tab and Alt+Space ----------
 // Alt+Tab steps through a box of icons while Alt is held and switches on release.
@@ -693,16 +725,6 @@ function endSwitch(ok) {
   sw.el.remove(); sw = null;
   if (ok) focus(w);
 }
-// Opened from the taskbar (desktop.js taskView) with Alt not held: a click on an icon switches,
-// Escape or a click elsewhere cancels.
-export function altTab() {
-  const list = wins.filter(w => w.task).reverse();
-  if (!list.length || sw) return;
-  closeMenus();
-  sw = { list, i: Math.min(1, list.length - 1), el: h('div', { class: 'alttab', role: 'status' }) };
-  document.body.append(sw.el);
-  drawSwitch();
-}
 document.addEventListener('pointerdown', e => { if (sw && !sw.el.contains(e.target)) endSwitch(false); }, true);
 // ---------- Flip 3D ----------
 // Vista and 7: Win+Tab stacks the windows in 3D while Win is held. Tab, the arrows or the wheel
@@ -710,17 +732,22 @@ document.addEventListener('pointerdown', e => { if (sw && !sw.el.contains(e.targ
 // shortcut: the cards are stills cloned when the stack opens, so nothing in them moves, fine for a few seconds.
 const FLIP = ['vista', '7'].includes(V.id);
 let flip = null;
-function flipCard(w) {
+// A still copy of a window at full size, for Flip 3D and Task View; r is the window's box.
+export function still(w) {
   const min = w.el.classList.contains('min');
   w.el.classList.remove('min');
   const r = w.el.getBoundingClientRect(), media = [...w.el.querySelectorAll('canvas, iframe, video')];
   if (min) w.el.classList.add('min');
   const copy = w.el.cloneNode(true);
-  copy.classList.remove('min', 'max', 'active', 'opening');
+  copy.classList.remove('min', 'max', 'active', 'opening', 'off-desk');
   // A copied canvas or frame is blank (or reloads), so those show an empty frame with the program's icon.
   copy.querySelectorAll('canvas, iframe, video').forEach((m, i) => m.replaceWith(h('div', { class: 'flip-blank', style: { width: media[i].offsetWidth + 'px', height: media[i].offsetHeight + 'px' } }, icon(w.opts.icon || 'i-exe'))));
   copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
   Object.assign(copy.style, { left: 0, top: 0, width: r.width + 'px', height: r.height + 'px', transform: 'none', zIndex: 0 });
+  return { copy, r };
+}
+function flipCard(w) {
+  const { copy, r } = still(w);
   const el = h('div', { class: 'flip-card', style: { width: r.width + 'px', height: r.height + 'px', margin: `${-r.height / 2}px 0 0 ${-r.width / 2}px` }, onclick: () => endFlip(w) }, copy);
   el.s = Math.min(.6 * innerWidth / r.width, .6 * innerHeight / r.height, 1);
   return el;
@@ -765,13 +792,16 @@ function flipKey(e) {
 // Windows key shortcuts, from 95 on. Win+L locks (XP on).
 // shortcut: the OS often keeps the Windows key, so Ctrl+Alt+the same key does the same.
 const WINKEY = !['1.0', '2.0', '3.1'].includes(V.id);
-function winKey(code) {
+// Ctrl+Win+Left/Right (Ctrl+Alt+Shift without the key, as Ctrl+Alt+arrows snap) switches desktops.
+function winKey(code, deskMod) {
   const win = active && !active.opts.dialog && !active.maxBtn.disabled ? active : null;
   if (code === 'KeyD' || code === 'KeyM') minimizeAll();
   else if (code === 'KeyE') launch('explorer', { path: 'C:\\', explore: true });
   else if (code === 'KeyR') runDialog();
   else if (code === 'KeyL') lockScreen();
   else if (code === 'KeyA' && actionCenter) actionCenter();
+  else if (code === 'Tab' && taskView) taskView();
+  else if (deskMod && taskView && (code === 'ArrowLeft' || code === 'ArrowRight')) switchDesk(desk + (code === 'ArrowRight' ? 1 : -1));
   else if (win && code === 'ArrowUp') maximize(win);
   else if (win && SIDES && (code === 'ArrowLeft' || code === 'ArrowRight')) {
     const A = area();
@@ -786,8 +816,8 @@ function winKey(code) {
 document.addEventListener('keydown', e => {
   if (FLIP && flipKey(e)) {
     e.preventDefault();
-  } else if (e.altKey && (e.key === 'Tab' || e.code === 'Backquote')) {
-    const list = wins.filter(w => w.task).reverse();
+  } else if (e.altKey && !(taskView && e.ctrlKey) && (e.key === 'Tab' || e.code === 'Backquote')) {
+    const list = wins.filter(w => w.task && here(w)).reverse();
     if (!list.length) return;
     e.preventDefault();
     closeMenus();
@@ -799,7 +829,7 @@ document.addEventListener('keydown', e => {
   } else if (e.altKey && e.key === 'F4' && active) {
     // shortcut: the browser usually takes Alt+F4 first, so it only arrives in some browsers and full-screen PWAs.
     e.preventDefault(); close(active);
-  } else if (WINKEY && !document.querySelector('.screen.logon') && (e.metaKey || e.ctrlKey && e.altKey && !e.getModifierState('AltGraph')) && winKey(e.code)) {
+  } else if (WINKEY && !document.querySelector('.screen.logon') && (e.metaKey || e.ctrlKey && e.altKey && !e.getModifierState('AltGraph')) && winKey(e.code, e.metaKey ? e.ctrlKey : e.shiftKey)) {
     e.preventDefault();
   } else if (e.altKey && e.code === 'Space' && active) {
     e.preventDefault();
