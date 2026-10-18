@@ -296,7 +296,8 @@ function welcome() {
     h('div', { class: 'wl-main' },
       h('div', { class: 'wl-box' }, h('div', { class: 'wl-did' }, icon('i-info'), h('b', null, 'Did you know...')), tip),
       h('div', { class: 'wl-btns' },
-        btn('<u>W</u>indows Tour', () => { win.close(); launch('ie', 'home'); }),
+        // 98 and XP have the tour; the others keep the home page.
+        btn('<u>W</u>indows Tour', () => { win.close(); ['98', 'xp'].includes(V.id) ? launch('tour') : launch('ie', 'home'); }),
         btn('What\'s <u>N</u>ew', () => launch('help', 'Welcome')),
         btn('<u>O</u>nline Registration', () => window.open(GITHUB, '_blank', 'noopener')),
         h('hr', { class: 'pr-sep' }),

@@ -1,5 +1,5 @@
 // Windows Setup: upgrade or downgrade to another Windows. The pick is saved and the page
-// reloads into it after a pretend install. Also the "out of date" balloon by the clock.
+// reloads into it after a pretend install. Also the balloons by the clock: "out of date", and XP's tour.
 
 import { h, icon, store, wait, reducedMotion } from '../util.js';
 import { createWindow, launch } from '../wm.js';
@@ -76,20 +76,35 @@ async function copying(r) {
   }
 }
 
-// A balloon by the clock, a minute in, that says there's another version to try.
-// Closing it, or opening Setup from it, keeps it away for good.
-function balloon() {
-  if (store.get(HINT, false) || document.body.classList.contains('solo')) return;
-  const last = at === VERSIONS.length - 1;
-  const done = () => { store.set(HINT, true); b.remove(); };
+// A balloon by the clock. Closing it, or clicking it (which runs go), keeps it away for good.
+function tray(key, title, text, go) {
+  const done = () => { store.set(key, true); b.remove(); };
   const b = h('div', { class: 'su-balloon', role: 'status' },
     h('button', { class: 'tbtn su-x', type: 'button', 'aria-label': 'Close', onclick: done }, icon('i-x')),
-    h('b', null, icon('i-info'), last ? 'Feeling nostalgic?' : 'Your version of Windows is out of date'),
-    h('p', null, last ? 'Click here to downgrade to an older blankiekun.' : 'Click here to upgrade, or downgrade, to another blankiekun.'));
-  b.addEventListener('click', e => { if (e.target.closest('.su-x')) return; done(); launch('setup'); });
+    h('b', null, icon('i-info'), title), h('p', null, text));
+  b.addEventListener('click', e => { if (e.target.closest('.su-x')) return; done(); go(); });
   document.body.append(b);
   setTimeout(() => b.remove(), 20000);
 }
+
+// A minute in: there's another version to try. Waits its turn behind the tour's balloon.
+function balloon() {
+  if (store.get(HINT, false) || document.body.classList.contains('solo')) return;
+  if (document.querySelector('.su-balloon')) { setTimeout(balloon, 30000); return; }
+  const last = at === VERSIONS.length - 1;
+  tray(HINT, last ? 'Feeling nostalgic?' : 'Your version of Windows is out of date',
+    last ? 'Click here to downgrade to an older blankiekun.' : 'Click here to upgrade, or downgrade, to another blankiekun.', () => launch('setup'));
+}
 setTimeout(balloon, 60000);
+
+// XP: once the visitor has signed in, the tour offers itself, once per visitor.
+const TOUR = 'w95.tourhint';
+function tourBalloon() {
+  if (V.id !== 'xp' || store.get(TOUR, false) || document.body.classList.contains('solo')) return;
+  if (document.querySelector('.screen')) { setTimeout(tourBalloon, 1000); return; }
+  store.set(TOUR, true);   // shown once, whether or not it's clicked
+  tray(TOUR, `Take a tour of ${OS}`, `Click here to learn about the exciting new features in ${OS}.`, () => launch('tour'));
+}
+setTimeout(tourBalloon, 3000);
 
 export default { id: 'setup', title: 'Windows Setup', icon: 'i-setup', single: true, open };

@@ -968,6 +968,66 @@ body.dragging-files iframe { pointer-events: none; }
 .su-balloon p { margin: 4px 0 0; }
 .su-x { position: absolute; right: 4px; top: 4px; }
 
+/* blankiekun Tour (tour.js): 98's dark presentation over the desktop, the taskbar left in view */
+.tour {
+  position: fixed; inset: 0 0 calc(var(--tb-h) + env(safe-area-inset-bottom, 0px)) 0; z-index: 70000; overflow: auto; outline: 0;
+  display: grid; grid-template: auto 1fr auto / minmax(150px, 220px) 1fr; gap: 16px 32px; padding: 28px max(16px, 5vw);
+  background: radial-gradient(circle at 70% 40%, #1d2f6b, #070b1c 70%); color: #fff; font: 14px/1.5 Arial, Helvetica, sans-serif;
+}
+.tour h1 { grid-column: 1 / -1; margin: 0; font: 300 clamp(28px, 6vw, 48px)/1 Arial, sans-serif; letter-spacing: -1px; border-bottom: 2px solid #f6c343; padding-bottom: 10px; }
+.tour h1 b { color: #f6c343; }
+.tour-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; counter-reset: st; }
+.tour-steps button { all: unset; display: block; width: 100%; box-sizing: border-box; padding: 4px 8px; cursor: var(--hand); color: #9fb4e8; counter-increment: st; }
+.tour-steps button::before { content: counter(st) '. '; }
+.tour-steps .on button, .tour-steps button:hover { color: #fff; }
+.tour-steps .on button { background: #2b3f86; font-weight: bold; }
+.tour-steps button:focus-visible { outline: 1px dotted #fff; }
+.tour-main { max-width: 560px; }
+.tour-main h2 { margin: 0 0 8px; font: bold 26px/1.2 Arial, sans-serif; }
+.tour-main p { margin: 0 0 12px; }
+.tour-count { color: #9fb4e8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.tour-pic { position: relative; width: 120px; height: 120px; margin-bottom: 20px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(#3b5bc0, transparent 70%); }
+.tour-pic svg { width: 64px; height: 58px; }
+/* The pointer: an arrow drawn in CSS that wanders in from the right and clicks the picture */
+.tour-ptr { position: absolute; left: 70px; top: 70px; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 18px solid #fff;
+  transform: rotate(-28deg); filter: drop-shadow(1px 1px 0 #000); animation: tour-ptr 1.6s ease-out both; }
+@keyframes tour-ptr { from { translate: 160px 60px; } 80% { translate: 0 0; scale: 1; } 90% { scale: .8; } }
+.tour .btn { color: #000; }
+.tour-btns { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.tour-btns .btn { min-width: 80px; }
+.tour-ring { position: fixed; z-index: 70001; pointer-events: none; border: 3px solid #f6c343; border-radius: 4px; box-sizing: border-box; animation: tour-ring 1s ease-in-out infinite alternate; }
+@keyframes tour-ring { to { box-shadow: 0 0 0 6px rgba(246, 195, 67, .35); } }
+@media (prefers-reduced-motion: reduce) { .tour-ptr, .tour-ring { animation: none; } }
+@media (max-width: 600px) {
+  .tour { grid-template: auto auto 1fr auto / 1fr; padding: 16px; gap: 12px; }
+  .tour-steps { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+  .tour-steps button { width: auto; font-size: 0; padding: 0; }
+  .tour-steps button::before { font-size: 13px; padding: 2px 8px; display: inline-block; content: counter(st); }
+  .tour-pic { width: 88px; height: 88px; margin-bottom: 8px; }
+}
+/* XP: the Luna blues and the green Next */
+[data-win="xp"] .tour { background: linear-gradient(#0a246a, #245edb 18%, #3a80f3 70%, #5a9cff); font-family: Tahoma, Verdana, sans-serif; }
+[data-win="xp"] .tour h1 { font-style: italic; border-bottom-color: #f39c35; }
+[data-win="xp"] .tour h1 b { color: #fff; }
+[data-win="xp"] .tour-steps .on button { background: #2c9d2c; border-radius: 4px; }
+[data-win="xp"] .tour-steps button, [data-win="xp"] .tour-count { color: #d6e4ff; }
+[data-win="xp"] .tour-pic { background: radial-gradient(#9cc8ff, transparent 70%); }
+[data-win="xp"] .tour-btns .btn.default:not(:disabled) { background: linear-gradient(#7ad37a, #2c9d2c); color: #fff; border-color: #1f6f1f; }
+[data-win="xp"] .tour-ring { border-color: #7ad37a; }
+
+/* About's hidden credits (dialogs.js): 3.1's bear, or 95's clouds; the names roll up */
+.about-credits { display: flex; gap: 12px; align-items: center; width: min(360px, calc(100vw - 64px)); height: 160px; overflow: hidden; }
+.about-roll { flex: 1; text-align: center; animation: about-roll 16s linear infinite; }
+.about-roll p { margin: 0 0 4px; }
+.about-roll p:first-child { font-weight: bold; }
+@keyframes about-roll { from { transform: translateY(160px); } to { transform: translateY(-100%); } }
+.about-credits.clouds { color: #000080; font-weight: bold;
+  background: radial-gradient(ellipse 50px 18px at 20% 30%, #fff 60%, transparent 64%), radial-gradient(ellipse 70px 22px at 75% 65%, #fff 60%, transparent 64%),
+    radial-gradient(ellipse 40px 14px at 45% 85%, #fff 60%, transparent 64%), linear-gradient(#4f86d8, #b7d3f5);
+  animation: about-clouds 30s linear infinite; }
+@keyframes about-clouds { to { background-position: 360px 0, 360px 0, 360px 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .about-credits { overflow: auto; align-items: flex-start; } .about-roll, .about-credits.clouds { animation: none; } }
+
 /* ---------- Blankie, the helper (98 to XP) ---------- */
 .bk {
   position: fixed; right: 16px; bottom: calc(var(--tb-h) + 16px + env(safe-area-inset-bottom, 0px)); z-index: 39000;
