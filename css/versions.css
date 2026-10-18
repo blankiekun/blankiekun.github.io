@@ -485,6 +485,65 @@ html[data-theme="dark"][data-win="11"] .qs .qs-tile[aria-pressed="true"] svg { c
 html[data-theme="dark"][data-win="11"] :is(.wg-card) { background: #2d2d2d; box-shadow: 0 0 0 1px #3a3a3a; }
 html[data-theme="dark"][data-win="11"] .tb-qs:hover { background: rgba(255, 255, 255, .08); }
 
+/* ---------- The sign-in screens (desktop.js logOn). 9x keeps apps.css's Welcome dialog ---------- */
+.logon-glyph { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: none; color: #fff; }
+.logon-glyph svg { width: 24px; height: 24px; }
+button.logon-glyph:hover { background: rgba(255, 255, 255, .15); }
+/* 2000: the banner strip across the top of both dialogs */
+.logon-band { flex-basis: 100%; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; margin-bottom: 4px; padding: 12px 16px 14px; color: #fff;
+  background: linear-gradient(transparent calc(100% - 4px), #ff8c00 0 25%, #00a000 0 50%, #0050c0 0 75%, #ffd000 0) bottom / 100% 4px no-repeat, linear-gradient(90deg, #000060, #4070c8); }
+.logon-band b { font: bold 26px Arial, sans-serif; }
+.logon-band b sup { font-size: 13px; margin-left: 2px; }
+.logon-band small { flex-basis: 100%; font-size: 11px; opacity: .8; }
+/* XP: dark bands top and bottom, the Welcome blue between, split by a fading line */
+.screen.logon-xp { display: grid; grid-template-rows: 78px 1fr 78px; background: #5a7edc; color: #fff; font: 14px Tahoma, sans-serif; }
+.xpw-top { background: linear-gradient(transparent calc(100% - 2px), #8fb0ff 0), #00309c; }
+.xpw-bot { display: flex; align-items: center; padding: 0 24px; background: linear-gradient(90deg, transparent, #f89b5b 30%, #f89b5b 70%, transparent) top / 100% 2px no-repeat, #00309c; }
+.xpw-mid { display: grid; grid-template-columns: 1fr 1px 1fr; align-items: center; gap: 0 28px; padding: 16px; min-height: 0;
+  background: radial-gradient(circle at 15% 10%, #91b0f6, transparent 55%); }
+.xpw-mid::before { content: ""; grid-column: 2; grid-row: 1; align-self: stretch; margin: 10% 0; background: linear-gradient(transparent, rgba(255, 255, 255, .7), transparent); }
+.xpw-left { grid-column: 1; grid-row: 1; text-align: right; }
+.xpw-logo { font: italic bold 40px "Franklin Gothic Medium", Arial, sans-serif; text-shadow: 1px 2px 3px rgba(0, 0, 0, .3); }
+.xpw-logo sup { color: #ff7a00; font-size: 20px; }
+.xpw-left p { margin: 8px 0 0; font-size: 18px; }
+.xpw-right { grid-column: 3; grid-row: 1; }
+.xpw-tile { display: flex; align-items: center; gap: 14px; padding: 8px 40px 8px 8px; border: 0; border-radius: 8px; background: none; color: #fff; font: 20px Tahoma, sans-serif; }
+.xpw-tile:is(:hover, :focus-visible) { background: linear-gradient(90deg, #00309c, transparent); outline: 0; }
+.xpw-tile img { width: 48px; height: 48px; border: 2px solid #fff; border-radius: 4px; }
+.xpw-off { display: flex; align-items: center; gap: 8px; border: 0; background: none; color: #fff; font: 14px Tahoma, sans-serif; }
+.xpw-off svg { width: 26px; height: 26px; padding: 2px; border: 1px solid #fff; border-radius: 4px; background: #e04020; }
+.xpw-off:hover { text-decoration: underline; }
+@media (max-width: 560px) {
+  .xpw-mid { grid-template-columns: 1fr; grid-template-rows: auto 1px auto; gap: 20px; }
+  .xpw-mid::before { grid-column: 1; grid-row: 2; margin: 0 10%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent); }
+  .xpw-left { text-align: center; }
+  .xpw-right { grid-column: 1; grid-row: 3; justify-self: center; }
+}
+/* Vista and 7: the framed picture and the box in the middle of the era's colour, the strip of buttons below */
+.screen.logon-aero, .screen:is(.logon-screen, .logon-ten, .logon-eleven) { display: grid; place-items: center; color: #fff; font: 15px "Segoe UI", sans-serif; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
+.screen.logon-aero { background: radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, .3), transparent 60%), var(--desktop); }
+:is(.aero-in, .metro-in) { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 8vh; }
+.aero-in b { font-size: 22px; font-weight: normal; }
+.aero-pic { width: 128px; height: 128px; padding: 6px; border-radius: 6px; background: linear-gradient(rgba(255, 255, 255, .6), rgba(255, 255, 255, .2)); box-shadow: 0 2px 12px rgba(0, 0, 0, .5); }
+:is(.aero-pw, .metro-pw) { display: flex; }
+:is(.aero-pw, .metro-pw) .field { width: min(220px, 60vw); box-shadow: none; border: 1px solid #5a7aa0; padding: 4px 6px; font: inherit; text-shadow: none; }
+.aero-pw button { width: 30px; margin-left: 6px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 4px; background: linear-gradient(#7ab8f0, #2668c0 50%, #1c58a8); color: #fff; font-size: 16px; }
+.aero-in .btn { margin-top: 16px; text-shadow: none; }
+.aero-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; }
+.aero-bar > span:not(.logon-glyph) { font-size: 20px; }
+.aero-bar button.logon-glyph { background: radial-gradient(circle at 50% 30%, #f08070, #b02010 70%); border: 1px solid rgba(255, 255, 255, .6); }
+/* 8, 10 and 11: the lock screen's colour, dimmed, with the round picture */
+.screen:is(.logon-screen, .logon-ten, .logon-eleven) { background: linear-gradient(rgba(0, 0, 0, .3), rgba(0, 0, 0, .3)), radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .35), transparent 60%), var(--desktop); }
+.metro-pic { width: min(190px, 44vw); height: auto; aspect-ratio: 1; border-radius: 50%; }
+.metro-in b { font: 300 32px "Segoe UI", sans-serif; }
+.metro-pw .field { width: min(280px, 70vw); padding: 6px 10px; border: 2px solid transparent; background: rgba(255, 255, 255, .9); color: #000; }
+.metro-pw .field:focus { border-color: var(--accent, #0078d7); outline: 0; }
+.metro-pw button { width: 34px; border: 0; background: rgba(255, 255, 255, .3); color: #fff; font-size: 18px; }
+.metro-go { min-width: 120px; border: 2px solid rgba(255, 255, 255, .4) !important; background: rgba(255, 255, 255, .2) !important; color: #fff !important; box-shadow: none !important; }
+html[data-win="11"] .metro-pw .field { border-radius: 4px; border-bottom-color: var(--accent, #0067c0); }
+html[data-theme="dark"] .metro-pw .field { background: rgba(32, 32, 32, .85); color: #fff; }
+.metro-bar { position: absolute; right: 24px; bottom: 20px; display: flex; gap: 12px; }
+
 /* ---------- XP on: the Start panel (desktop.js openPanel) ---------- */
 .startpanel { position: fixed; left: 0; bottom: var(--tb-h); z-index: 50000; display: flex; flex-direction: column; max-width: 100vw; max-height: calc(100% - var(--tb-h));
   font: 12px var(--font-ui); color: #000; user-select: none; }
