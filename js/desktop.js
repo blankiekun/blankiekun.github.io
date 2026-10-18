@@ -1,9 +1,9 @@
 // The desktop surface: icons, right-click menu, Start menu, tray clock,
 // and the boot / shut down / log off screens.
 
-import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound } from './util.js';
+import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, undo, undoLabel, onPlaceTask, onTaskMenu, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onTaskMenu, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
@@ -1026,6 +1026,8 @@ function clock() {
 
 // title= hints in the shell show as Windows 95's yellow tooltips instead of the browser's.
 // An iframe's title is its accessible name, not a hint, so it is left alone.
+// Vista on, a window's taskbar button shows its thumbnail instead (thumbnails below).
+const THUMBS = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === 'vista');
 let tipFor = null, tipEl = null, tipTimer = 0, tipX = 0, tipY = 0;
 function hideTip() { clearTimeout(tipTimer); if (tipEl) tipEl.remove(); tipEl = tipFor = null; }
 document.addEventListener('pointermove', e => { tipX = e.clientX; tipY = e.clientY; }, { passive: true });
@@ -1033,7 +1035,7 @@ document.addEventListener('pointerover', e => {
   const el = e.pointerType === 'mouse' && e.target.closest ? e.target.closest('[title]:not(iframe), [data-tip]') : null;
   if (el === tipFor) return;
   hideTip();
-  if (!el) return;
+  if (!el || (THUMBS && el.matches('#tasks .task:not(.pin)'))) return;
   if (el.title) { el.dataset.tip = el.title; el.removeAttribute('title'); }
   tipFor = el;
   tipTimer = setTimeout(() => {
@@ -1147,6 +1149,54 @@ function quickLaunch() {
   });
 }
 
+// Vista on: hovering a window's taskbar button shows a small copy of it, and hovering that
+// copy fades every other window (Aero Peek). Mouse only, so a tap never leaves one up.
+function thumbnails() {
+  if (!THUMBS) return;
+  let thumb = null, shown = null, timer = 0;
+  // peek(w) fades all but w; peek(true) fades them all, peek(false) none.
+  const peek = w => { document.body.classList.toggle('peeking', !!w); all().forEach(o => o.el.classList.toggle('peeked', o === w)); };
+  const hide = () => { clearTimeout(timer); thumb?.remove(); thumb = shown = null; peek(false); };
+  const later = () => { clearTimeout(timer); timer = setTimeout(hide, 200); };
+  const show = (w, b) => {
+    hide();
+    shown = w;
+    // A copied canvas or frame is blank (or reloads), so those show the program's icon instead.
+    let view = w.task.querySelector('svg').cloneNode(true);
+    if (!w.el.querySelector('canvas, iframe, video')) {
+      const min = w.el.classList.contains('min');
+      w.el.classList.remove('min');
+      const r = w.el.getBoundingClientRect();
+      if (min) w.el.classList.add('min');
+      const s = Math.min(200 / r.width, 120 / r.height);
+      // shortcut: a still taken on hover, not live, re-clone on a timer if a moving preview is wanted.
+      const copy = w.el.cloneNode(true);
+      copy.classList.remove('min', 'max', 'active', 'opening');
+      copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+      Object.assign(copy.style, { left: 0, top: 0, width: r.width + 'px', height: r.height + 'px', transform: `scale(${s})`, transformOrigin: '0 0', zIndex: 0 });
+      view = h('div', { class: 'thumb-view', style: { width: r.width * s + 'px', height: r.height * s + 'px' } }, copy);
+    }
+    thumb = h('div', { class: 'thumb', role: 'tooltip', onpointerenter: () => { clearTimeout(timer); peek(w); }, onpointerleave: later, onclick: () => { hide(); focus(w); } },
+      h('div', { class: 'thumb-title' }, w.task.querySelector('span').textContent), view);
+    document.body.append(thumb);
+    const br = b.getBoundingClientRect();
+    thumb.style.left = clamp(br.left + br.width / 2 - thumb.offsetWidth / 2, 0, innerWidth - thumb.offsetWidth) + 'px';
+  };
+  const tasks = document.getElementById('tasks');
+  tasks.addEventListener('pointerover', e => {
+    const b = e.target.closest('.task:not(.pin)'), w = b && all().find(o => o.task === b);
+    if (!w || e.pointerType !== 'mouse' || small.matches) return;
+    clearTimeout(timer);
+    if (shown !== w) timer = setTimeout(() => show(w, b), thumb ? 0 : 400);
+  });
+  tasks.addEventListener('pointerout', e => { if (e.target.closest('.task')) later(); });
+  document.addEventListener('pointerdown', e => { if (!thumb?.contains(e.target)) hide(); }, true);
+  // 7 on: the strip at the right end peeks at the desktop and, clicked, minimizes everything.
+  if (!SUPERBAR) return;
+  taskbarEl.append(h('button', { type: 'button', class: 'showdesk', title: 'Show desktop', 'aria-label': 'Show desktop', onclick: () => { hide(); minimizeAll(); },
+    onpointerenter: e => { if (e.pointerType === 'mouse') { hide(); timer = setTimeout(() => peek(true), 400); } }, onpointerleave: hide }));
+}
+
 // 98's Channel Bar, down the right of the desktop: a button per project page.
 function channelBar() {
   const ch = (label, page, cls) => h('button', { type: 'button', class: 'ch-btn ' + cls, onclick: () => launch('ie', page) }, label);
@@ -1167,6 +1217,7 @@ export function initDesktop() {
   }
   applyTaskbar();
   quickLaunch();
+  thumbnails();
   renderIcons();
   if (V.id === '98') channelBar();
   lastH = desktopEl.clientHeight;
