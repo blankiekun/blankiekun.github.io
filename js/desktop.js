@@ -7,7 +7,7 @@ import { launch, register, createWindow, all, close, deactivate, appInfo, cascad
 import { msgbox, about } from './dialogs.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
-import { recycle, network, root, resolve, onChange, desktopFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
+import { recycle, network, root, resolve, onChange, desktopFolder, startupFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
 import { properties, iconOf } from './props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut, undo as undoFile, undoLabel as fileUndoLabel, renameNode, makeShortcut } from './fileops.js';
 import { OS, V, VERSIONS, rename, absent } from './version.js';
@@ -453,6 +453,7 @@ function startItems() {
     { label: '&Programs', icon: 'i-programs', submenu: [
       { label: 'Accessories', icon: 'i-programs', submenu: accessories },
       { label: 'Projects', icon: 'i-programs', submenu: projects },
+      { label: 'StartUp', icon: 'i-programs', action: () => launch('explorer', 'C:\\WINDOWS\\Start Menu\\Programs\\StartUp') },
       '-',
       prog('blankiekun Exchange', 'inbox', 'i-inbox'),
       { label: 'Internet Explorer', icon: 'i-ie', action: () => launch('ie', 'home') },
@@ -795,6 +796,11 @@ async function logOff() {
   if (b === 'Yes') logOn();
 }
 
+// Shortcuts in StartUp open after boot and logon; Shift skips them, so a bad one can't trap the visitor.
+let shiftHeld = false;
+const runStartup = () => { if (!shiftHeld) startupFolder().children.forEach(n => shellOpen(n)); };
+for (const t of ['keydown', 'keyup', 'click']) addEventListener(t, e => { shiftHeld = e.shiftKey; }, true);
+
 // The Welcome dialog. The account is the GitHub one.
 function logOn() {
   closeAll();
@@ -817,6 +823,7 @@ function logOn() {
     e.preventDefault();
     scr.remove();
     launch('ie', 'home');
+    runStartup();
   });
   scr.append(form);
   document.body.append(scr);
@@ -864,6 +871,7 @@ export async function boot() {
   removeEventListener('keydown', onKey);
   splash.remove();
   sound('Start Windows');
+  runStartup();
 }
 
 // ---------- taskbar ----------
