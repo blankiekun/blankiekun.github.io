@@ -3,7 +3,7 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onTaskMenu, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onRun, onTaskMenu, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
@@ -1137,6 +1137,7 @@ function quickLaunch() {
   if (SUPERBAR) document.getElementById('tasks').prepend(quickEl);
   else document.getElementById('start').after(quickEl);
   onPlaceTask(placeTask);
+  onRun(runDialog);
   // 7's jump list: open another, pin or unpin, close; Shift+right-click still gives the window menu.
   if (SUPERBAR) onTaskMenu((w, at, e) => {
     const a = w.app && appInfo(w.app);
