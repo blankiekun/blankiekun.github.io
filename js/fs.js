@@ -125,6 +125,7 @@ export const root = {
           name: 'WINDOWS', kind: 'folder', children: [
             { name: 'COMMAND', kind: 'folder', children: [app('COMMAND.COM', 'dos', 'i-dos', 92870)] },
             { name: 'Desktop', kind: 'folder', dos: 'DESKTOP', children: [{ name: 'My Briefcase', kind: 'folder', icon: 'i-briefcase', briefcase: true, dos: 'MYBRIE~1', children: [] }] },
+            { name: 'Start Menu', kind: 'folder', dos: 'STARTM~1', children: [{ name: 'Programs', kind: 'folder', children: [{ name: 'StartUp', kind: 'folder', dos: 'STARTUP', children: [] }] }] },
             { name: 'MEDIA', kind: 'folder', children: [app('BLANKIEKUN.AVI', 'mplayer', 'i-mplayer', 1048576, 'demo')] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
@@ -299,6 +300,7 @@ const listeners = new Set();
 
 export class FsError extends Error {}
 
+export const startupFolder = () => resolve('C:\\WINDOWS\\Start Menu\\Programs\\StartUp');
 export const desktopFolder = () => resolve('C:\\WINDOWS\\Desktop');
 export const docsFolder = () => resolve('C:\\My Documents');
 
