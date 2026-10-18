@@ -53,7 +53,7 @@ function open() {
   const snip = () => {
     win.el.style.visibility = 'hidden';
     let last = null, done = false;
-    const dim = h('div', { class: 'sn-dim', tabindex: '-1' });
+    const dim = h('div', { class: 'snip-dim', tabindex: '-1' });
     const finish = ok => {
       if (done) return;
       done = true;
@@ -71,9 +71,9 @@ function open() {
     { label: '&File', items: () => [{ label: '&New Snip', action: snip }, '-', { label: 'E&xit', action: () => win.close() }] },
     { label: '&Help', items: () => [{ label: '&About Snipping Tool...', action: () => about('Snipping Tool', 'i-snip', win) }] },
   ]);
-  const body = h('div', { class: 'sn' }, bar,
-    h('div', { class: 'sn-tools' }, h('button', { type: 'button', class: 'btn', onclick: snip }, 'New')),
-    h('p', { class: 'sn-hint' }, 'Click New, then drag a box around the part of the screen you want. Esc cancels.'));
+  const body = h('div', { class: 'snip' }, bar,
+    h('div', { class: 'snip-tools' }, h('button', { type: 'button', class: 'btn', onclick: snip }, 'New')),
+    h('p', { class: 'snip-hint' }, 'Click New, then drag a box around the part of the screen you want. Esc cancels.'));
   const win = createWindow({ app: 'snip', title: 'Snipping Tool', icon: 'i-snip', body, width: 300, height: 140, minW: 200, minH: 110 });
   return win;
 }
