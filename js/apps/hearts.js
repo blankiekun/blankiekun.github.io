@@ -488,7 +488,7 @@ function open() {
   new ResizeObserver(() => render()).observe(board);
   // Like the Hearts Network, ask who's playing the first time.
   if (!prefs.name) {
-    inputbox({ title: 'Microsoft Hearts Network', label: 'What is your name?', parent: win }).then(v => {
+    inputbox({ title: 'blankiekun Hearts Network', label: 'What is your name?', parent: win }).then(v => {
       prefs.name = (v || '').trim().slice(0, 16) || 'You';
       store.set(PREFS, prefs);
       render();

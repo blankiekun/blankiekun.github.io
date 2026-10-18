@@ -36,7 +36,7 @@ function data(v) {
 function build() {
   const top = key('My Computer');
   for (const name of HIVES) sub(top, [name]);
-  const cur = sub(top, ['HKEY_LOCAL_MACHINE', 'SOFTWARE', 'Microsoft', V.nt ? 'Windows NT' : 'Windows', 'CurrentVersion']);
+  const cur = sub(top, ['HKEY_LOCAL_MACHINE', 'SOFTWARE', 'blankiekun', V.nt ? 'Windows NT' : 'Windows', 'CurrentVersion']);
   // Real Windows 11 still says "Windows 10" here.
   cur.values.push(['ProductName', V.id === '11' ? 'blankiekun 10 Pro' : OS], ['Version', 'Windows ' + V.short], ['VersionNumber', V.number], ['RegisteredOwner', 'blankiekun']);
   if (V.nt) cur.values.push(['CurrentBuildNumber', V.number.split('.')[2]]);

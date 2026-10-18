@@ -626,7 +626,7 @@ const COMPONENTS = [
   { name: 'Communications', icon: 'i-mail', size: 1.2, on: true, desc: 'Includes accessories to help you connect to other computers and online services.', parts: ['Dial-Up Networking', 'Direct Cable Connection', 'HyperTerminal', 'Phone Dialer'] },
   { name: 'Disk Tools', icon: 'i-drive', size: 1.1, on: true, desc: 'Includes programs for backing up and compressing disks.', parts: ['Backup', 'Defrag', 'Disk compression tools'] },
   { name: 'Multimedia', icon: 'i-cd', size: 2.5, on: true, desc: 'Includes programs for playing sound, animation, or video on computers with CD-ROM drives or sound cards.', parts: ['Audio Compression', 'CD Player', 'Media Player', 'Sample Sounds', 'Sound Recorder', 'Volume Control'] },
-  { name: 'The Microsoft Network', icon: 'i-globe', size: 2.1, on: false, desc: 'The Microsoft Network gives you access to e-mail, bulletin boards, chat, and the Internet. Requires a modem and the patience of a saint.', parts: ['The Microsoft Network'] },
+  { name: 'The blankiekun Network', icon: 'i-globe', size: 2.1, on: false, desc: 'The blankiekun Network gives you access to e-mail, bulletin boards, chat, and the Internet. Requires a modem and the patience of a saint.', parts: ['The blankiekun Network'] },
 ];
 
 // The floppy drive that never is.
