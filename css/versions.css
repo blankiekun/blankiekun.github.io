@@ -571,7 +571,8 @@ html[data-theme="dark"][data-win="11"] .tb-qs:hover { background: rgba(255, 255,
 .sp-screen .sp-tile:nth-child(5n+4) { background: #2d89ef; }
 .sp-screen .sp-tile:nth-child(5n+5) { background: #9f00a7; }
 .sp-screen .sp-tile:hover { outline: 3px solid rgba(255, 255, 255, .6); outline-offset: -3px; }
-.sp-screen > .sp-folders { columns: 220px; max-width: 900px; }
+.sp-screen .sp-folders { columns: 220px; max-width: 900px; }
+.sp-screen .sp-search { width: 200px; margin: 0; padding: 4px 8px; border: 0; color: #000; background: #fff; }
 .sp-arrow { position: fixed; left: 100px; bottom: 24px; width: 34px; height: 34px; border-radius: 50%; border: 2px solid #fff; background: none; cursor: var(--arrow); opacity: .7; }
 .sp-arrow::before { content: ''; display: block; margin: 3px auto 0; width: 9px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .sp-arrow.up::before { margin-top: 9px; transform: rotate(-135deg); }
@@ -1076,3 +1077,39 @@ body.task-viewing #windows > .win { visibility: hidden; }
 .tv-title .tv-x { top: 0; right: 0; }
 .tv-view { position: relative; overflow: hidden; }
 .tv-view > .win { position: absolute; pointer-events: none; animation: none; }
+
+/* 8's charms bar, its panes and the top-left switcher (charms.js) */
+.charms { position: fixed; top: 0; right: 0; bottom: 0; z-index: 60000; width: 86px; display: flex; flex-direction: column; justify-content: center; gap: 4px;
+  font: 12px var(--font-ui); color: #fff; background: rgba(0, 0, 0, .3); transition: background .2s; }
+.charms.full { background: #111; }
+.charms button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 84px; padding: 0; border: 0; color: inherit; background: none; font: inherit; cursor: var(--arrow); }
+.charms button:is(:hover, :focus-visible) { background: rgba(255, 255, 255, .15); outline: 0; }
+.charms svg { width: 30px; height: 30px; }
+.charms:not(.full) span { visibility: hidden; }
+.charm-clock { position: fixed; left: 48px; bottom: calc(var(--tb-h) + 48px); z-index: 60000; display: flex; align-items: flex-end; gap: 20px; padding: 16px 28px;
+  color: #fff; background: rgba(17, 17, 17, .92); font: 300 20px var(--font-ui); pointer-events: none; }
+.charm-clock b { font: 200 72px/1 var(--font-ui); }
+@media (max-width: 640px) { .charm-clock { display: none; } }
+.charm-pane { position: fixed; top: 0; right: 0; bottom: 0; z-index: 60000; width: min(346px, 100vw); box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;
+  padding: 28px 32px 24px; overflow: auto; color: #fff; background: #3d1a78; font: 14px var(--font-ui); }
+.charm-pane h2 { margin: 0; font: 300 28px var(--font-ui); }
+.charm-pane small { margin-bottom: 16px; opacity: .75; }
+.charm-pane p { margin: 8px 0; opacity: .85; }
+.charm-link { padding: 8px 0; border: 0; color: inherit; background: none; font: 15px var(--font-ui); text-align: left; cursor: var(--arrow); }
+.charm-link:hover { text-decoration: underline; }
+.charm-grow { flex: 1; }
+.charm-trays { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.charm-tray { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0 6px; border: 0; color: inherit; background: rgba(255, 255, 255, .1); font: 11px var(--font-ui); cursor: var(--arrow); }
+.charm-tray:hover { background: rgba(255, 255, 255, .22); }
+.charm-tray svg { width: 26px; height: 26px; }
+.charm-switch { position: fixed; top: 0; bottom: 0; left: 0; z-index: 60000; display: flex; flex-direction: column; gap: 10px; padding: 10px; max-height: 100vh; box-sizing: border-box; overflow: auto; }
+.charm-switch.list { background: #111; }
+.charm-thumb { position: relative; flex: none; overflow: hidden; padding: 0; border: 0; background: #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .5); cursor: var(--arrow); }
+.charm-thumb:hover { box-shadow: 0 0 0 3px rgba(255, 255, 255, .8); }
+.charm-thumb > .win { position: absolute; pointer-events: none; animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .charms, .charm-pane { animation: charm-in .18s ease-out; }
+  .charm-clock, .charm-switch { animation: charm-fade .18s ease-out; }
+  @keyframes charm-in { from { transform: translateX(100%); } }
+  @keyframes charm-fade { from { opacity: 0; } }
+}

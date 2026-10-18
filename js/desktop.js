@@ -671,9 +671,11 @@ function openPanel(q) {
       ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label)))));
     const apps = h('div', { class: 'sp-folders', hidden: true }, ...az());
     const all = h('button', { type: 'button', class: 'sp-arrow', 'aria-label': 'All apps', onclick: () => { apps.hidden = !apps.hidden; tiles.hidden = !apps.hidden; all.classList.toggle('up', !apps.hidden); } });
+    const body = h('div', null, tiles, apps, all), s = search(body, 'Search everywhere');
     el = h('div', { class: 'startpanel sp-screen' },
-      h('header', null, h('h1', null, 'Start'), user(), lockItem(), power('Power')),
-      tiles, apps, all);
+      h('header', null, h('h1', null, 'Start'), user(), lockItem(), power('Power'), s.box),
+      body, s.found);
+    focus = s.box;
     // Clicking the background goes back to the desktop, like Escape.
     el.addEventListener('click', e => { if (e.target === el) closePanel(); });
   } else if (PANEL === 'ten') {
@@ -1480,5 +1482,6 @@ export function initDesktop() {
   startBtn.setAttribute('aria-label', 'Start');
   clock();
   modernTaskbar();
+  if (V.id === '8') import('./charms.js').then(m => m.initCharms(() => toggleStart(true), startSearch));
   beginHint();
 }
