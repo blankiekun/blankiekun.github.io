@@ -12,8 +12,12 @@ const KEY = 'w95.screensaver';
 // 3D Maze came with the 95-era Plus! pack and stayed through XP.
 const MAZE = ['95', '98', 'me', '2000', 'xp'].includes(V.id);
 
+// 3D Text arrived with Plus! 98 and went on to XP.
+const TEXT3D = ['98', 'me', '2000', 'xp'].includes(V.id);
+
 export const SAVERS = {
   none: '(None)',
+  ...(TEXT3D ? { text3d: '3D Text' } : {}),
   ...(MAZE ? { maze: '3D Maze' } : {}),
   blank: 'Blank Screen',
   flying: 'Flying Windows',
@@ -30,12 +34,13 @@ const DEFAULTS = {
   mystify: { polys: 2, lines: 6, colors: 'multi' },
   marquee: { text: OS, speed: 5, bg: '#000000', fg: '#ff00ff' },
   pipes: { speed: 5 },
+  text3d: { text: 'blankiekun', style: 'spin' },
 };
 
 export function loadScreenSaver() {
   const s = store.get(KEY, null) || {};
   const out = { ...DEFAULTS, ...s };
-  for (const k of ['stars', 'flying', 'mystify', 'marquee', 'pipes']) out[k] = { ...DEFAULTS[k], ...(s[k] || {}) };
+  for (const k of ['stars', 'flying', 'mystify', 'marquee', 'pipes', 'text3d']) out[k] = { ...DEFAULTS[k], ...(s[k] || {}) };
   if (!SAVERS[out.saver]) out.saver = DEFAULTS.saver;
   return out;
 }
@@ -380,7 +385,37 @@ function maze(ctx, w, hgt, o, k) {
   };
 }
 
-const FACTORIES = { blank, stars, flying, mystify, marquee, pipes, maze };
+// 3D Text: a word spun about its vertical axis. Faked in 2D: the word is stamped in many
+// thin layers from back to front, each shifted sideways by sin(angle) * depth and squeezed by cos(angle).
+// shortcut: no real lighting, just a brighter front face and a dimmer side; fine for a flat-shaded word.
+function text3d(ctx, w, hgt, o, k) {
+  const text = o.text || ' ', size = 100, LAYERS = 24;
+  ctx.font = `bold ${size}px Arial, Helvetica, sans-serif`;
+  const fit = Math.min(w * 0.8 / Math.max(1, ctx.measureText(text).width), hgt * 0.45 / size), depth = size * fit * 0.5;
+  let t = 0;
+  return dt => {
+    t += dt * k;
+    const a = o.style === 'seesaw' ? Math.sin(t * 1.2) * 1.0 : o.style === 'wobble' ? Math.sin(t * 1.7) * 0.5 : t * 1.1;
+    const tilt = o.style === 'wobble' ? Math.cos(t * 2.3) * 0.12 : 0;
+    const cos = Math.cos(a), sin = Math.sin(a), s = cos >= 0 ? 1 : -1;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const bg = ctx.createRadialGradient(w / 2, hgt / 2, 0, w / 2, hgt / 2, w * 0.7);
+    bg.addColorStop(0, '#102050'); bg.addColorStop(1, '#000008');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, hgt);
+    ctx.font = `bold ${size}px Arial, Helvetica, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const lit = 0.55 + 0.45 * Math.abs(cos);
+    for (let i = 0; i <= LAYERS; i++) {
+      const z = s * (i / LAYERS - 0.5) * depth / fit;
+      ctx.setTransform(cos * fit, tilt, 0, fit, w / 2 + sin * z * fit, hgt / 2 + tilt * z * fit);
+      ctx.fillStyle = i === LAYERS ? `hsl(45 100% ${Math.round(45 + 25 * lit)}%)` : `hsl(25 90% ${Math.round(14 + 20 * i / LAYERS * lit)}%)`;
+      ctx.fillText(text, 0, 0);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+}
+
+const FACTORIES = { blank, stars, flying, mystify, marquee, pipes, maze, text3d };
 
 // Runs a saver on a canvas until stop() or until the canvas leaves the page.
 function run(canvas, name, cfg, k, sized) {
@@ -594,6 +629,14 @@ function settingsDialog(name, draft, parent, done) {
     kids.push(h('label', { class: 'dp-row' }, h('span', null, 'Text:'), text),
       slider('Speed', o.speed, 1, 10, v => { o.speed = v; restart(); }),
       color('bg', 'Background color'), color('fg', 'Text color'));
+  }
+  if (name === 'text3d') {
+    const text = h('input', { class: 'field', value: o.text, maxlength: 40, 'aria-label': 'Text' });
+    text.addEventListener('input', () => { o.text = text.value; restart(); });
+    const style = h('select', { class: 'field', 'aria-label': 'Rotation style' },
+      ...[['spin', 'Spin'], ['seesaw', 'See-saw'], ['wobble', 'Wobble']].map(([v, l]) => h('option', { value: v, selected: v === o.style }, l)));
+    style.addEventListener('change', () => { o.style = style.value; restart(); });
+    kids.push(h('label', { class: 'dp-row' }, h('span', null, 'Text:'), text), h('label', { class: 'dp-row' }, h('span', null, 'Rotation:'), style));
   }
   const body = h('form', { class: 'dlg ss-set' },
     h('div', { class: 'ss-mini-wrap' }, preview), ...kids,

@@ -58,6 +58,8 @@ const SCHEMES = {
   'Brick': { face: '#c2bfa5', title: '#800000', desktop: '#3f1010' },
   'Desert': { face: '#d5ccbb', title: '#008080', desktop: '#a28d68' },
   'Eggplant': { face: '#90b0a8', title: '#588078', desktop: '#400040' },
+  // The loud one from 3.1: red bars, yellow faces.
+  'Hot Dog Stand': { face: '#ffff00', title: '#ff0000', desktop: '#ff0000' },
   'Lilac': { face: '#aea8d9', title: '#5a4eb1', desktop: '#57458b' },
   'Maple': { face: '#e6d8ae', title: '#800000', desktop: '#804000' },
   'Marine': { face: '#88c0b8', title: '#000080', desktop: '#004060' },
