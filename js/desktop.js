@@ -12,6 +12,7 @@ import { recycle, network, root, resolve, onChange, desktopFolder, startupFolder
 import { properties, iconOf } from './props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, drop, toFloppy, onClip, isCut, undo as undoFile, undoLabel as fileUndoLabel, renameNode, makeShortcut } from './fileops.js';
 import { OS, V, VERSIONS, rename, absent } from './version.js';
+import * as wn from './whatsnew.js';
 
 const GITHUB = 'https://github.com/blankiekun';
 const desktopEl = document.getElementById('desktop');
@@ -44,6 +45,7 @@ const ICONS = [
   { label: 'Sticky Notes', app: 'stickynotes', icon: 'i-stickynotes', type: 'Application', era: true, open: () => launch('stickynotes') },
   { label: 'Display', app: 'display', icon: 'i-display', type: 'Control Panel', open: () => launch('display') },
   { label: 'README.TXT', modern: true, app: 'notepad', icon: 'i-txt', type: 'Text Document', open: () => run('notepad readme.txt') },
+  { label: 'WHATSNEW.TXT', modern: true, app: 'notepad', icon: 'i-txt', type: 'Text Document', open: openWhatsNew },
   { label: 'GitHub', modern: true, icon: 'i-github', type: 'Shortcut', shortcut: true, open: () => window.open(GITHUB, '_blank', 'noopener') },
 ];
 // 8 to 11 came with a bare desktop: just these (modern: true), the site's own shortcuts among them. 8 dropped Briefcase.
@@ -1227,6 +1229,41 @@ function modernTaskbar() {
   setTimeout(welcome, 1500);
 }
 
+// ---------- WHATSNEW.TXT and the "new release" notice ----------
+
+async function openWhatsNew() {
+  await wn.ready;
+  wn.mark();
+  const it = ICONS.find(o => o.open === openWhatsNew);
+  if (it?.el) it.el.querySelector('span').textContent = it.label;
+  run('notepad whatsnew.txt');
+}
+
+// 10 and 11 toast it, XP to 7 float a balloon by the clock, and the rest only mark the file "(new)".
+// shortcut: the balloon shows for as long as .screen is up plus 20s, with no sound.
+function announce(list) {
+  if (!list.length) return;
+  const msg = list.map(f => `${f.repo} ${f.tag}`).join(' and ') + (list.length > 1 ? ' are' : ' is') + ' out \u2014 see WHATSNEW.TXT';
+  if (MODERN) { wn.mark(); notify("What's new", msg, openWhatsNew); return; }
+  if (['xp', 'vista', '7'].includes(V.id)) {
+    const show = () => {
+      if (document.querySelector('.screen')) { setTimeout(show, 1000); return; }
+      wn.mark();
+      const done = () => b.remove();
+      const b = h('div', { class: 'su-balloon', role: 'status' },
+        h('button', { class: 'tbtn su-x', type: 'button', 'aria-label': 'Close', onclick: done }, icon('i-x')),
+        h('b', null, icon('i-info'), "What's new"), h('p', null, msg));
+      b.addEventListener('click', e => { if (!e.target.closest('.su-x')) { done(); openWhatsNew(); } });
+      document.body.append(b);
+      setTimeout(done, 20000);
+    };
+    show();
+    return;
+  }
+  const it = ICONS.find(o => o.open === openWhatsNew);
+  if (it?.el) it.el.querySelector('span').textContent = it.label + ' (new)';
+}
+
 // ---------- 10 and 11: notifications, the Action Center and Quick Settings ----------
 
 // What notify() said this visit, newest first; 10's Action Center and 11's calendar flyout list them.
@@ -1237,6 +1274,8 @@ const markNew = () => noteBtn?.classList.toggle('new', notes.length > 0);
 // A toast at the bottom right that also stays in the list until it's clicked or dismissed there.
 export function notify(title, text, onclick) {
   if (!MODERN) return;
+  // Not over the boot, lock or sign-in screen: wait until they're gone.
+  if (document.querySelector('.screen')) { setTimeout(notify, 1000, title, text, onclick); return; }
   const n = { title, text, onclick };
   notes.unshift(n);
   markNew();
@@ -1540,4 +1579,5 @@ export function initDesktop() {
   modernTaskbar();
   if (V.id === '8') import('./charms.js').then(m => m.initCharms(() => toggleStart(true), startSearch));
   beginHint();
+  wn.fresh().then(announce, () => {});
 }
