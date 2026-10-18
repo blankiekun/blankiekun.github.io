@@ -101,7 +101,7 @@ function devices() {
 
 const THEME = 'w95.theme';
 export const theme = () => ({ dark: false, accent: null, ...store.get(THEME, {}) });
-// main.js calls every module's applyDisplay at startup. shortcut: the theme lands after the first paint, so a dark reload flashes light; move it to index.html's head script if that shows.
+// main.js calls every module's applyDisplay at startup. index.html's head script applies the same thing before first paint.
 export function applyDisplay(t = theme()) {
   const root = document.documentElement;
   root.dataset.theme = t.dark ? 'dark' : 'light';
