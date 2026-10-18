@@ -9,7 +9,7 @@ document.title = OS;
 
 const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'conscripter', 'paint', 'calc', 'dos', 'display', 'system',
   'freecell', 'spider', 'viewer', 'hearts', 'wordpad', 'charmap', 'sndrec', 'cdplayer', 'screensaver', 'control', 'taskman', 'disktools',
-  'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers', 'regedit', 'dialer', 'winpopup', 'sysmon', 'setup', 'reversi', 'clock', 'stickynotes', 'restore', 'settings'];
+  'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers', 'regedit', 'dialer', 'winpopup', 'sysmon', 'setup', 'reversi', 'clock', 'stickynotes', 'restore', 'settings', 'gadgets'];
 
 // Older links to this site used #welcome, #chimimouryou, #convert and #conscripter.
 const LEGACY = { welcome: 'ie/home', chimimouryou: 'ie/chimimouryou', convert: 'ie/convert', conscripter: 'ie/conscripter' };
@@ -44,6 +44,8 @@ async function start() {
       return;
     }
   }
+  // Vista and 7 put back the gadgets that were open last visit.
+  import('./apps/gadgets.js').then(m => m.reopen());
   window.addEventListener('hashchange', () => {
     const w = activeWindow();
     const cur = w && w.route ? (typeof w.route === 'function' ? w.route() : w.route) : '';

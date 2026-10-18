@@ -925,7 +925,39 @@ body.dragging-files iframe { pointer-events: none; }
 .ck-gadget :is(.ck-hour, .ck-pin) { fill: #333; } .ck-gadget .ck-min { fill: #999; }
 .ck-gadget .ck-hand { stroke: #222; } .ck-gadget .ck-sec { stroke: #d00; }
 .ck-gadget .ck-digits { font: 22px var(--font-ui); color: #222; }
-.win.ck-gadget .win-body { background: none; box-shadow: none; }
+.win:is(.ck-gadget, .gadget) .win-body { background: none; box-shadow: none; }
+
+/* ---------- Gadgets (js/apps/gadgets.js): Vista and 7 ---------- */
+.gadget .tbtn:not(.x) { display: none; }
+.gd { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px;
+  background: linear-gradient(#3a4a5c, #10161e); color: #fff; font: 12px var(--font-ui); box-shadow: inset 0 1px #fff4, 0 1px 3px #0008; }
+.gd-dial { width: 100%; flex: 1; min-height: 0; }
+.gd-rim { fill: #0a0e14; stroke: #8a9bb0; stroke-width: 2; }
+.gd-tick { stroke: #cfe0f0; stroke-width: 2; } .gd-tick.hot { stroke: #f44; }
+.gd-needle { stroke: #7fd0ff; stroke-width: 2.5; stroke-linecap: round; transition: transform .8s ease-out; }
+.gd-pin { fill: #cfe0f0; }
+.gd-pct { padding: 0 0 6px; font-variant-numeric: tabular-nums; }
+.gd-cal { justify-content: flex-start; padding: 4px; background: linear-gradient(#fff, #dde6ef); color: #222; }
+.gd-cal-head { display: flex; align-items: center; width: 100%; }
+.gd-cal-head button { border: 0; background: none; color: #1c4f86; font: inherit; cursor: var(--hand); padding: 2px 4px; }
+.gd-cal-t { flex: 1; font-weight: bold !important; }
+.gd-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; text-align: center; font-size: 11px; line-height: 17px; }
+.gd-cal-wd { color: #1c4f86; font-weight: bold; }
+.gd-cal-grid .today { background: #3b7fc4; color: #fff; border-radius: 3px; }
+.gd-slide { padding: 5px; background: #111; cursor: var(--hand); overflow: hidden; }
+.gd-slide img { width: 100%; height: 100%; object-fit: contain; }
+@media (prefers-reduced-motion: no-preference) { .gd-slide img { animation: gd-fade .8s; } }
+@keyframes gd-fade { from { opacity: 0; } }
+/* Vista's Sidebar: a dark glass strip down the right of the desktop, under the windows */
+.sidebar { position: absolute; top: 0; right: 0; bottom: 0; width: 170px; background: linear-gradient(90deg, #0000, #0007 14px, #0005); border-left: 1px solid #fff2; }
+@media (max-width: 640px), (max-height: 420px) { .sidebar { display: none; } }
+.gd-gallery { padding: 10px; font: 12px var(--font-ui); }
+.gd-gallery p { margin: 0 0 8px; }
+.gd-tiles { display: grid; grid-template-columns: repeat(4, 84px); gap: 6px; }
+.gd-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1px solid transparent; border-radius: 3px; background: none; font: inherit; cursor: var(--hand); }
+.gd-tile:hover, .gd-tile:focus-visible { border-color: #7eb4ea; background: #e5f3fb; }
+.gd-tile svg, .gd-cal-ico { width: 32px; height: 32px; }
+.gd-cal-ico { display: grid; place-items: center; border: 1px solid #567; border-top: 7px solid #3b7fc4; border-radius: 3px; background: #fff; font-weight: bold; box-sizing: border-box; }
 
 /* ---------- Sticky Notes ---------- */
 .sn { flex: 1; min-height: 0; display: flex; }

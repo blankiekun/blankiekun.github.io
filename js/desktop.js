@@ -368,6 +368,7 @@ desktopEl.addEventListener('contextmenu', e => {
       { label: 'Bitmap Image', icon: 'i-bmp', action: () => newThing(f => createFile(f, 'New Bitmap Image.bmp', { data: blankBitmap() })) },
     ] },
     '-',
+    ...(['vista', '7'].includes(V.id) ? [{ label: '&Gadgets', action: () => launch('gadgets') }] : []),
     { label: ['10', '11'].includes(V.id) ? 'Personali&ze' : 'P&roperties', action: () => launch('display') },
   ], { x: e.clientX, y: e.clientY });
 });
