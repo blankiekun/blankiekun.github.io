@@ -12,6 +12,7 @@ import { sendEnabled, sendDialog } from '../send.js';
 import { openSaveEditor } from './conssave.js';
 import * as drive from './consdrive.js';
 import * as anki from './consanki.js';
+import { resolve, mkdir, docsFolder, writeFile, FsError } from '../fs.js';
 
 const NO_TIP = 'w95.cons.notip';
 const NO_OFFLINE_TIP = 'w95.cons.noofflinetip';
@@ -88,6 +89,8 @@ const driveLogo = cls => h('span', { class: 'drive-logo ' + (cls || ''), html: D
 const SCRIPTS = ['0.txt', '00.txt', 'nscript.dat', 'nscr_sec.dat', 'onscript.nt', 'onscript.nt2', 'onscript.nt3', 'nscript.___'];
 // The sample game in demo/ (drawn by demo/make.py), fetched and opened like a picked folder.
 const DEMO = 'CONscripter Demo';
+// View Script keeps the visitor's copy of its 0.txt here; Run My Script plays that one.
+const MY_SCRIPT = 'C:\\My Documents\\' + DEMO + '\\0.txt';
 const DEMO_FILES = ['0.txt', 'default.ttf', 'title.png', 'room.png', 'park.png', 'screen.png', 'conny.png', 'conny-smile.png'];
 
 // ---------- reading what the visitor gave us ----------
@@ -497,7 +500,8 @@ function open(arg) {
       h('div', { class: 'cons-btns' },
         h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
         h('button', { class: 'btn', type: 'button', onclick: openZip }, h('span', { html: 'Open <u>Z</u>ip...' })),
-        h('button', { class: 'btn', type: 'button', onclick: playDemo }, h('span', { html: 'Play the <u>D</u>emo' })),
+        h('button', { class: 'btn', type: 'button', onclick: () => playDemo() }, h('span', { html: 'Play the <u>D</u>emo' })),
+        h('button', { class: 'btn', type: 'button', onclick: () => viewScript() }, h('span', { html: 'Demo <u>S</u>cript' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
       offlineTip,
       promo,
@@ -805,6 +809,11 @@ function open(arg) {
       { label: '&Skip Text', key: 'Ctrl', checked: skip, disabled: !player(), action: toggleSkip },
       '-',
       { label: '&Restart', disabled: !game, action: () => game && boot(game) },
+      ...(game && game.title === DEMO ? ['-',
+        { label: '&View Script', action: () => viewScript() },
+        { label: 'Run &My Script', action: () => playDemo(true) },
+        { label: 'Reset Demo Scrip&t...', action: resetScript },
+        '-'] : []),
       { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
       { label: 'Display Fi&lter', submenu: [
         { label: '&None', checked: !filters.size, action: () => setFilter(null) },
@@ -930,6 +939,18 @@ function open(arg) {
       }).catch(err => { stop('Ready'); msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The game could not be started.\n\n' + err }); });
       frame.focus();
     }, { once: true });
+    // A script error is only printed to the engine log, and the engine then sits there; show it.
+    // shortcut: the first log line with "error" in it, checked twice a second, a script's own message.
+    if (g.files.some(f => f.file.mine)) {
+      const t = setInterval(() => {
+        if (frame !== me) return clearInterval(t);
+        const line = ((player() || {}).engineLog || []).find(l => /error/i.test(l));
+        if (!line) return;
+        clearInterval(t);
+        stop('The game stopped');
+        msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'Your script has a mistake.\n\n' + line.replace(/\*{2,}/g, '').trim() });
+      }, 500);
+    }
     view.classList.add('playing');
     fsBtn.disabled = !canFull;
     askKeep();
@@ -1028,20 +1049,44 @@ function open(arg) {
     document.body.append(input);
     input.click();
   }
-  async function playDemo() {
+  // mine: play the visitor's edited 0.txt (View Script) in place of the shipped one.
+  async function playDemo(mine) {
     say('Downloading the demo...');
     let list;
     try {
       list = await Promise.all(DEMO_FILES.map(async name => {
         const res = await fetch('demo/' + name);
         if (!res.ok) throw new Error(`${name}: ${res.status} ${res.statusText}`);
-        return { path: DEMO + '/' + name, file: new File([await res.blob()], name) };
+        const mineText = mine === true && name === '0.txt' && (resolve(MY_SCRIPT) || {}).text;
+        const file = new File([typeof mineText === 'string' ? mineText : await res.blob()], name);
+        file.mine = typeof mineText === 'string';  // boot() then watches the engine log for the script's mistakes
+        return { path: DEMO + '/' + name, file };
       }));
     } catch (e) {
       idle();
       return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The demo could not be downloaded.\n\n' + e.message });
     }
     load({ list });
+  }
+  // The visitor's copy is made the first time, then left alone; reset puts the shipped one back.
+  async function viewScript(reset) {
+    try {
+      let n = resolve(MY_SCRIPT);
+      if (reset || !n) {
+        const res = await fetch('demo/0.txt');
+        if (!res.ok) throw new Error(`0.txt: ${res.status} ${res.statusText}`);
+        if (!resolve(MY_SCRIPT.replace(/\\0\.txt$/, ''))) mkdir(docsFolder(), DEMO);
+        n = writeFile(MY_SCRIPT, { text: (await res.text()).replace(/\r\n/g, '\n') });
+      }
+      launch('notepad', { name: '0.txt', path: MY_SCRIPT, text: n.text });
+    } catch (e) {
+      msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The demo script could not be opened.\n\n' + e.message });
+    }
+  }
+  async function resetScript() {
+    const b = await msgbox({ title: 'CONscripter', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+      text: 'Put the original demo script back?\n\nYour changes to ' + MY_SCRIPT + ' will be lost.' });
+    if (b === 'Yes') viewScript(true);
   }
   function takeDrop(dt) { const p = fromDrop(dt); win.focus(); p.then(load); }
 
