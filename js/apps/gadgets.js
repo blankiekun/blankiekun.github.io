@@ -118,11 +118,11 @@ for (const [t, ev] of [[window, 'resize'], [small, 'change']]) t.addEventListene
 
 const save = () => store.set(KEY, [...open.keys()]);
 
-function add(id) {
+async function add(id) {
   if (small.matches) return;   // no room beside a maximized window
   const had = open.get(id);
   if (had && all().includes(had)) return had.focus();
-  const win = MAKERS[id]();
+  const win = await MAKERS[id]();   // the Clock gadget is a program, which may still be loading
   if (!win) return;
   open.set(id, win);
   // A closed gadget is forgotten; logging off (a forced close) keeps it for next time.
