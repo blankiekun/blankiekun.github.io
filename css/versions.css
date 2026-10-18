@@ -324,6 +324,24 @@ html[data-win="11"] { --font-ui: "Segoe UI Variable Text", "Segoe UI Variable", 
 [data-win="11"] .task.pin:hover { background: rgba(0, 0, 0, .06); }
 [data-win="11"] .task:not(.pin, .on) { box-shadow: inset 0 -3px #8a8a8a; }
 
+/* ---------- Vista on: taskbar thumbnails, Aero Peek and the Show Desktop strip (desktop.js thumbnails) ---------- */
+.thumb { position: fixed; bottom: calc(var(--tb-h) + 6px); z-index: 40001; min-width: 120px; padding: 6px 8px 8px; border-radius: 6px; font: 12px var(--font-ui); color: #fff;
+  background: rgba(20, 35, 55, .85); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3), 0 2px 8px rgba(0, 0, 0, .5); }
+.thumb:hover { background: rgba(40, 65, 95, .9); }
+.thumb-title { max-width: 200px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thumb-view { position: relative; overflow: hidden; pointer-events: none; }
+.thumb-view > .win { position: absolute; animation: none; }
+.thumb > svg { display: block; width: 48px; height: 48px; margin: 12px auto; }
+#windows > .win.peeked.min { display: flex; }
+body.peeking #windows > .win:not(.peeked) { opacity: .08; transition: opacity .2s; }
+.showdesk { flex: none; width: 15px; margin-right: -2px; padding: 0; border: 0; background: none; box-shadow: inset 1px 0 rgba(255, 255, 255, .25), inset 2px 0 rgba(0, 0, 0, .3); }
+.showdesk:hover { background: rgba(255, 255, 255, .18); }
+:is([data-win="8"], [data-win="10"], [data-win="11"]) .showdesk { width: 6px; margin: 0; box-shadow: inset 1px 0 rgba(255, 255, 255, .3); }
+:is([data-win="8"], [data-win="10"]) .thumb { border-radius: 0; background: rgba(32, 32, 32, .95); box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+[data-win="11"] .thumb { color: #000; background: rgba(243, 243, 243, .95); box-shadow: 0 0 0 1px #ddd, 0 8px 20px rgba(0, 0, 0, .18); }
+[data-win="11"] .showdesk { box-shadow: inset 1px 0 #ccc; }
+[data-win="11"] .showdesk:hover { background: rgba(0, 0, 0, .06); }
+
 /* ---------- XP on: the Start panel (desktop.js openPanel) ---------- */
 .startpanel { position: fixed; left: 0; bottom: var(--tb-h); z-index: 50000; display: flex; flex-direction: column; max-width: 100vw; max-height: calc(100% - var(--tb-h));
   font: 12px var(--font-ui); color: #000; user-select: none; }
