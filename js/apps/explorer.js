@@ -17,9 +17,12 @@ import { open as shellOpen } from '../shell.js';
 import { properties, iconOf } from '../props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, startDrag, toFloppy, onClip, isCut, undo, undoLabel, renameNode, makeShortcut } from '../fileops.js';
 import { OS, V, rename } from '../version.js';
+import { oldFiles } from './filemgr.js';
 
 const XP = V.id === 'xp', AERO = V.id === 'vista' || V.id === '7', RIBBON = V.id === '8' || V.id === '10', W11 = V.id === '11';
 const MODERN = AERO || RIBBON || W11;
+// 3.1 has File Manager and 1.0/2.0 the MS-DOS Executive for what's on the disks (filemgr.js).
+const OLD = ['1.0', '2.0', '3.1'].includes(V.id);
 const NEW = XP || MODERN;
 // 98, Me and 2000 show folders as web pages: a panel beside the icons that names the folder
 // and describes what's selected (View > as Web Page).
@@ -122,6 +125,7 @@ function open(arg = 'My Computer') {
   const node = obj && arg.node ? arg.node : resolve(path);
   if (!node) { msgbox({ title: 'Explorer', icon: 'error', text: `Cannot find '${path}'.` }); return null; }
   if (node.offline) { msgbox({ title: 'Network Neighborhood', icon: 'error', text: `\\\\${node.name.toUpperCase()} is not accessible.\n\nThe network path was not found.` }); return null; }
+  if (OLD && !node.virtual && (node === root || pathOf(node))) return oldFiles(node);
   if (!explore) {
     const existing = find(w => w.app === 'explorer' && !w.explore && w.node === node);
     if (existing) { existing.focus(); return existing; }
@@ -739,7 +743,7 @@ function blankBitmap() {
   return c.toDataURL('image/png');
 }
 
-function printNode(n) {
+export function printNode(n) {
   const html = n.data ? `<img src="${n.data}" style="max-width:100%">` : '<pre style="white-space:pre-wrap">' + String(n.text || '').replace(/[&<]/g, c => c === '&' ? '&amp;' : '&lt;') + '</pre>';
   import('./printers.js').then(m => m.printJob(n.name, html));
 }
