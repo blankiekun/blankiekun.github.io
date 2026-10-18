@@ -38,6 +38,9 @@ export function onActionCenter(fn) { actionCenter = fn; }
 // Win+Tab in 10 and 11: Task View (taskview.js); Vista and 7 have Flip 3D instead.
 let taskView = null;
 export function onTaskView(fn) { taskView = fn; }
+// Win+C in 8: the charms bar (charms.js).
+let charms = null;
+export function onCharms(fn) { charms = fn; }
 // What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
 let taskMenu = (win, at) => systemMenu(win, at);
 export function onTaskMenu(fn) { taskMenu = fn; }
@@ -801,6 +804,7 @@ function winKey(code, deskMod) {
   else if (code === 'KeyL') lockScreen();
   else if (code === 'KeyA' && actionCenter) actionCenter();
   else if (code === 'Tab' && taskView) taskView();
+  else if (code === 'KeyC' && charms) charms();
   else if (deskMod && taskView && (code === 'ArrowLeft' || code === 'ArrowRight')) switchDesk(desk + (code === 'ArrowRight' ? 1 : -1));
   else if (win && code === 'ArrowUp') maximize(win);
   else if (win && SIDES && (code === 'ArrowLeft' || code === 'ArrowRight')) {
