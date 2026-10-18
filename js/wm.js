@@ -685,7 +685,7 @@ function winKey(code) {
   else if (win && SIDES && (code === 'ArrowLeft' || code === 'ArrowRight')) {
     const A = area();
     if (win.state === 'max') restore(win);
-    win.snapBox = { width: win.el.offsetWidth + 'px', height: win.el.offsetHeight + 'px' };
+    win.snapBox ||= { width: win.el.offsetWidth + 'px', height: win.el.offsetHeight + 'px' };
     win.el.classList.remove('autosize');
     Object.assign(win.el.style, { left: (code === 'ArrowRight' ? A.width / 2 : 0) + 'px', top: '0px', width: A.width / 2 + 'px', height: A.height + 'px' });
     if (win.opts.onResize) win.opts.onResize();
