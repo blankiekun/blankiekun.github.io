@@ -11,7 +11,7 @@ import { resolve, parentOf } from '../fs.js';
 export const step = (i, d, n) => (i + d + n) % n;
 console.assert(step(0, -1, 3) === 2 && step(2, 1, 3) === 0 && step(1, 1, 3) === 2, 'viewer: previous/next wrap');
 
-function open(arg) {
+function open(arg = {}) {
   // shortcut: siblings come from the file's own folder by path, so a picture opened from a floppy or the clipboard has no previous/next; upgrade if those ever matter.
   const node = arg.path && resolve(arg.path);
   const folder = node && parentOf(node);
@@ -34,6 +34,7 @@ function open(arg) {
     status.textContent = `${cur.name}  ${w} x ${ht}  ${Math.round(z * 100)}%` + (pics.length > 1 ? `  (${i + 1} of ${pics.length})` : '');
   }
   function load(f) {
+    if (!f.data) return;   // started from IMGVIEW.EXE with no picture
     cur = f; rot = 0; zoom = 0;
     img.src = f.data;
     win.setTitle(f.name + ' - ' + win.opts.title);
