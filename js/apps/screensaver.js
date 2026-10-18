@@ -9,8 +9,12 @@ import { OS, V } from '../version.js';
 
 const KEY = 'w95.screensaver';
 
+// 3D Maze came with the 95-era Plus! pack and stayed through XP.
+const MAZE = ['95', '98', 'me', '2000', 'xp'].includes(V.id);
+
 export const SAVERS = {
   none: '(None)',
+  ...(MAZE ? { maze: '3D Maze' } : {}),
   blank: 'Blank Screen',
   flying: 'Flying Windows',
   mystify: 'Mystify Your Mind',
@@ -242,7 +246,141 @@ function pipes(ctx, w, hgt, o, k) {
   };
 }
 
-const FACTORIES = { blank, stars, flying, mystify, marquee, pipes };
+// 3D Maze: a first-person walk through a fresh maze, raycast at a low
+// resolution and scaled up. Every texture is painted here in code.
+const TS = 32;
+function tex(draw) {
+  const c = document.createElement('canvas'); c.width = c.height = TS;
+  const g = c.getContext('2d'); draw(g);
+  return new Uint32Array(g.getImageData(0, 0, TS, TS).data.buffer);
+}
+function speckle(g, base, dots) {
+  g.fillStyle = base; g.fillRect(0, 0, TS, TS);
+  for (let i = 0; i < 160; i++) { g.fillStyle = dots[i % dots.length]; g.fillRect(rnd(0, TS) | 0, rnd(0, TS) | 0, 1, 1); }
+}
+let mazeTex = null;
+const getMazeTex = () => mazeTex ||= {
+  wall: tex(g => {
+    g.fillStyle = '#b8ac98'; g.fillRect(0, 0, TS, TS);
+    for (let r = 0; r < 4; r++) for (let i = -1; i < 2; i++) {
+      g.fillStyle = ['#8c2a1c', '#9c3422', '#7a2416', '#a43c26'][(r * 3 + i + 4) & 3];
+      g.fillRect(i * 16 + (r & 1) * 8 + 1, r * 8 + 1, 15, 7);
+    }
+    for (let i = 0; i < 120; i++) { g.fillStyle = i & 1 ? 'rgba(0,0,0,.25)' : 'rgba(255,200,160,.2)'; g.fillRect(rnd(0, TS) | 0, rnd(0, TS) | 0, 1, 1); }
+  }),
+  floor: tex(g => speckle(g, '#808080', ['#909090', '#707070', '#787878'])),
+  ceil: tex(g => speckle(g, '#202838', ['#283040', '#181c28'])),
+  smiley: tex(g => {
+    g.fillStyle = '#ffff00'; g.strokeStyle = '#000'; g.lineWidth = 2;
+    g.beginPath(); g.arc(16, 16, 13, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = '#000'; g.fillRect(10, 10, 3, 5); g.fillRect(19, 10, 3, 5);
+    g.beginPath(); g.arc(16, 16, 8, 0.5, 2.64); g.stroke();
+  }),
+  rock: tex(g => {
+    g.fillStyle = '#6c6c6c'; g.beginPath(); g.ellipse(16, 20, 14, 11, 0, 0, 7); g.fill();
+    g.fillStyle = '#9a9a9a'; g.beginPath(); g.ellipse(12, 16, 6, 4, 0, 0, 7); g.fill();
+  }),
+};
+const dark = t => t.map(v => ((v >>> 1) & 0x7f7f7f) | 0xff000000);
+
+// Recursive backtracker on an n x n grid; tiles between cells are the walls.
+function makeMaze(n) {
+  const S = 2 * n + 1, m = new Uint8Array(S * S).fill(1), stack = [[0, 0]];
+  m[S + 1] = 0;
+  while (stack.length) {
+    const [cx, cy] = stack.at(-1);
+    const next = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [cx + dx, cy + dy, dx, dy])
+      .filter(([x, y]) => x >= 0 && y >= 0 && x < n && y < n && m[(2 * y + 1) * S + 2 * x + 1]);
+    if (!next.length) { stack.pop(); continue; }
+    const [x, y, dx, dy] = next[Math.random() * next.length | 0];
+    m[(2 * cy + 1 + dy) * S + 2 * cx + 1 + dx] = m[(2 * y + 1) * S + 2 * x + 1] = 0;
+    stack.push([x, y]);
+  }
+  // Self-check: a flood fill from the start reaches every open tile, the exit included.
+  const seen = new Set([S + 1]), q = [S + 1];
+  for (const t of q) for (const d of [1, -1, S, -S]) if (!m[t + d] && !seen.has(t + d)) { seen.add(t + d); q.push(t + d); }
+  console.assert(seen.size === m.filter(v => !v).length && seen.has((S - 2) * S + S - 2), '3D Maze: unreachable cells');
+  return { m, S };
+}
+
+function maze(ctx, w, hgt, o, k) {
+  const T = getMazeTex(), wallD = dark(T.wall);
+  const H = clamp(Math.round(hgt / 2), 40, 100), W = Math.max(40, Math.round(H * w / hgt));
+  const off = document.createElement('canvas'); off.width = W; off.height = H;
+  const octx = off.getContext('2d'), img = octx.createImageData(W, H), buf = new Uint32Array(img.data.buffer), zbuf = new Float32Array(W);
+  const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
+  let m, S, x, y, a, tx, ty, ta, d, go, sprites, rot = 0, flip = 0;
+  function reset() {
+    ({ m, S } = makeMaze(10));
+    x = tx = y = ty = 1; a = ta = 0; d = 0; go = false;
+    const open = [];
+    for (let i = 0; i < S * S; i++) if (!m[i] && i !== S + 1 && i !== (S - 2) * S + S - 2) open.push(i);
+    sprites = [{ x: S - 2, y: S - 2, t: T.smiley, s: 0.7 }];
+    for (let r = 0; r < 3; r++) { const i = open.splice(Math.random() * open.length | 0, 1)[0]; sprites.push({ x: i % S, y: i / S | 0, t: T.rock, s: 0.4, rock: true }); }
+  }
+  // Left-hand rule: turn left when the wall allows, else go ahead, else turn right.
+  function plan() {
+    const free = e => !m[(ty + DY[e]) * S + tx + DX[e]];
+    if (go) { tx += DX[d]; ty += DY[d]; go = false; return; }
+    const L = (d + 3) & 3;
+    if (free(L)) { d = L; ta -= Math.PI / 2; go = true; }
+    else if (free(d)) { tx += DX[d]; ty += DY[d]; }
+    else { d = (d + 1) & 3; ta += Math.PI / 2; }
+  }
+  const toward = (v, t, s) => Math.abs(t - v) <= s ? t : v + Math.sign(t - v) * s;
+  function render() {
+    const px = x + 0.5, py = y + 0.5, dx = Math.cos(a), dy = Math.sin(a), qx = -dy * 0.66, qy = dx * 0.66;
+    for (let c = 0; c < W; c++) {
+      const cam = 2 * c / W - 1, rx = dx + qx * cam, ry = dy + qy * cam;
+      let mx = px | 0, my = py | 0, side = 0;
+      const ddx = Math.abs(1 / rx), ddy = Math.abs(1 / ry), sx = rx < 0 ? -1 : 1, sy = ry < 0 ? -1 : 1;
+      let fx = (rx < 0 ? px - mx : mx + 1 - px) * ddx, fy = (ry < 0 ? py - my : my + 1 - py) * ddy;
+      while (true) {
+        if (fx < fy) { fx += ddx; mx += sx; side = 0; } else { fy += ddy; my += sy; side = 1; }
+        if (m[my * S + mx]) break;
+      }
+      const dist = Math.max(0.05, side ? fy - ddy : fx - ddx), lh = H / dist, top = (H - lh) / 2;
+      const hit = side ? px + dist * rx : py + dist * ry, u = (hit - Math.floor(hit)) * TS | 0, wt = side ? wallD : T.wall;
+      for (let r = Math.max(0, top | 0); r < Math.min(H, top + lh); r++) buf[r * W + c] = wt[clamp((r - top) / lh * TS | 0, 0, TS - 1) * TS + u];
+      for (let r = Math.max(H / 2 + 1 | 0, Math.ceil(top + lh)); r < H; r++) {
+        const rd = H / (2 * r - H), i = ((py + rd * ry) * TS & TS - 1) * TS + ((px + rd * rx) * TS & TS - 1);
+        buf[r * W + c] = T.floor[i]; buf[(H - 1 - r) * W + c] = T.ceil[i];
+      }
+      zbuf[c] = dist;
+    }
+    const inv = 1 / (qx * dy - dx * qy);
+    sprites.map(s => { const sx = s.x + 0.5 - px, sy = s.y + 0.5 - py; return { s, tX: inv * (dy * sx - dx * sy), tY: inv * (-qy * sx + qx * sy) }; })
+      .filter(p => p.tY > 0.2).sort((p, q) => q.tY - p.tY).forEach(({ s, tX, tY }) => {
+        const full = H / tY, sz = full * s.s, cx = W / 2 * (1 + tX / tY), bot = H / 2 + full / 2 - (s.rock ? 0 : (full - sz) / 2);
+        for (let c = Math.max(0, cx - sz / 2 | 0); c < Math.min(W, cx + sz / 2); c++) {
+          if (tY >= zbuf[c]) continue;
+          const u = clamp((c - cx + sz / 2) / sz * TS | 0, 0, TS - 1);
+          for (let r = Math.max(0, bot - sz | 0); r < Math.min(H, bot); r++) {
+            const v = s.t[clamp((r - bot + sz) / sz * TS | 0, 0, TS - 1) * TS + u];
+            if (v >>> 24 > 127) buf[r * W + c] = v;
+          }
+        }
+      });
+    octx.putImageData(img, 0, 0);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, hgt);
+    ctx.save(); ctx.translate(w / 2, hgt / 2); ctx.rotate(rot); ctx.drawImage(off, -w / 2, -hgt / 2, w, hgt); ctx.restore();
+  }
+  reset();
+  return dt => {
+    dt *= k;
+    x = toward(x, tx, dt * 2.5); y = toward(y, ty, dt * 2.5); a = toward(a, ta, dt * 3.5);
+    rot = toward(rot, flip * Math.PI, dt * 2);
+    if (x === tx && y === ty && a === ta) {
+      // A rock flips the whole view over, like the OpenGL original; the smiley ends the maze.
+      const hitRock = sprites.findIndex(s => s.rock && s.x === tx && s.y === ty);
+      if (hitRock > 0) { sprites.splice(hitRock, 1); flip ^= 1; }
+      if (tx === S - 2 && ty === S - 2) reset(); else plan();
+    }
+    render();
+  };
+}
+
+const FACTORIES = { blank, stars, flying, mystify, marquee, pipes, maze };
 
 // Runs a saver on a canvas until stop() or until the canvas leaves the page.
 function run(canvas, name, cfg, k, sized) {
@@ -528,7 +666,7 @@ export function screenSaverTab({ screen, getWin, dirty }) {
   sel.addEventListener('change', () => { draft.saver = sel.value; changed(); });
   const setBtn = h('button', { class: 'btn', type: 'button', html: 'Se<u>t</u>tings...' });
   setBtn.addEventListener('click', () => {
-    if (draft.saver === 'blank') msgbox({ title: SAVERS.blank, text: 'This screen saver has no options that you can set.', icon: 'info', parent: getWin() });
+    if (draft.saver === 'blank' || draft.saver === 'maze') msgbox({ title: SAVERS[draft.saver], text: 'This screen saver has no options that you can set.', icon: 'info', parent: getWin() });
     else settingsDialog(draft.saver, draft, getWin(), changed);
   });
   const prevBtn = h('button', { class: 'btn', type: 'button', html: 'Pre<u>v</u>iew' });
