@@ -16,7 +16,7 @@ export async function invoke(action, params = {}) {
     // No Content-Type: a simple request, as Yomitan sends it.
     res = await fetch(settings().url, { method: 'POST', body: JSON.stringify({ action, version: 6, params }) });
   } catch {
-    throw new Error('Anki is not reachable: is it running with AnkiConnect, and is this site allowed?');
+    throw new Error('Anki is not reachable: is it running with AnkiConnect, and is ' + location.origin + ' in its webCorsOriginList (no slash at the end)?');
   }
   const body = await res.json();
   if (body.error) throw new Error('AnkiConnect: ' + body.error);
@@ -32,9 +32,10 @@ export function watch(onNote, onError, interval = 2000) {
       // Note ids are their creation times, so newer notes have larger ids.
       const ids = await invoke('findNotes', { query: 'added:1' });
       const added = latest === undefined ? [] : ids.filter(id => id > latest);
-      latest = Math.max(latest ?? 0, ...ids);
       onError(undefined);
       if (added.length && !stopped) for (const note of await invoke('notesInfo', { notes: added })) await onNote(note);
+      // Only now, so notes whose details failed to load are tried again on the next check.
+      latest = Math.max(latest ?? 0, ...ids);
     } catch (e) {
       onError(e);
     }

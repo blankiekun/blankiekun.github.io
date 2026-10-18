@@ -4,7 +4,7 @@
 
 import { h, icon, esc, clamp, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { menubar, openMenu } from '../menu.js';
+import { menubar, openMenu, ribbon, rbtn, quickBar, hasRibbon } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { openFile, saveAs, saveTo } from '../filedlg.js';
 import { resolve } from '../fs.js';
@@ -63,6 +63,7 @@ const G = {
   center: svg(px('#000', 'M2 2h12v1H2zM4 4h8v1H4zM2 6h12v1H2zM4 8h8v1H4zM2 10h12v1H2zM4 12h8v1H4z')),
   right: svg(px('#000', 'M2 2h12v1H2zM6 4h8v1H6zM2 6h12v1H2zM6 8h8v1H6zM2 10h12v1H2zM6 12h8v1H6z')),
   bullets: svg(px('#000', 'M2 3h2v2H2zM2 7h2v2H2zM2 11h2v2H2zM6 4h8v1H6zM6 8h8v1H6zM6 12h8v1H6z')),
+  selall: svg(px('#000', 'M1 1h2v1H1zM5 1h2v1H5zM9 1h2v1H9zM13 1h2v1h-2zM1 14h2v1H1zM5 14h2v1H5zM9 14h2v1H9zM13 14h2v1h-2zM1 3h1v2H1zM1 7h1v2H1zM1 11h1v2H1zM14 3h1v2h-1zM14 7h1v2h-1zM14 11h1v2h-1z') + px('#000080', 'M4 4h8v1H4zM4 7h8v1H4zM4 10h6v1H4z')),
 };
 const swatch = c => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" shape-rendering="crispEdges"><path d="M2 3h12v10H2z"/><path fill="${c}" d="M3 4h10v8H3z"/></svg>`);
 
@@ -502,7 +503,9 @@ function open(arg) {
   }
 
   // ---------- views ----------
+  const rbSync = []; // ribbon checkboxes, so the Alt+V menu and Options dialog keep them in step
   function applyView() {
+    rbSync.forEach(f => f());
     toolbar.hidden = !opts.toolbar;
     formatbar.hidden = !opts.format;
     ruler.hidden = !opts.ruler;
@@ -1178,7 +1181,7 @@ function open(arg) {
   }
 
   // ---------- menus ----------
-  const bar = menubar([
+  const menus = [
     { label: '&File', items: () => {
       const recent = store.get(RECENT, []);
       return [
@@ -1219,8 +1222,8 @@ function open(arg) {
       ];
     } },
     { label: '&View', items: () => [
-      { label: '&Toolbar', checked: opts.toolbar, action: toggle('toolbar') },
-      { label: '&Format Bar', checked: opts.format, action: toggle('format') },
+      ...(hasRibbon ? [] : [{ label: '&Toolbar', checked: opts.toolbar, action: toggle('toolbar') },
+        { label: '&Format Bar', checked: opts.format, action: toggle('format') }]),
       { label: '&Ruler', checked: opts.ruler, action: toggle('ruler') },
       { label: '&Status Bar', checked: opts.status, action: toggle('status') },
       '-',
@@ -1241,9 +1244,31 @@ function open(arg) {
       '-',
       { label: '&About WordPad', action: () => about('WordPad', 'i-wordpad', win) },
     ] },
-  ]);
+  ];
+  // From 7 the toolbar and format bar's own controls move into the ribbon.
+  const rbChk = (label, k) => {
+    const c = h('input', { type: 'checkbox' });
+    rbSync.push(() => { c.checked = opts[k]; });
+    c.checked = opts[k];
+    c.addEventListener('change', toggle(k));
+    return h('label', { class: 'rb-chk' }, c, label);
+  };
+  const col = (...kids) => h('div', { class: 'rb-col' }, ...kids), row = (...kids) => h('div', { class: 'rb-row' }, ...kids);
+  const bar = hasRibbon ? ribbon(menus, [
+    { label: 'Home', groups: [
+      ['Clipboard', rbtn('Paste', G.paste, paste, true), col(rbtn('Cut', G.cut, () => cmd('cut')), rbtn('Copy', G.copy, () => cmd('copy')))],
+      ['Font', col(row(fontSel, sizeSel), row(bBtn, iBtn, uBtn, colorBtn))],
+      ['Paragraph', col(row(bulletBtn, rbtn('Paragraph', G.left, paragraphDialog)), row(alignBtns.left, alignBtns.center, alignBtns.right))],
+      ['Insert', rbtn('Date and time', G.date, dateDialog, true)],
+      ['Editing', col(rbtn('Find', G.find, () => findDialog(false)), rbtn('Replace', G.find, () => findDialog(true)), rbtn('Select all', G.selall, () => { page.focus(); cmd('selectAll'); }))],
+    ] },
+    { label: 'View', groups: [
+      ['Show or hide', col(rbChk('Ruler', 'ruler'), rbChk('Status bar', 'status'))],
+      ['Settings', rbtn('Options', 'i-ctrl', optionsDialog, true)],
+    ] },
+  ]) : menubar(menus);
 
-  const root = h('div', { class: 'wp' }, bar, toolbar, formatbar, ruler, area, status);
+  const root = h('div', { class: 'wp' }, bar, ...(hasRibbon ? [] : [toolbar, formatbar]), ruler, area, status);
 
   page.addEventListener('input', () => { fixMarks(); syncSoon(); });
   root.addEventListener('pointerover', e => { if (!e.target.closest('.wp-tb, .wp-fmt select')) hint.textContent = 'For Help, press F1'; });
@@ -1278,6 +1303,7 @@ function open(arg) {
     onClose: confirmSave, onResize: layoutRuler,
     onClosed: () => { document.removeEventListener('selectionchange', onSel); if (ro) ro.disconnect(); if (findWin) findWin.close(true); },
   });
+  if (hasRibbon) quickBar(win, { save: () => save(), undo: () => cmd('undo'), redo: () => cmd('redo') });
 
   if (arg && arg.text != null) load(arg.name || 'Document', convert(arg.name || '', arg.text), arg.path, typeOf(arg.name || ''));
   else load('Document', '', null, 'word');

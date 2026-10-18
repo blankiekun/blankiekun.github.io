@@ -4,8 +4,9 @@ import { h, icon, store } from './util.js';
 import { createWindow, launch } from './wm.js';
 import { msgbox } from './dialogs.js';
 import { recycle, pathOf, parentOf, kindLabel, dosName, folderStats, rename, FsError, walk } from './fs.js';
+import { OS, V } from './version.js';
 
-const SHIPPED = new Date(1995, 7, 24, 11, 11);   // the day Windows 95 came out
+const SHIPPED = new Date(...V.date, 11, 11);   // the day this Windows came out
 export const CAPACITY = 1_610_612_736;           // a 1.5 GB disk, roomy for 1995
 const SYSTEM_BYTES = 412_983_296;
 
@@ -98,11 +99,11 @@ export function properties(node, parent) {
       const tool = (heading, text, btn, fn) => h('fieldset', { class: 'group pr-tool' }, h('legend', null, heading),
         h('p', null, text), h('div', { class: 'btns right' }, h('button', { class: 'btn', type: 'button', onclick: fn }, btn)));
       panels.push(h('div', null,
-        tool('Error-checking status', 'blankiekun 95 was unable to determine when you last checked this drive for errors.', 'Check Now...',
+        tool('Error-checking status', OS + ' was unable to determine when you last checked this drive for errors.', 'Check Now...',
           () => launch('scandisk', node.letter)),
-        tool('Backup status', 'blankiekun 95 was unable to determine when you last backed up files on this drive.', 'Backup Now...',
+        tool('Backup status', OS + ' was unable to determine when you last backed up files on this drive.', 'Backup Now...',
           () => msgbox({ title: 'Backup', icon: 'info', parent: win, text: 'Backup is not installed.\n\nThe projects are backed up on GitHub, which is much better.' })),
-        tool('Defragmentation status', 'blankiekun 95 was unable to determine when you last defragmented this drive.', 'Defragment Now...',
+        tool('Defragmentation status', OS + ' was unable to determine when you last defragmented this drive.', 'Defragment Now...',
           () => launch('defrag', node.letter))));
     }
   } else {

@@ -731,6 +731,18 @@ function setSkip(on) { key(on ? 'keydown' : 'keyup', 17, 'ControlLeft', 'Control
 // ---- Debug menu ----
 
 function showText(on) { document.body.classList.toggle('show-text', on); }
+// Debug > Text Overlay: the engine reads consNoTextOverlay at each text hook, and a value set
+// before the start wins over a game's --no-text-overlay. Off clears the overlay; on asks for
+// the text on the screen again (engines before _consResendText fill it from the next page).
+function setTextOverlay(on) {
+  const M = g_cons_module;
+  M.consNoTextOverlay = on ? 0 : 1;
+  if (on) { if (M._consResendText) M._consResendText(); return; }
+  pageText.textContent = spriteText.textContent = choices.textContent = '';
+  stashedChoices = []; stashedPage = []; inSystem = inBacklog = windowHidden = false;
+  backlogText = spriteLines = ''; lineVoice = backlogVoice = null;
+  updateHidden();
+}
 // --dump-vars writes here at F8.
 const VARS_FILE = '/tmp/vars.txt';
 async function dumpVars() {

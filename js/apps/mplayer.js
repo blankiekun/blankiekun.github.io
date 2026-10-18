@@ -7,9 +7,12 @@ import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { openFile } from '../filedlg.js';
 import { glyph } from './sndrec.js';
+import { OS, V } from '../version.js';
 
 const PREFS = 'w95.mplayer';
 const BASE = 420;      // the window's width with no picture
+// Windows Media Player's look: 7 to 9 in Me and XP, 11 and 12 from Vista on (css/mplayer.css).
+const WMP = ['me', 'xp'].includes(V.id) ? 'wmp9' : ['vista', '7', '8', '10', '11'].includes(V.id) ? 'wmp12' : '';
 const DEMO = 'BLANKIEKUN.AVI';
 const MCI = 'The specified file cannot be played on the specified MCI device. The file may be corrupt, or not in the correct format.';
 
@@ -109,7 +112,7 @@ function paint(g, t) {
     const a = (t - 5) * Math.PI * 0.8;
     flag(g, DW / 2, 70, 92, t * 5, Math.cos(a), null);
     g.font = 'bold 26px Tahoma, Arial, sans-serif';
-    const full = 'blankiekun 95', x = Math.round((DW - g.measureText(full).width) / 2);
+    const full = OS, x = Math.round((DW - g.measureText(full).width) / 2);
     const n = Math.min(full.length, Math.floor((t - 5.4) * 5));
     if (n > 0) {
       const wb = words(g, 'blankiekun ', x, 150, 26, '#ffffff', '#000000', Math.min(n, 11));
@@ -131,7 +134,7 @@ function paint(g, t) {
     flag(g, 62, 86, 72, t * 5, 1, '#ffffff');
     const wb = words(g, 'blankiekun', 112, 92, 22, '#ffffff', '#000000');
     words(g, '95', 112 + wb + 4, 92, 22, '#ffff00', '#000000');
-    words(g, 'Starting blankiekun 95...', 46, 160, 11, '#ffffff', null, Math.floor((t - 10.5) * 12));
+    words(g, 'Starting ' + OS + '...', 46, 160, 11, '#ffffff', null, Math.floor((t - 10.5) * 12));
     if (t > 13.8) {
       g.fillStyle = `rgba(0,0,0,${Math.min(1, (t - 13.8) / 1.1)})`;
       g.fillRect(0, 0, DW, DH);
@@ -676,7 +679,8 @@ function open(arg) {
     const sc = scale();
     const text = !has ? '' : sc === 'frames' ? `${Math.round(p * eng.fps)} (frames)`
       : sc === 'tracks' ? `${pad(trackAt(p) + 1)} ${mmss(p - eng.tracks[trackAt(p)]).slice(0, 5)} (tt mm:ss)` : `${mmss(p)} (mm:ss)`;
-    readout.textContent = text;
+    readout.textContent = WMP ? text.replace(/ \(.*\)$/, '') : text;
+    rail.style.setProperty('--played', at(p));
     scaleEl.classList.toggle('off', !has);
     scaleEl.setAttribute('aria-valuemax', String(Math.round(len() * 100) / 100));
     scaleEl.setAttribute('aria-valuenow', String(Math.round(p * 100) / 100));
@@ -708,7 +712,7 @@ function open(arg) {
 
   const screen = h('div', { class: 'mp-screen', hidden: true });
   const sep = () => h('span', { class: 'mp-gap' });
-  const root = h('div', { class: 'mp' }, menu, screen,
+  const root = h('div', { class: 'mp' + (WMP && ' wmp ' + WMP) }, menu, screen,
     h('div', { class: 'mp-ctl' }, scaleEl,
       h('div', { class: 'mp-row' },
         h('div', { class: 'mp-btns' }, bPlay, bStop, bEject, sep(), bPrev, bRew, bFwd, bNext, sep(), bIn, bOut),

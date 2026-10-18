@@ -1,22 +1,32 @@
 // Folder windows: My Computer, drives, folders, Control Panel, Network Neighborhood
 // and the Recycle Bin, plus the two-pane "Exploring" window with the folder tree.
 // Like Win95's default, each folder opens in its own window; View > Options can
-// switch to browsing in one window.
+// switch to browsing in one window. From XP on it's one window with Back and Forward, and
+// each era's chrome: XP's task pane, Vista and 7's command bar, the ribbon in 8 and 10,
+// 11's command bar; from Vista on, the breadcrumb address bar, search and navigation pane.
 
 import { h, icon, small, store, marquee, overlaps, sound } from '../util.js';
 import { createWindow, find, launch, appInfo } from '../wm.js';
-import { menubar, openMenu } from '../menu.js';
+import { menubar, openMenu, ribbon, rbtn } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import {
   root, resolve, recycle, network, kindLabel, sizeLabel, pathOf, parentOf, onChange,
-  canWrite, mkdir, createFile, restore, emptyBin, FsError, desktopFolder,
+  canWrite, mkdir, createFile, restore, emptyBin, FsError, desktopFolder, docsFolder,
 } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
 import { properties, iconOf } from '../props.js';
 import { clip, cut, copyNodes, paste, canPaste, del, startDrag, toFloppy, onClip, isCut, undo, undoLabel, renameNode, makeShortcut } from '../fileops.js';
+import { OS, V, rename } from '../version.js';
 
-const PREFS = 'w95.explorer';
-const prefs = { view: 'icons', sort: 'name', single: false, toolbar: false, status: true, ...store.get(PREFS, {}) };
+const XP = V.id === 'xp', AERO = V.id === 'vista' || V.id === '7', RIBBON = V.id === '8' || V.id === '10', W11 = V.id === '11';
+const MODERN = AERO || RIBBON || W11;
+const NEW = XP || MODERN;
+// 98, Me and 2000 show folders as web pages: a panel beside the icons that names the folder
+// and describes what's selected (View > as Web Page).
+const WEB = ['98', 'me', '2000'].includes(V.id);
+
+const PREFS = NEW ? 'w95.explorer.' + V.id : 'w95.explorer';
+const prefs = { view: 'icons', sort: 'name', single: NEW, toolbar: XP, status: !AERO, menubar: XP, nav: true, details: AERO, web: true, ...store.get(PREFS, {}) };
 const savePrefs = () => store.set(PREFS, prefs);
 const wins = new Set();
 const refreshAll = () => { for (const w of wins) w.refresh(); };
@@ -38,7 +48,13 @@ const GLYPH = {
   small: svg("<path fill='#000080' d='M1 2h3v3H1zM1 8h3v3H1zM9 2h3v3H9zM9 8h3v3H9z'/><path d='M5 3h3v1H5zM5 9h3v1H5zM13 3h2v1h-2zM13 9h2v1h-2z'/>"),
   list: svg("<path fill='#000080' d='M1 2h3v3H1zM1 7h3v3H1zM1 12h3v3H1z'/><path d='M5 3h9v1H5zM5 8h9v1H5zM5 13h9v1H5z'/>"),
   details: svg("<path fill='#000080' d='M1 2h3v3H1zM1 7h3v3H1zM1 12h3v3H1z'/><path d='M5 3h4v1H5zM10 3h5v1h-5zM5 8h4v1H5zM10 8h5v1h-5zM5 13h4v1H5zM10 13h5v1h-5z'/>"),
+  rename: svg("<path d='M1 5h8v1H2v4h7v1H1zM12 5h3v6h-3v-1h2V6h-2zM9 2h3v1h-1v10h1v1H9v-1h1V3H9z'/>"),
+  search: svg("<circle cx='6.5' cy='6.5' r='4.5' fill='#fff' stroke='#000' stroke-width='1.5'/><path d='M10 10l4.5 4.5' stroke='#000' stroke-width='2'/>"),
 };
+// Vista on: the round Back and Forward buttons and the flat Up arrow.
+const arrow = d => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+const ARROW = { back: arrow('M14 8H3M8 3L3 8l5 5'), fwd: arrow('M2 8h11M8 3l5 5-5 5'), up: arrow('M8 14V3M3 8l5-5 5 5') };
+const FAV = V.id === 'vista' ? 'Favorite Links' : V.id === '10' || W11 ? 'Quick access' : 'Favorites';
 
 const titleFor = node => node.name;
 const isTop = n => n === root || n === recycle || n === network;
@@ -64,12 +80,12 @@ function sorted(list) {
 function tree(win, go) {
   const el = h('div', { class: 'ex-tree', role: 'tree', tabindex: '0', 'aria-label': 'All Folders' });
   const open = new Set([root, resolve('C:\\')]);
-  function row(node, depth, label) {
-    const kids = (node.children || []).filter(c => c.children && !c.notReady);
+  function row(node, depth, label, leaf) {
+    const kids = leaf ? [] : (node.children || []).filter(c => c.children && !c.notReady);
     const isOpen = open.has(node);
     const r = h('div', { class: 'ex-trow' + (win.node === node ? ' sel' : ''), role: 'treeitem', style: { paddingLeft: depth * 16 + 'px' }, 'aria-expanded': kids.length ? String(isOpen) : null },
       h('button', { class: 'ex-twist', type: 'button', tabindex: '-1', 'aria-label': isOpen ? 'Collapse' : 'Expand', hidden: !kids.length }, isOpen ? '−' : '+'),
-      icon(win.node === node && node.kind === 'folder' && !node.icon ? 'i-folder-open' : iconOf(node)), h('span', null, label || node.name));
+      icon(win.node === node && node.kind === 'folder' && !node.icon ? 'i-folder-open' : iconOf(node)), h('span', null, label || rename(node.name)));
     r.dropFolder = () => node;
     r.querySelector('.ex-twist').addEventListener('click', e => { e.stopPropagation(); if (isOpen) open.delete(node); else open.add(node); render(); });
     r.addEventListener('click', () => { open.add(node); go(node); });
@@ -78,6 +94,14 @@ function tree(win, go) {
   }
   function render() {
     el.replaceChildren();
+    if (MODERN) {
+      el.append(h('div', { class: 'ex-tgroup' }, FAV));
+      row(desktopFolder(), 1, 'Desktop', true);
+      row(docsFolder(), 1, 'Documents', true);
+      row(root, 0);
+      row(network, 0);
+      return;
+    }
     const desk = desktopFolder();
     row(desk, 0, 'Desktop');
     row(root, 1);
@@ -103,7 +127,8 @@ function open(arg = 'My Computer') {
     if (existing) { existing.focus(); return existing; }
   }
 
-  let sel = new Set(), lead = null, renaming = null;
+  let sel = new Set(), lead = null, renaming = null, query = '', showTree = explore;
+  const back = [], fwd = [];
   const list = h('div', { class: 'ex-list', tabindex: '0', role: 'listbox', 'aria-multiselectable': 'true' });
   list.dropFolder = () => win.node;
   const status = h('div', { class: 'statusbar' }, h('span'), h('span', { style: { width: '120px' } }));
@@ -113,7 +138,7 @@ function open(arg = 'My Computer') {
   const here = () => win.node;
   const isBin = () => here() === recycle;
   // Programs that didn't load aren't listed.
-  const items = () => sorted((here().children || []).filter(n => n.kind !== 'app' || n.app === 'setup' || appInfo(n.app)));
+  const items = () => sorted((here().children || []).filter(n => (n.kind !== 'app' || n.app === 'setup' || appInfo(n.app)) && n.name.toLowerCase().includes(query)));
   const selected = () => items().filter(n => sel.has(n));
 
   function iconFor(n) {
@@ -191,41 +216,110 @@ function open(arg = 'My Computer') {
     const n = items().length;
     const s = selected();
     if (s.length) {
-      status.children[0].textContent = s.length + ' object(s) selected';
+      status.children[0].textContent = MODERN ? s.length + (s.length === 1 ? ' item' : ' items') + ' selected' : s.length + ' object(s) selected';
       const total = s.reduce((t, c) => t + (c.size || 0), 0);
       status.children[1].textContent = total ? sizeLabel({ size: total }) : '';
     } else {
-      status.children[0].textContent = n + ' object(s)' + (here().kind === 'drive' && here().letter === 'C' ? ' (plus 7 hidden)' : '');
+      status.children[0].textContent = MODERN ? n + (n === 1 ? ' item' : ' items') : n + ' object(s)' + (here().kind === 'drive' && here().letter === 'C' ? ' (plus 7 hidden)' : '');
       const total = items().reduce((t, c) => t + (c.size || 0), 0);
       status.children[1].textContent = total ? sizeLabel({ size: total }) : '';
     }
     status.hidden = !prefs.status;
+    if (det) {
+      const d = s[0] || here();
+      det.replaceChildren(icon(s[0] ? iconOf(d) : winIcon(d)), h('div', null,
+        h('b', null, s.length > 1 ? s.length + ' items selected' : rename(d.name)),
+        h('span', null, s.length > 1 ? '' : s.length ? kindLabel(d) + (d.size ? '    Size: ' + sizeLabel(d) : '') : n + (n === 1 ? ' item' : ' items'))));
+      det.hidden = !prefs.details;
+    }
+    if (tasks) syncTasks();
+    if (web) syncWeb();
+    syncButtons();
+  }
+
+  // The web view: the folder's name over a coloured rule, then what it holds or what's selected.
+  function syncWeb() {
+    web.hidden = !prefs.web;
+    const s = selected(), d = s[0], f = here();
+    const about = f === root ? 'Displays the files and folders on your computer.' : f === recycle ? 'Contains the files and folders that you have deleted.'
+      : f === network ? 'Displays the computers on your network.' : f.name === 'Control Panel' ? 'Use the settings in Control Panel to personalize your computer.'
+      : 'Select an item to view its description.';
+    const date = d && d.mtime ? 'Modified: ' + new Date(d.mtime).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+    web.replaceChildren(...[icon(winIcon(f), 'ex-wicon'), h('h2', null, rename(titleFor(f))), h('i', { class: 'ex-wrule' }),
+      s.length > 1 ? h('p', null, s.length + ' items selected.')
+        : d ? h('p', null, h('b', null, d.name), h('br'), kindLabel(d), ...(d.size ? [h('br'), 'Size: ' + sizeLabel(d)] : []), ...(date ? [h('br'), date] : []))
+        : h('p', null, about),
+      f === recycle && recycle.children.length ? h('p', null, h('a', { href: '#', onclick: e => { e.preventDefault(); empty(); } }, 'Empty Recycle Bin')) : null].filter(Boolean));
+  }
+
+  // XP's task pane: what you can do here, other places, and details of the selection.
+  const folded = new Set();
+  const link = (label, pic, fn) => h('button', { class: 'ex-link', type: 'button', onclick: fn }, pic.startsWith('i-') ? icon(pic) : h('span', { html: pic }), h('span', null, label));
+  function taskBox(title, ...kids) {
+    const box = h('div', { class: 'ex-tbox' + (folded.has(title) ? ' folded' : '') },
+      h('button', { class: 'ex-thead', type: 'button', 'aria-expanded': String(!folded.has(title)) }, title), h('div', { class: 'ex-tbody' }, ...kids));
+    box.firstChild.addEventListener('click', () => { if (!folded.delete(title)) folded.add(title); syncTasks(); });
+    return box;
+  }
+  function syncTasks() {
+    const s = selected(), n = s[0];
+    const it = s.length > 1 ? 'the selected items' : n && (n.children || n.kind === 'drive') ? 'this folder' : 'this file';
+    const first = here() === root
+      ? taskBox('System Tasks', link('View system information', 'i-computer', () => launch('sysprops')),
+        link('Add or remove programs', 'i-addremove', () => launch('addremove')), link('Change a setting', 'i-ctrl', () => launch('explorer', 'Control Panel')))
+      : isBin()
+        ? taskBox('Recycle Bin Tasks', link('Empty the Recycle Bin', 'i-trash', empty),
+          n ? link(s.length > 1 ? 'Restore the selected items' : 'Restore this item', 'i-folder', restoreSel) : link('Restore all items', 'i-folder', () => { sel = new Set(items()); restoreSel(); }))
+        : taskBox('File and Folder Tasks', ...(n
+          ? [s.length === 1 && n.user ? link('Rename ' + it, GLYPH.rename, () => startRename(n)) : null,
+            n.kind === 'drive' ? null : link('Copy ' + it, GLYPH.copy, () => copyNodes(s)),
+            n.kind === 'drive' || isTop(n) ? null : link('Delete ' + it, GLYPH.del, delSel)]
+          : [canWrite(here()) ? link('Make a new folder', 'i-newfolder', newFolder) : null]));
+    const places = [parentOf(here()), desktopFolder(), docsFolder(), root, network].filter((p, i, a) => p && p !== here() && a.indexOf(p) === i);
+    const d = n || here();
+    tasks.replaceChildren(first,
+      taskBox('Other Places', ...places.map(p => link(p === desktopFolder() ? 'Desktop' : rename(p.name), iconOf(p), () => go(p)))),
+      taskBox('Details', s.length > 1 ? h('p', null, s.length + ' items selected.')
+        : h('p', null, h('b', null, rename(d.name)), h('br'), isTop(d) || d.virtual ? 'System Folder' : kindLabel(d), d.size ? h('br') : null, d.size ? 'Size: ' + sizeLabel(d) : null)));
   }
 
   // Opening a folder: a new window, or the same one in single-window mode and in Exploring.
   function activate(n) {
-    if ((n.children || n.kind === 'drive') && !n.notReady && !n.offline && n !== recycle && (explore || prefs.single)) { go(n); return; }
-    if (n === recycle && (explore || prefs.single)) { go(n); return; }
+    if ((n.children || n.kind === 'drive') && !n.notReady && !n.offline && n !== recycle && oneWin()) { go(n); return; }
+    if (n === recycle && oneWin()) { go(n); return; }
     shellOpen(n, win);
   }
-  function go(n) {
+  const oneWin = () => explore || NEW || prefs.single;
+  const title = n => explore && !NEW ? 'Exploring - ' + pathLabel(n) : titleFor(n);
+  function go(n, hist) {
     if (n.offline) { msgbox({ title: 'Network Neighborhood', icon: 'error', parent: win, text: `\\\\${n.name.toUpperCase()} is not accessible.\n\nThe network path was not found.` }); return; }
     if (n.notReady) { shellOpen(n, win); return; }
+    if (!hist && n !== win.node) { back.push(win.node); fwd.length = 0; }
     win.node = n;
-    sel = new Set(); lead = null;
+    sel = new Set(); lead = null; query = '';
+    if (search) search.value = '';
     render();
     if (treeEl) treeEl.reveal(n);
-    win.setTitle(explore ? 'Exploring - ' + pathLabel(n) : titleFor(n));
-    win.setIcon(explore ? 'i-folder-open' : winIcon(n));
+    win.setTitle(title(n));
+    win.setIcon(explore && !NEW ? 'i-folder-open' : winIcon(n));
     win.setRoute(routeFor(n));
   }
   function up() {
     const p = parentOf(here());
     if (here() === root || here() === network || here() === recycle || here() === desktopFolder()) return;
     if (!p || p === root && here().kind !== 'drive' && !here().virtual) return;
-    if (explore || prefs.single) go(p);
+    if (oneWin()) go(p);
     else shellOpen(p, win);
   }
+  // Back and Forward skip folders that have since been deleted.
+  function step(from, to) {
+    let n;
+    while ((n = from.pop()) && !isTop(n) && !pathOf(n));
+    if (!n) return;
+    to.push(here());
+    go(n, true);
+  }
+  const goBack = () => step(back, fwd), goFwd = () => step(fwd, back);
 
   // ---------- commands ----------
   const fail = e => { if (!(e instanceof FsError)) throw e; return msgbox({ title: 'Error', icon: 'error', parent: win, text: e.message }); };
@@ -238,7 +332,7 @@ function open(arg = 'My Computer') {
   function startRename(n) {
     const r = rowOf(n);
     if (!r) return;
-    if (!n.user) { msgbox({ title: 'Error Renaming File', icon: 'error', parent: win, text: `Cannot rename ${n.name}: Access is denied.\n\nIt's one of the files that came with blankiekun 95.` }); return; }
+    if (!n.user) { msgbox({ title: 'Error Renaming File', icon: 'error', parent: win, text: `Cannot rename ${n.name}: Access is denied.\n\nIt's one of the files that came with ${OS}.` }); return; }
     const label = r.querySelector('.ex-name');
     const box = h('textarea', { class: 'ex-rename', rows: 1, spellcheck: false, 'aria-label': 'New name' });
     box.value = n.name;
@@ -277,6 +371,13 @@ function open(arg = 'My Computer') {
   const delSel = shift => del(selected(), win, shift === true);
   const props = () => { const s = selected(); properties(s.length ? s[0] : here(), win); };
   const setView = v => { prefs.view = v; savePrefs(); refreshAll(); };
+  const flip = k => () => { prefs[k] = !prefs[k]; savePrefs(); refreshAll(); };
+  const sortBy = k => () => { prefs.sort = k; savePrefs(); refreshAll(); };
+  const viewItems = () => Object.entries(VIEWS).map(([k, l]) => ({ label: l, radio: true, checked: prefs.view === k, action: () => setView(k) }));
+  const sortItems = () => [['by &Name', 'name'], ['by &Type', 'type'], ['by Si&ze', 'size'], ['by &Date', 'date']]
+    .map(([label, k]) => ({ label, radio: true, checked: prefs.sort === k, action: sortBy(k) }));
+  const selectNone = () => { sel = new Set(); paint(); };
+  const invert = () => { sel = new Set(items().filter(n => !sel.has(n))); paint(); };
 
   function newMenu() {
     const off = !canWrite(here());
@@ -319,17 +420,14 @@ function open(arg = 'My Computer') {
   }
   function viewMenu() {
     return [
-      { label: '&Toolbar', checked: prefs.toolbar, action: () => { prefs.toolbar = !prefs.toolbar; savePrefs(); refreshAll(); } },
-      { label: 'Status &Bar', checked: prefs.status, action: () => { prefs.status = !prefs.status; savePrefs(); refreshAll(); } },
+      ...(MODERN ? [] : [{ label: '&Toolbar', checked: prefs.toolbar, action: flip('toolbar') }]),
+      { label: 'Status &Bar', checked: prefs.status, action: flip('status') },
+      ...(XP ? [{ label: 'E&xplorer Bar', submenu: [{ label: '&Folders', checked: showTree, action: toggleTree }] }] : []),
+      ...(web ? [{ label: 'as &Web Page', checked: prefs.web, action: flip('web') }] : []),
       '-',
-      ...Object.entries(VIEWS).map(([k, l]) => ({ label: l, radio: true, checked: prefs.view === k, action: () => setView(k) })),
+      ...viewItems(),
       '-',
-      { label: 'Arrange &Icons', submenu: [
-        { label: 'by &Name', action: () => { prefs.sort = 'name'; savePrefs(); refreshAll(); } },
-        { label: 'by &Type', action: () => { prefs.sort = 'type'; savePrefs(); refreshAll(); } },
-        { label: 'by Si&ze', action: () => { prefs.sort = 'size'; savePrefs(); refreshAll(); } },
-        { label: 'by &Date', action: () => { prefs.sort = 'date'; savePrefs(); refreshAll(); } },
-      ] },
+      { label: 'Arrange &Icons', submenu: sortItems },
       { label: 'Line &up Icons', disabled: prefs.view !== 'icons' && prefs.view !== 'small', action: render },
       '-',
       { label: '&Refresh', key: 'F5', action: render },
@@ -338,9 +436,9 @@ function open(arg = 'My Computer') {
   }
   function bgMenu(x, y) {
     openMenu([
-      { label: '&View', submenu: Object.entries(VIEWS).map(([k, l]) => ({ label: l, radio: true, checked: prefs.view === k, action: () => setView(k) })) },
+      { label: '&View', submenu: viewItems },
       '-',
-      { label: 'Arrange &Icons', submenu: viewMenu().find(i => i.submenu).submenu },
+      { label: 'Arrange &Icons', submenu: sortItems },
       { label: 'Line &up Icons', action: render },
       '-',
       ...(undoLabel() ? [{ label: '&' + undoLabel(), action: () => undo(win) }, '-'] : []),
@@ -370,6 +468,19 @@ function open(arg = 'My Computer') {
 
   function syncChrome() {
     toolbar.hidden = !prefs.toolbar && !explore;
+    if (NEW) bar.hidden = AERO ? !prefs.menubar : W11;
+    if (side) {
+      side.hidden = MODERN && !prefs.nav;
+      const want = XP && !showTree ? [tasks] : XP ? [paneHead, treeEl] : [treeEl];
+      if (side.firstChild !== want[0]) side.replaceChildren(...want);
+    }
+    if (MODERN && !crumbs.contains(document.activeElement)) {
+      const chain = [];
+      for (let f = here(); f; f = parentOf(f)) chain.unshift(f);
+      crumbs.replaceChildren(icon(winIcon(here())), ...chain.flatMap(f => [h('span', { class: 'ex-sep' }, '\u203a'),
+        h('button', { class: 'ex-crumb', type: 'button', onclick: () => go(f) }, f === desktopFolder() ? 'Desktop' : rename(f.name))]));
+      search.placeholder = 'Search ' + (here() === desktopFolder() ? 'Desktop' : rename(here().name));
+    }
     // The folder list in the toolbar: Desktop, My Computer, drives, the path down to here.
     const chain = [];
     for (let f = here(); f && f !== root; f = parentOf(f)) chain.unshift(f);
@@ -381,15 +492,20 @@ function open(arg = 'My Computer') {
     opts.push([network, 1], [recycle, 1]);
     if (!opts.some(o => o[0] === here())) opts.push([here(), 2]);
     where.replaceChildren(...opts.map(([n, depth, label]) => { const o = h('option', { selected: n === here() }, '\u00a0\u00a0'.repeat(depth) + (label || n.name)); o.node = n; return o; }));
+    syncButtons();
+    if (treeEl) treeEl.render();
+  }
+  function syncButtons() {
     const s = selected();
-    toolbar.querySelectorAll('[data-cmd]').forEach(b => {
+    body.querySelectorAll('[data-cmd]').forEach(b => {
       const c = b.dataset.cmd;
-      b.disabled = c === 'up' ? (here() === root || isTop(here()) || here() === desktopFolder())
+      b.disabled = c === 'back' ? !back.length : c === 'fwd' ? !fwd.length
+        : c === 'rename' ? s.length !== 1 || !s[0].user : c === 'newfolder' ? !canWrite(here()) : c === 'up' ? (here() === root || isTop(here()) || here() === desktopFolder())
         : c === 'cut' ? !s.length || s.some(n => !n.user) : c === 'copy' ? !s.length || isBin()
         : c === 'paste' ? !canPaste(here()) : c === 'del' ? !s.length || s.some(n => n.kind === 'drive') : c === 'undo' ? !undoLabel() : false;
       if (VIEWS[c]) b.setAttribute('aria-pressed', String(prefs.view === c));
+      if (c === 'folders') b.setAttribute('aria-pressed', String(showTree));
     });
-    if (treeEl) treeEl.render();
   }
 
   const tb = (cmd, title, html, fn) => {
@@ -399,9 +515,18 @@ function open(arg = 'My Computer') {
   };
   where.addEventListener('change', () => {
     const n = where.selectedOptions[0].node;
-    if (explore || prefs.single) go(n); else shellOpen(n, win);
+    if (oneWin()) go(n); else shellOpen(n, win);
   });
-  toolbar.append(
+  const toggleTree = () => { showTree = !showTree; syncChrome(); };
+  const drop = items => e => openMenu(items(), { rect: e.currentTarget.getBoundingClientRect(), below: true });
+  if (XP) toolbar.append(
+    h('div', { class: 'ex-tbgroup' }, tb('back', 'Back', icon('i-back').outerHTML + '<span>Back</span>', goBack), tb('fwd', 'Forward', icon('i-fwd').outerHTML, goFwd),
+      tb('up', 'Up', icon('i-up').outerHTML, up)),
+    h('div', { class: 'ex-tbgroup' }, tb('search', 'Search', GLYPH.search + '<span>Search</span>', () => launch('find')),
+      tb('folders', 'Folders', icon('i-folder').outerHTML + '<span>Folders</span>', toggleTree)),
+    h('div', { class: 'ex-tbgroup' }, tb('views', 'Views', GLYPH.icons, drop(viewItems))),
+    h('div', { class: 'ex-addrrow' }, h('span', null, 'Address'), where, h('button', { class: 'btn ex-go', type: 'button', onclick: () => where.dispatchEvent(new Event('change')) }, 'Go')));
+  else toolbar.append(
     h('div', { class: 'ex-tbgroup' }, where, tb('up', 'Up One Level', icon('i-up').outerHTML, up)),
     h('div', { class: 'ex-tbgroup' },
       tb('cut', 'Cut', GLYPH.cut, () => cut(selected())), tb('copy', 'Copy', GLYPH.copy, () => copyNodes(selected())), tb('paste', 'Paste', GLYPH.paste, () => paste(here(), win))),
@@ -424,6 +549,7 @@ function open(arg = 'My Computer') {
     const cols = prefs.view === 'icons' ? Math.max(1, Math.floor(list.clientWidth / 80)) : prefs.view === 'small' ? Math.max(1, Math.floor(list.clientWidth / 150)) : 1;
     const ctrl = e.ctrlKey || e.metaKey;
     let j = null;
+    if (NEW && e.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp'].includes(e.key)) { e.preventDefault(); ({ ArrowLeft: goBack, ArrowRight: goFwd, ArrowUp: up })[e.key](); return; }
     if (e.key === 'ArrowRight') j = i + (prefs.view === 'list' ? 0 : 1);
     else if (e.key === 'ArrowLeft') j = i - (prefs.view === 'list' ? 0 : 1);
     else if (e.key === 'ArrowDown') j = i < 0 ? 0 : i + cols;
@@ -431,7 +557,7 @@ function open(arg = 'My Computer') {
     else if (e.key === 'Home') j = 0;
     else if (e.key === 'End') j = all.length - 1;
     else if (e.key === 'Enter' && sel.size) { e.preventDefault(); if (e.altKey) props(); else selected().forEach(activate); return; }
-    else if (e.key === 'Backspace') { e.preventDefault(); up(); return; }
+    else if (e.key === 'Backspace') { e.preventDefault(); if (NEW) goBack(); else up(); return; }
     else if (e.key === 'Delete' && sel.size) { e.preventDefault(); delSel(e.shiftKey); return; }
     else if (e.key === 'F2' && lead) { e.preventDefault(); startRename(lead); return; }
     else if (e.key === 'F5') { e.preventDefault(); render(); return; }
@@ -456,7 +582,16 @@ function open(arg = 'My Computer') {
     rowOf(n)?.scrollIntoView({ block: 'nearest' });
   });
 
-  const bar = menubar([
+  const editItems = () => [
+    { label: undoLabel() ? '&' + undoLabel() : '&Undo', key: 'Ctrl+Z', disabled: !undoLabel(), action: () => undo(win) }, '-',
+    { label: 'Cu&t', key: 'Ctrl+X', disabled: !sel.size || selected().some(n => !n.user), action: () => cut(selected()) },
+    { label: '&Copy', key: 'Ctrl+C', disabled: !sel.size || isBin(), action: () => copyNodes(selected()) },
+    { label: '&Paste', key: 'Ctrl+V', disabled: !canPaste(here()), action: () => paste(here(), win) },
+    { label: 'Paste &Shortcut', disabled: !clip.nodes.length || !canWrite(here()), action: () => clip.nodes.forEach(n => makeShortcut(n, here(), win)) }, '-',
+    { label: 'Select &All', key: 'Ctrl+A', action: () => { sel = new Set(items()); paint(); } },
+    { label: '&Invert Selection', action: invert },
+  ];
+  const menus = [
     { label: '&File', items: () => {
       const s = selected(), n = s[0];
       return [
@@ -473,15 +608,7 @@ function open(arg = 'My Computer') {
         { label: '&Close', action: () => win.close() },
       ];
     } },
-    { label: '&Edit', items: () => [
-      { label: undoLabel() ? '&' + undoLabel() : '&Undo', key: 'Ctrl+Z', disabled: !undoLabel(), action: () => undo(win) }, '-',
-      { label: 'Cu&t', key: 'Ctrl+X', disabled: !sel.size || selected().some(n => !n.user), action: () => cut(selected()) },
-      { label: '&Copy', key: 'Ctrl+C', disabled: !sel.size || isBin(), action: () => copyNodes(selected()) },
-      { label: '&Paste', key: 'Ctrl+V', disabled: !canPaste(here()), action: () => paste(here(), win) },
-      { label: 'Paste &Shortcut', disabled: !clip.nodes.length || !canWrite(here()), action: () => clip.nodes.forEach(n => makeShortcut(n, here(), win)) }, '-',
-      { label: 'Select &All', key: 'Ctrl+A', action: () => { sel = new Set(items()); paint(); } },
-      { label: '&Invert Selection', action: () => { sel = new Set(items().filter(n => !sel.has(n))); paint(); } },
-    ] },
+    { label: '&Edit', items: editItems },
     { label: '&View', items: viewMenu },
     ...(explore ? [{ label: '&Tools', items: () => [
       { label: '&Find', submenu: [{ label: '&Files or Folders...', action: () => launch('find') }] },
@@ -493,21 +620,96 @@ function open(arg = 'My Computer') {
     ] }] : []),
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help') }, '-',
-      { label: '&About blankiekun 95', action: () => about('Explorer', 'i-folder-open', win) },
+      { label: '&About ' + OS, action: () => about('Explorer', 'i-folder-open', win) },
     ] },
-  ]);
+  ];
 
-  const treeEl = explore ? tree({ get node() { return win.node; } }, n => go(n)) : null;
-  const body = explore
+  // 8 and 10's ribbon; its buttons carry data-cmd so syncChrome greys them like the toolbar's.
+  const rb = (cmd, ...a) => { const b = rbtn(...a); if (cmd) b.dataset.cmd = cmd; return b; };
+  const bar = RIBBON ? ribbon(menus, [
+    { label: 'Home', groups: [
+      ['Clipboard', rb('copy', 'Copy', GLYPH.copy, () => copyNodes(selected()), true), rb('paste', 'Paste', GLYPH.paste, () => paste(here(), win), true),
+        h('div', { class: 'rb-col' }, rb('cut', 'Cut', GLYPH.cut, () => cut(selected())), rb('undo', 'Undo', GLYPH.undo, () => undo(win)))],
+      ['Organize', rb('del', 'Delete', GLYPH.del, delSel, true), rb('rename', 'Rename', GLYPH.rename, () => startRename(selected()[0]), true)],
+      ['New', rb('newfolder', 'New folder', 'i-newfolder', newFolder, true)],
+      ['Open', rb('', 'Properties', GLYPH.props, props, true)],
+      ['Select', h('div', { class: 'rb-col' }, rb('', 'Select all', GLYPH.icons, () => { sel = new Set(items()); paint(); }),
+        rb('', 'Select none', GLYPH.small, selectNone), rb('', 'Invert selection', GLYPH.list, invert))],
+    ] },
+    { label: 'View', groups: [
+      ['Panes', rb('', 'Navigation pane', 'i-folder', flip('nav'), true)],
+      ['Layout', h('div', { class: 'rb-col' }, ...['icons', 'small'].map(k => rb(k, VIEWS[k].replace('&', ''), GLYPH[k], () => setView(k)))),
+        h('div', { class: 'rb-col' }, ...['list', 'details'].map(k => rb(k, VIEWS[k].replace('&', ''), GLYPH[k], () => setView(k))))],
+      ['Current view', rb('', 'Sort by', GLYPH.details, drop(sortItems), true)],
+    ] },
+  ]) : menubar(menus);
+
+  // Vista on: Back, Forward, the breadcrumb address and the search box.
+  const navBtn = cmd => h('button', { class: 'ex-nav', type: 'button', title: { back: 'Back', fwd: 'Forward', up: 'Up' }[cmd], 'aria-label': { back: 'Back', fwd: 'Forward', up: 'Up' }[cmd], 'data-cmd': cmd, html: ARROW[cmd],
+    onclick: { back: goBack, fwd: goFwd, up }[cmd] });
+  const crumbs = MODERN ? h('div', { class: 'ex-crumbs' }) : null;
+  const search = MODERN ? h('input', { class: 'ex-search', type: 'search', 'aria-label': 'Search', oninput: e => { query = e.target.value.trim().toLowerCase(); render(); } }) : null;
+  const navrow = MODERN ? h('div', { class: 'ex-navrow' }, navBtn('back'), navBtn('fwd'), AERO ? null : navBtn('up'), h('div', { class: 'ex-addr' }, crumbs), search) : null;
+  // Clicking past the last folder turns the address into a path you can type.
+  navrow?.querySelector('.ex-addr').addEventListener('click', e => {
+    if (e.target.closest('.ex-crumb, input')) return;
+    const box = h('input', { class: 'ex-path', 'aria-label': 'Address' });
+    box.value = pathLabel(here());
+    crumbs.replaceChildren(box);
+    box.focus(); box.select();
+    box.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { box.blur(); return; }
+      if (e.key !== 'Enter') return;
+      const n = resolve(box.value.trim());
+      box.blur();
+      if (n && (n.children || n.kind === 'drive')) go(n);
+      else msgbox({ title: 'Explorer', icon: 'error', parent: win, text: `Windows can't find '${box.value}'. Check the spelling and try again.` });
+    });
+    box.addEventListener('blur', () => setTimeout(syncChrome));
+  });
+  search?.addEventListener('keydown', e => e.stopPropagation());
+
+  // Vista and 7's command bar, and 11's.
+  const menuBtn = (label, items, cls) => h('button', { class: 'ex-cbtn' + (cls ? ' ' + cls : ''), type: 'button', 'aria-haspopup': 'menu', onclick: drop(items) }, label);
+  const organize = () => [...editItems(), '-',
+    { label: '&Layout', submenu: () => [
+      { label: '&Menu Bar', checked: prefs.menubar, action: flip('menubar') },
+      { label: '&Details Pane', checked: prefs.details, action: flip('details') },
+      { label: '&Navigation Pane', checked: prefs.nav, action: flip('nav') },
+    ] }, '-',
+    ...menus[0].items().slice(-6)];
+  const cmdbar = AERO ? h('div', { class: 'ex-cmd' }, menuBtn('Organize', organize),
+    V.id === 'vista' ? menuBtn('Views', viewItems) : h('button', { class: 'ex-cbtn', type: 'button', 'data-cmd': 'newfolder', onclick: newFolder }, 'New folder'),
+    h('span', { class: 'ex-fill' }), V.id === '7' ? menuBtn(h('span', { html: GLYPH[prefs.view] }), viewItems, 'ex-views') : null)
+    : W11 ? h('div', { class: 'ex-cmd' }, menuBtn('New', newMenu, 'ex-new11'), h('span', { class: 'ex-csep' }),
+      tb('cut', 'Cut', GLYPH.cut, () => cut(selected())), tb('copy', 'Copy', GLYPH.copy, () => copyNodes(selected())), tb('paste', 'Paste', GLYPH.paste, () => paste(here(), win)),
+      tb('rename', 'Rename', GLYPH.rename, () => startRename(selected()[0])), tb('del', 'Delete', GLYPH.del, delSel), h('span', { class: 'ex-csep' }),
+      menuBtn('Sort', sortItems), menuBtn('View', viewItems), h('span', { class: 'ex-csep' }),
+      menuBtn('\u22ef', () => [{ label: '&Undo', disabled: !undoLabel(), action: () => undo(win) }, '-',
+        { label: 'Select &all', action: () => { sel = new Set(items()); paint(); } }, { label: 'Select &none', action: selectNone }, { label: '&Invert selection', action: invert }, '-',
+        { label: '&Navigation pane', checked: prefs.nav, action: flip('nav') }, { label: '&Status bar', checked: prefs.status, action: flip('status') }, '-',
+        { label: '&Properties', action: props }], 'ex-more'))
+      : null;
+  const det = AERO ? h('div', { class: 'ex-det' }) : null;
+  const tasks = XP ? h('div', { class: 'ex-tasks' }) : null;
+  const web = WEB && !explore ? h('div', { class: 'ex-web' }) : null;
+  const side = NEW ? h('div', { class: 'ex-side' }) : null;
+  const paneHead = XP ? h('div', { class: 'ex-phead' }, h('span', null, 'Folders'), h('button', { class: 'ex-pclose', type: 'button', 'aria-label': 'Close', onclick: toggleTree }, '\u00d7')) : null;
+
+  const treeEl = explore || NEW ? tree({ get node() { return win.node; } }, n => go(n)) : null;
+  const body = NEW
+    ? h('div', { class: 'ex ex-new' + (MODERN ? ' ex-modern' : '') }, ...(RIBBON ? [bar, navrow] : [navrow, bar, XP ? toolbar : cmdbar]), h('div', { class: 'ex-panes' }, side, list), det, status)
+    : explore
     ? h('div', { class: 'ex explore' }, bar, toolbar,
       h('div', { class: 'ex-heads' }, h('span', null, 'All Folders'), h('span', { class: 'ex-contents' }, 'Contents of \'' + pathLabel(node) + '\'')),
       h('div', { class: 'ex-panes' }, treeEl, list), status)
-    : h('div', { class: 'ex' }, bar, toolbar, list, status);
+    : h('div', { class: 'ex' }, bar, toolbar, web ? h('div', { class: 'ex-panes' }, web, list) : list, status);
   const winIcon = n => { const ic = iconOf(n); return ic === 'i-folder' ? 'i-folder-open' : ic; };
   const routeFor = n => n === root ? 'mycomputer' : n === recycle ? 'recycle' : n === network ? 'network' : null;
   const win = createWindow({
-    app: 'explorer', title: explore ? 'Exploring - ' + pathLabel(node) : titleFor(node), icon: explore ? 'i-folder-open' : winIcon(node), body,
-    width: explore ? (small.matches ? 360 : 600) : small.matches ? 360 : 440, height: explore ? 380 : 300, minW: 200, minH: 150,
+    app: 'explorer', title: title(node), icon: explore && !NEW ? 'i-folder-open' : winIcon(node), body,
+    width: small.matches ? 360 : NEW ? 640 : explore ? 600 : 440, height: NEW ? 420 : explore ? 380 : 300, minW: 200, minH: 150,
     route: routeFor(node),
     onClosed: () => wins.delete(win),
   });
@@ -520,7 +722,7 @@ function open(arg = 'My Computer') {
     }
     render();
     if (!explore) win.setIcon(winIcon(here()));
-    if (explore) body.querySelector('.ex-contents').textContent = 'Contents of \'' + pathLabel(here()) + '\'';
+    if (explore && !NEW) body.querySelector('.ex-contents').textContent = 'Contents of \'' + pathLabel(here()) + '\'';
   };
   wins.add(win);
   render();

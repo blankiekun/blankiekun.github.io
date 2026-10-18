@@ -43,3 +43,23 @@
   .calc-sci-keys > :nth-child(11n + 1), .calc-sci-keys > :nth-child(11n + 4), .calc-sci-keys > :nth-child(11n + 5) { margin-right: 3px; }
   .calc-sci-keys .calc-key { height: 34px; font-size: 11px; letter-spacing: -.3px; }
 }
+
+/* 10 and 11: the same keys in the flat look of the new Calculator. */
+:is([data-win="10"], [data-win="11"]) .calc { background: #e6e6e6; gap: 2px; padding: 4px; }
+:is([data-win="10"], [data-win="11"]) .calc .calc-display { height: 64px; padding: 4px 10px; border: 0; box-shadow: none; background: none; font: 300 40px/56px var(--font-ui); }
+:is([data-win="10"], [data-win="11"]) .calc-std { gap: 2px; }
+:is([data-win="10"], [data-win="11"]) .calc-top { grid-template-columns: 48px repeat(3, 1fr); gap: 2px; }
+:is([data-win="10"], [data-win="11"]) .calc-mem { box-shadow: none; height: 40px; color: #666; }
+:is([data-win="10"], [data-win="11"]) .calc-keys { grid-template-columns: repeat(6, 48px); gap: 2px; }
+:is([data-win="10"], [data-win="11"]) .calc-keys > :nth-child(6n + 1) { margin-right: 0; }
+:is([data-win="10"], [data-win="11"]) .calc-key { height: 40px; border: 0; box-shadow: none; background: #f0f0f0; color: #000; font-size: 14px; padding: 0; }
+:is([data-win="10"], [data-win="11"]) .calc-keys > :is(:nth-child(6n + 2), :nth-child(6n + 3), :nth-child(6n + 4)) { background: #fafafa; font-weight: 600; font-size: 16px; }
+:is([data-win="10"], [data-win="11"]) .calc-key:hover:not(:disabled) { background: #d6d6d6; }
+:is([data-win="10"], [data-win="11"]) .calc-key:active:not(:disabled) { background: #bdbdbd; padding: 0; }
+:is([data-win="10"], [data-win="11"]) .calc-key[aria-label="="] { background: #8abae0; }
+:is([data-win="10"], [data-win="11"]) .calc-key[aria-label="="]:hover { background: #4b9ae0; }
+[data-win="11"] .calc { background: #f3f3f3; gap: 4px; }
+[data-win="11"] :is(.calc-keys, .calc-top) { gap: 3px; }
+[data-win="11"] .calc-key { border-radius: 4px; box-shadow: 0 0 0 1px #e5e5e5; }
+[data-win="11"] .calc-key[aria-label="="] { background: #0067c0; color: #fff; }
+[data-win="11"] .calc-key[aria-label="="]:hover { background: #1975c5; }

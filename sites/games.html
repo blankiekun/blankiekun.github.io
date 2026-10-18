@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>blankiekun's Software Depot</title>
+<link rel="stylesheet" href="retro.css">
+<style>
+/* A 1997 online software store: navy masthead, yellow price tags, a catalog table per product. */
+body { background: #fff; color: #000; font: 14px/1.45 Verdana, Arial, Helvetica, sans-serif; }
+a { color: #0000cc; } a:visited { color: #660099; }
+.mast { background: #000080; color: #fff; border: 3px outset #3a3ad0; padding: 10px 12px; text-align: center; }
+.mast h1 { margin: 0; font: italic 900 clamp(26px, 7vw, 44px)/1 "Arial Black", Impact, sans-serif; color: #ffcc00; text-shadow: 3px 3px 0 #c00000; }
+.mast p { margin: 4px 0 0; font-weight: bold; }
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: #ffcc00; border: 2px solid #000; padding: 4px 8px; font: bold 12px Arial, sans-serif; }
+.bar .lock { background: #fff; border: 1px solid #000; padding: 1px 6px; }
+.find { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 10px; background: #e0e0f0; border: 2px solid #000080; padding: 8px; font: bold 12px Arial, sans-serif; }
+.find label { display: flex; flex-direction: column; gap: 2px; }
+.find .q { flex: 1 1 200px; }
+.find input, .find select { font: 13px Arial, sans-serif; padding: 2px; border: 2px inset #c0c0c0; background: #fff; color: #000; max-width: 100%; }
+.find output { margin-left: auto; font-weight: normal; }
+
+
+#catalog { display: flex; flex-direction: column; gap: 12px; }
+table.item { width: 100%; border: 2px solid #000080; }
+.item td { padding: 8px; vertical-align: top; }
+.item td.box { width: 130px; background: #f0f0f0; border-right: 1px dashed #000080; text-align: center; }
+.item td.box img { width: 110px; border: 1px solid #000; }
+.item .nobox { display: flex; align-items: center; justify-content: center; width: 110px; height: 150px; margin: 0 auto; background: #c0c0c0; border: 2px outset #fff; font: bold 11px Arial, sans-serif; }
+.item h3 { margin: 0; font: bold 18px Arial, sans-serif; color: #000080; }
+.item .alt { margin: 0; font-size: 13px; }
+.item dl { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 6px 0; font-size: 12px; }
+.item dt { font-weight: bold; }
+.item dd { margin: 0; }
+.item .blurb { margin: 0 0 8px; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.buy { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.price { font: bold 20px Arial, sans-serif; color: #c00000; }
+.price s { color: #000; font-size: 14px; }
+.stock { font: bold 12px Arial, sans-serif; color: #008000; }
+.btn3d { background: #ffcc00; color: #000; border-color: #ffe680 #806600 #806600 #ffe680; font-size: 14px; padding: 5px 12px; }
+.empty { text-align: center; border: 2px dashed #000080; padding: 16px; }
+.fine { font-size: 11px; color: #404040; }
+footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 480px) { .item td.box { width: 90px; } .item td.box img, .item .nobox { width: 76px; } .item .nobox { height: 104px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <h1>Software Depot</h1>
+    <p>Visual novels, rebuilt for <a href="conscripter.html" style="color:#fff">CONscripter</a>. Shipped by Mega.</p>
+  </header>
+  <div class="bar">
+    <span>FREE SHIPPING ON ALL ORDERS!</span>
+    <span class="lock" title="AES-256">&#128274; Secure Server</span>
+  </div>
+
+
+  <form class="find" role="search" onsubmit="return false">
+    <label class="q">Search:<input type="search" id="q" placeholder="Title, developer, story..."></label>
+    <label>Developer:<select id="by"></select></label>
+    <label>Platform:<select id="platform"></select></label>
+    <label>Version:<select id="ver"></select></label>
+    <label>Sort by:<select id="sort">
+      <option value="title">Title</option><option value="added">Newest stock</option><option value="released">Release date</option>
+    </select></label>
+    <output id="count" aria-live="polite"></output>
+  </form>
+
+  <div id="catalog"><p class="empty">Loading the catalog...</p></div>
+
+  <p class="fine">* Price assumes you already bought the game. Each download is the game's files converted by <a href="convert.html">conscripter-convert</a>: unzip it and open the folder in CONscripter. No refunds, it was free.</p>
+
+  <footer>
+    <hr class="groove">
+    <div><a href="home.html">blankiekun's Homepage</a> | <a href="conscripter.html">CONscripter</a> | <a href="convert.html">conscripter-convert</a></div>
+  </footer>
+</div>
+<script>
+let games = [];
+const catalog = document.getElementById("catalog");
+const $ = id => document.getElementById(id);
+const platforms = g => (g.platform || "").split(",").map(p => p.trim()).filter(Boolean);
+const versions = g => Object.keys(g.links).map(v => v || "Single");
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text != null) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+
+
+// Each dropdown lists what the catalog actually has, with "All" first.
+function fill(select, values) {
+  select.append(new Option("All", ""));
+  for (const v of [...new Set(values)].sort()) select.append(new Option(v, v));
+}
+
+function shown() {
+  const q = $("q").value.trim().toLowerCase(), by = $("by").value, pf = $("platform").value, ver = $("ver").value, sort = $("sort").value;
+  const list = games.filter(g =>
+    (!q || [g.title, g.alt, g.by, g.blurb].some(t => t && t.toLowerCase().includes(q))) &&
+    (!by || g.by === by) && (!pf || platforms(g).includes(pf)) && (!ver || versions(g).includes(ver)));
+  // Dates are ISO strings, so newest first is a reversed string compare; undated ones sink.
+  return sort === "title" ? list : list.sort((a, b) => (b[sort] || "").localeCompare(a[sort] || ""));
+}
+
+function render() {
+  catalog.textContent = "";
+  if (!games.length) { catalog.append(el("p", "Sold out! New stock arriving soon.", "empty")); return; }
+  const list = shown();
+  $("count").textContent = list.length + " of " + games.length + " titles";
+  if (!list.length) catalog.append(el("p", "No titles match. Try a different search.", "empty"));
+  for (const g of list) {
+    const table = el("table", null, "item"), tr = table.insertRow();
+    const box = tr.insertCell();
+    box.className = "box";
+    if (g.img) {
+      const img = el("img");
+      img.src = g.img; img.alt = ""; img.loading = "lazy"; img.referrerPolicy = "no-referrer";
+      box.append(img);
+    } else box.append(el("div", "NO BOX ART", "nobox"));
+
+    const info = tr.insertCell();
+    const h3 = el("h3"), name = el("a", g.title);
+    name.href = g.src; name.target = "_blank"; name.rel = "noopener";
+    h3.append(name);
+    info.append(h3);
+    if (g.alt && g.alt !== g.title) { const alt = el("p", g.alt, "alt"); alt.lang = "ja"; info.append(alt); }
+    const dl = el("dl");
+    for (const [k, v] of [["Developer", g.by], ["Released", g.released], ["Originally", g.platform], ["In stock since", g.added]])
+      if (v) dl.append(el("dt", k + ":"), el("dd", v));
+    info.append(dl);
+    if (g.blurb) info.append(el("p", g.blurb, "blurb"));
+
+    const buy = el("div", null, "buy");
+    const price = el("span", null, "price");
+    price.append(el("s", "$49.95"), " FREE*");
+    buy.append(price, el("span", "IN STOCK", "stock"));
+    // One button per version (EN, JP, ...); "" is a game with just the one.
+    for (const [ver, link] of Object.entries(g.links)) {
+      const btn = el("a", ver ? "Download " + ver : "Download", "btn3d");
+      btn.href = link; btn.target = "_blank"; btn.rel = "noopener";
+      buy.append(btn);
+    }
+    info.append(buy);
+    catalog.append(table);
+  }
+}
+
+
+for (const id of ["q", "by", "platform", "ver", "sort"]) $(id).addEventListener("input", render);
+
+fetch("games.json", { cache: "no-store" })
+  .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(list => {
+    games = list.sort((a, b) => a.title.localeCompare(b.title));
+    fill($("by"), games.map(g => g.by).filter(Boolean));
+    fill($("platform"), games.flatMap(platforms));
+    fill($("ver"), games.flatMap(versions));
+    render();
+  })
+  .catch(e => { catalog.textContent = ""; catalog.append(el("p", "The catalog is out to lunch (" + e.message + ").", "empty")); });
+</script>
+</body>
+</html>

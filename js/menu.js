@@ -4,6 +4,10 @@
 // or '-' for a separator. `submenu` may be an array or a function returning one.
 
 import { h, icon, accel, sound } from './util.js';
+import { rename, V } from './version.js';
+
+// Paint and WordPad wear the ribbon from 7 on.
+export const hasRibbon = ['7', '8', '10', '11'].includes(V.id);
 
 let stack = []; // open menus, outermost first: { el, items, hot, parentItem, onClose }
 let rootOpts = null;
@@ -41,7 +45,7 @@ function push(items, at, className, banner) {
   const m = { el: null, items, hot: -1, rows: [] };
   items.forEach((it, i) => {
     if (it === '-') { ul.append(h('li', { role: 'separator' }, h('hr'))); m.rows.push(null); return; }
-    const a = accel(it.label);
+    const a = accel(rename(it.label));
     const row = h(it.href ? 'a' : 'div', {
       class: 'mi' + (it.className ? ' ' + it.className : ''), role: 'menuitem', tabindex: '-1',
       'aria-disabled': it.disabled ? 'true' : null,
@@ -165,7 +169,7 @@ document.addEventListener('keydown', e => {
     case 'Tab': closeMenus('escape'); return;
     default: {
       const k = e.key.toLowerCase();
-      const i = m.items.findIndex(it => it !== '-' && accel(it.label).key === k);
+      const i = m.items.findIndex(it => it !== '-' && accel(rename(it.label)).key === k);
       if (i < 0) return;
       setHot(m, i); activate(level, i);
     }
@@ -205,4 +209,80 @@ export function menubar(spec) {
     return false;
   };
   return bar;
+}
+
+// Windows 7's ribbon in place of a menu bar. The first menu drops from the blue app
+// button, each tab holds groups of the app's own controls, and Alt+letter still opens
+// the old menus under the ribbon so nothing goes out of reach.
+// tabs: [{ label, groups: [[label, ...nodes]] }]
+export function ribbon(spec, tabs) {
+  const app = h('button', { type: 'button', class: 'rb-app', 'aria-haspopup': 'menu', 'aria-label': spec[0].label.replace('&', ''), title: spec[0].label.replace('&', '') });
+  const strip = h('div', { class: 'rb-tabs', role: 'tablist' }, app);
+  const panels = tabs.map(t => h('div', { class: 'rb-panel', role: 'tabpanel', hidden: true },
+    ...t.groups.map(([label, ...kids]) => h('div', { class: 'rb-group', role: 'group', 'aria-label': label },
+      h('div', { class: 'rb-gbody' }, ...kids), h('div', { class: 'rb-glabel' }, label)))));
+  const tabBtns = tabs.map((t, i) => {
+    const b = h('button', { type: 'button', class: 'rb-tab', role: 'tab' }, t.label);
+    b.addEventListener('click', () => show(i));
+    b.addEventListener('dblclick', () => bar.classList.toggle('min'));
+    return b;
+  });
+  strip.append(...tabBtns);
+  const bar = h('div', { class: 'ribbon' }, strip, ...panels);
+  function show(i) {
+    bar.classList.remove('min');
+    tabBtns.forEach((b, j) => b.setAttribute('aria-selected', String(i === j)));
+    panels.forEach((p, j) => { p.hidden = i !== j; });
+  }
+  function open(i) {
+    const items = typeof spec[i].items === 'function' ? spec[i].items() : spec[i].items;
+    openMenu(items, { rect: (i ? bar : app).getBoundingClientRect() }, { focusFirst: true, onClose: () => app.classList.remove('open') });
+    if (!i) app.classList.add('open');
+  }
+  app.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    if (app.classList.contains('open')) closeMenus('toggle'); else open(0);
+  });
+  app.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); open(0); } });
+  bar.openByKey = k => {
+    const i = spec.findIndex(t => accel(t.label).key === k);
+    if (i >= 0) open(i);
+    return i >= 0;
+  };
+  show(0);
+  return bar;
+}
+
+// A ribbon button: big ones stack a 32px picture over the label, small ones sit in rows.
+// glyph is an icon id (i-...) or SVG markup.
+export function rbtn(label, glyph, action, big) {
+  const b = h('button', { type: 'button', class: 'rb-btn' + (big ? ' big' : ''), title: label });
+  const pic = h('span', { class: 'rb-pic' });
+  if (glyph.startsWith('i-')) pic.append(icon(glyph)); else pic.innerHTML = glyph;
+  b.append(pic, h('span', { class: 'rb-lbl' }, label));
+  b.addEventListener('mousedown', e => e.preventDefault());   // leave the caret where it was
+  b.addEventListener('click', e => action(e, b));
+  return b;
+}
+
+// The quick-access toolbar 7 puts in a ribbon app's title bar, beside the window icon.
+// actions: { save, undo, redo? }
+const QAT_ARROW = "<svg viewBox='0 0 16 16' width='16' height='16'><path d='M5 4L1.5 7.5 5 11M2 7.5h7.5a4 4 0 0 1 0 8H7' fill='none' stroke='#1b5fb8' stroke-width='1.8'/></svg>";
+export function quickBar(win, actions) {
+  const btn = (label, pic, action, flip) => {
+    const b = h('button', { type: 'button', class: 'rb-qbtn', title: label, 'aria-label': label });
+    if (pic.startsWith('i-')) b.append(icon(pic)); else b.innerHTML = pic;
+    if (flip) b.firstChild.style.transform = 'scaleX(-1)';
+    b.addEventListener('mousedown', e => e.preventDefault());   // leave the caret where it was
+    b.addEventListener('click', action);
+    return b;
+  };
+  const bar = h('div', { class: 'rb-qat', role: 'toolbar', 'aria-label': 'Quick Access Toolbar' },
+    btn('Save', 'i-floppy', actions.save),
+    btn('Undo', QAT_ARROW, actions.undo),
+    ...(actions.redo ? [btn('Redo', QAT_ARROW, actions.redo, true)] : []));
+  // Clicks here are not the start of a drag or a double-click maximize.
+  for (const t of ['pointerdown', 'dblclick', 'contextmenu']) bar.addEventListener(t, e => e.stopPropagation());
+  const tb = win.el.querySelector('.titlebar');
+  tb.insertBefore(bar, tb.querySelector('.t'));
 }

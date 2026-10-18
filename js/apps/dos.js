@@ -1,11 +1,12 @@
 // MS-DOS Prompt. Reads the pretend disk in fs.js and can start the other programs.
 
-import { h } from '../util.js';
+import { h, icon } from '../util.js';
 import { createWindow, launch, toggleMax } from '../wm.js';
 import { resolve, dosName, drive, pathOf, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
 import { run, open as shellOpen, bsod, ALIASES, PROJECTS } from '../shell.js';
+import { OS, V } from '../version.js';
 
-const STAMP = '08-24-95  11:11a';
+const STAMP = [V.date[1] + 1, V.date[2], V.date[0] % 100].map(n => String(n).padStart(2, '0')).join('-') + '  11:11a';
 
 function open(arg) {
   let cwd = 'C:\\MYDOCU~1';
@@ -75,7 +76,7 @@ function open(arg) {
     if (d && d.notReady) return notReady(path[0]);
     if (!node || !node.children) { print('File not found'); return; }
     print(` Volume in drive ${path[0]} is ${path[0] === 'D' ? 'PROJECTS' : path[0] === 'E' ? 'BK95_CD' : 'BLANKIEKUN'}`);
-    print(' Volume Serial Number is 1995-0824');
+    print(` Volume Serial Number is ${V.date[0]}-${STAMP.slice(0, 5).replace('-', '')}`);
     print(` Directory of ${canonical(path) || path}`);
     print('');
     let files = 0, dirs = 0, bytes = 0;
@@ -136,7 +137,7 @@ function open(arg) {
     switch (cmd) {
       case 'help': case '/?': HELP.forEach(l => print(l)); return;
       case 'cls': out.replaceChildren(); return;
-      case 'ver': print(''); print('blankiekun 95. [Version 4.00.950]'); print(''); return;
+      case 'ver': print(''); print(V.ver); print(''); return;
       case 'echo': print(argStr || 'ECHO is on.'); return;
       case 'date': print('Current date is ' + new Date().toLocaleDateString('en-US', { weekday: 'short', month: '2-digit', day: '2-digit', year: 'numeric' }).replace(',', '')); return;
       case 'time': print('Current time is ' + new Date().toLocaleTimeString('en-US')); return;
@@ -269,17 +270,22 @@ function open(arg) {
   });
   screen.addEventListener('pointerup', () => { if (!window.getSelection().toString()) input.focus({ preventScroll: true }); });
 
+  // 11's console is Windows Terminal: its tab sits in the title bar (css/apps.css), and + opens another.
+  const tabs = V.id === '11' && h('div', { class: 'wt-tabs' },
+    h('div', { class: 'wt-tab' }, icon('i-dos'), h('span', null, 'Command Prompt'), h('button', { type: 'button', class: 'wt-x', 'aria-label': 'Close tab', onclick: () => win.close() }, '×')),
+    h('button', { type: 'button', class: 'wt-new', title: 'New Tab', 'aria-label': 'New Tab', onclick: () => launch('dos') }, '+'));
   const win = createWindow({
-    app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, toolbar, screen),
+    app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, !V.nt && toolbar, screen), className: tabs ? 'terminal' : '',
     width: 640, height: 400, minW: 240, minH: 160, route: 'dos', autofocus: '.dos-input',
     maximized: arg === 'dosmode',
   });
+  if (tabs) win.bar.insertBefore(tabs, win.bar.querySelector('.tbtns'));
 
   print('');
-  print('blankiekun 95. [Version 4.00.950]');
-  print('(C)Copyright blankiekun 1981-1995.');
+  print(V.ver);
+  print(V.dosCopy);
   print('');
-  if (arg === 'dosmode') { print('Type EXIT to return to blankiekun 95.'); print(''); }
+  if (arg === 'dosmode') { print('Type EXIT to return to ' + OS + '.'); print(''); }
   else { print('Type HELP for a list of commands.'); print(''); }
   sync();
   input.focus({ preventScroll: true });

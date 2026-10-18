@@ -56,6 +56,44 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   .pipe, .pipe tbody, .pipe tr, .pipe td { display: block; width: 100%; }
   .pipe td.arr { width: 100%; padding: 2px 0; text-align: center; transform: rotate(90deg); }
 }
+.ad { display: block; text-align: center; text-decoration: none; color: #ff0; background: repeating-linear-gradient(45deg, #ff1493 0 14px, #c00060 14px 28px); border: 4px outset #ff69b4; padding: 8px; font: bold 13px Arial, sans-serif; }
+.ad b { display: block; font: 900 clamp(20px, 5vw, 30px)/1.1 Impact, "Arial Black", sans-serif; color: #fff; text-shadow: 2px 2px 0 #000; }
+.ad u { color: #fff; }
+/* With a CG behind it, darkened so the words read. The script sizes the CG so only its safe band shows. */
+.ad.cg { display: flex; flex-direction: column; justify-content: center; min-height: 120px; background-clip: padding-box; text-shadow: 1px 1px 0 #000, 0 0 4px #000; }
+</style>
+<style id="virus">
+/* What clicking the ad does before it lands on Games. Copied into the desktop too, so the screen-wide ones reach past IE. */
+/* translate, rotate and scale are separate properties, so shake, flip and zoom stack when they overlap */
+@keyframes v-shake { 25% { translate: -8px 4px; } 75% { translate: 8px -4px; } }
+.v-shake { animation: v-shake .12s linear infinite; }
+.v-invert { filter: invert(1) hue-rotate(180deg); }
+.v-flip { rotate: 180deg; }
+body { transition: rotate 1s, scale 2s; }
+.vpop { position: fixed; z-index: 200000; width: min(260px, 80vw); background: #c0c0c0; border: 2px outset #fff; font: 12px Arial, sans-serif; box-shadow: 2px 2px 0 #000; }
+.vpop > b { display: block; background: #000080; color: #fff; padding: 2px 4px; }
+.vpop > p { margin: 0; padding: 10px 8px; }
+.vbar { height: 16px; margin: 0 8px 10px; border: 2px inset #fff; background: #fff; }
+.vbar i { display: block; height: 100%; width: 0; background: #000080; }
+.v-comic * { font-family: "Comic Sans MS", "Comic Neue", cursive !important; color: hsl(var(--h, 300), 100%, 45%) !important; }
+.v-zoom { scale: 2.5; }
+.v-bsod { position: fixed; inset: 0; z-index: 200002; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 16px; padding: 24px; background: #0000aa; color: #fff; font: 15px/1.4 "Courier New", monospace; }
+.v-bsod p { max-width: 64ch; margin: 0; }
+.v-bsod b { background: #aaa; color: #0000aa; padding: 0 6px; }
+.v-heart { position: fixed; z-index: 200001; top: -40px; font-size: 28px; color: #ff1493; pointer-events: none; animation: v-fall 3s linear forwards; }
+@keyframes v-fall { to { transform: translateY(110vh) rotate(360deg); } }
+.v-bsod.nt { align-items: flex-start; justify-content: flex-start; text-align: left; }
+.v-bsod.nt p, .v-bsod.sad p { white-space: pre-wrap; max-width: 80ch; }
+.v-bsod.sad { align-items: flex-start; text-align: left; padding: 12vh 12vw; gap: 24px; background: #0078d7; font: 20px/1.4 "Segoe UI", Arial, sans-serif; }
+.v-bsod.sad b { background: none; color: #fff; padding: 0; font: 120px/1 "Segoe UI", Arial, sans-serif; }
+.v-bsod.sad small { font-size: 14px; }
+/* Babe Buddy and what it says; both placed by transform from the script. */
+.v-buddy { position: fixed; left: 0; top: 0; z-index: 200001; width: 72px; height: 72px; border-radius: 50%; border: 3px solid #ff1493; box-shadow: 0 0 0 2px #fff, 3px 3px 0 2px #000; background-repeat: no-repeat; pointer-events: none; animation: v-bob .5s ease-in-out infinite alternate; }
+@keyframes v-bob { to { margin-top: -8px; } }
+.v-say { position: fixed; left: 0; top: 0; z-index: 200001; width: max-content; max-width: 220px; background: #ffffe1; color: #000; border: 1px solid #000; border-radius: 8px; padding: 6px 8px; font: 12px Tahoma, Arial, sans-serif; box-shadow: 2px 2px 0 rgba(0, 0, 0, .4); pointer-events: none; }
+.v-trail { position: fixed; z-index: 200001; color: #ff1493; font-size: 18px; translate: -50% -50%; pointer-events: none; animation: v-trail .8s ease-out forwards; }
+@keyframes v-trail { to { opacity: 0; transform: translateY(-24px) scale(.4); } }
+@media (prefers-reduced-motion: reduce) { body { transition: none; } .v-heart { animation-duration: 0s; } .v-shake, .v-buddy { animation: none; } }
 </style>
 </head>
 <body>
@@ -64,6 +102,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
     <h1>Welcome to blankiekun's Homepage!</h1>
     <p class="sub">Read Japanese. Play visual novels. In the browser.</p>
     <marquee scrollamount="4">*** Welcome!!! *** 3 open-source projects online *** chimimouryou * CONscripter * conscripter-convert *** Read my guestbook! ***</marquee>
+    <a class="ad" id="babes" href="games.html"><b class="blink">HOT ANIME BABES IN YOUR AREA!!!</b><span>They're lonely and want to play <u>visual novels</u> with YOU. CLICK HERE!!!</span></a>
 
     <div class="layout">
       <nav class="nav" aria-label="Site">
@@ -73,6 +112,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
           <li><a href="chimimouryou.html">chimimouryou</a></li>
           <li><a href="convert.html">conscripter-convert</a></li>
           <li><a href="conscripter.html">CONscripter</a></li>
+          <li><a href="games.html">Games</a></li>
           <li><a href="guestbook.html">Guestbook</a></li>
           <li><a href="https://github.com/blankiekun">My GitHub</a></li>
           <li><a href="https://x.com/blankiekun">Me on Twitter</a></li>
@@ -164,6 +204,390 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
     try { n += +(localStorage.getItem('hits') || 0) + 1; localStorage.setItem('hits', n - 1995); } catch (e) { n += 1; }
     var s = String(n).padStart(7, '0'), el = document.getElementById('counter');
     for (var i = 0; i < s.length; i++) { var d = document.createElement('span'); d.textContent = s[i]; el.appendChild(d); }
+  })();
+  // The ad is a virus. Inside the desktop it takes the desktop over with its own windows, icons and boot screen;
+  // on its own it messes up this page. Either way it ends on Games, and Esc stops it.
+  (function () {
+    var ad = document.getElementById('babes'), busy = false;
+    var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+    var rnd = function (lo, hi) { return lo + Math.random() * (hi - lo); };
+    // Racy CGs, so each has a safe band: the slice of the picture, top to bottom as fractions of its height, that may show
+    // (faces only; below it is NSFW or a text box), centred on the eyes since a short strip shows only its middle. Then where across to centre. All are 4:3.
+    var CGS = [['57/3157', .3, .53, .5], ['72/188872', .05, .5, .35], ['30/9330', .22, .38, .75]], cg = pick(CGS);
+    var CG = 'url(https://t.vndb.org/sf/' + cg[0] + '.jpg)';
+    ad.classList.add('cg');
+    ad.style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, .3), rgba(0, 0, 0, .3)), ' + CG;
+    // Scale the CG up until the banner's height fits inside the band (and its width is covered), then centre on the band.
+    function frame() {
+      var w = ad.clientWidth, h = ad.clientHeight, H = Math.max(h / (cg[2] - cg[1]), w * .75), W = H / .75;
+      var y = (cg[1] + (cg[2] - cg[1] - h / H) / 2) * H, x = Math.min(Math.max(cg[3] * W - w / 2, 0), W - w);
+      ad.style.backgroundSize = '100% 100%, ' + W + 'px ' + H + 'px';
+      ad.style.backgroundPosition = '0 0, ' + -x + 'px ' + -y + 'px';
+    }
+    frame();
+    addEventListener('resize', frame);
+
+    // running goes false on Esc or leaving the page; every wait then throws, which unwinds whatever was going on.
+    var running = false, chaos = false, STOP = {};
+    var wait = function (ms) { return new Promise(function (r, j) { setTimeout(function () { running ? r() : j(STOP); }, ms); }); };
+    var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // The whole screen: the desktop around IE when this page is inside it, else this page.
+    var T = (function () { try { return window.top.document; } catch (e) { return document; } })();
+    var made = [], undo = [];
+    // On <html>, not <body>, so pop-ups and the crash screen stay put while the body shakes, flips or zooms.
+    function add(el) { made.push(el); T.documentElement.appendChild(el); return el; }
+    function on(target, type, fn) { target.addEventListener(type, fn, true); undo.push(function () { target.removeEventListener(type, fn, true); }); }
+    function cleanup() {
+      undo.splice(0).forEach(function (f) { try { f(); } catch (e) {} });
+      wins.splice(0).forEach(function (w) { w.close(true); });
+      made.splice(0).forEach(function (el) { el.remove(); });
+      ['v-shake', 'v-invert', 'v-flip', 'v-zoom', 'busy'].forEach(function (c) { T.documentElement.classList.remove(c); T.body.classList.remove(c); });
+    }
+    addEventListener('pagehide', function () { running = false; cleanup(); });
+    // Runs fn alongside everything else; an abort ends it quietly.
+    var acts = [];
+    function go(fn, delay) { var p = (delay ? wait(delay) : Promise.resolve()).then(fn).catch(function () {}); acts.push(p); return p; }
+    // The pointer in the desktop's coordinates, from either document (IE's page is a frame in it).
+    function onMove(fn) {
+      on(document, 'pointermove', function (e) { var r = T !== document && frameElement ? frameElement.getBoundingClientRect() : { left: 0, top: 0 }; fn(e.clientX + r.left, e.clientY + r.top); });
+      if (T !== document) on(T, 'pointermove', function (e) { fn(e.clientX, e.clientY); });
+    }
+
+    // The desktop's own modules, loaded in its window so they are the instances already running it. Null outside the desktop.
+    var D = null;
+    async function desktop() {
+      if (T === document) return null;
+      try {
+        var imp = new T.defaultView.Function('u', 'return import(u)'), base = new URL('../js/', location.href).href;
+        var m = await Promise.all(['wm.js', 'util.js', 'desktop.js', 'version.js'].map(function (f) { return imp(base + f); }));
+        return { wm: m[0], util: m[1], desk: m[2], ver: m[3] };
+      } catch (e) { return null; }
+    }
+
+    function popup(title, text) {
+      var w = T.createElement('div'), b = T.createElement('b'), p = T.createElement('p'), v = T.defaultView;
+      w.className = 'vpop'; b.textContent = title; p.textContent = text; w.append(b, p);
+      w.style.left = Math.random() * Math.max(0, v.innerWidth - 270) + 'px';
+      w.style.top = Math.random() * Math.max(0, v.innerHeight - 100) + 'px';
+      return add(w);
+    }
+    // A real message box of this era, somewhere random. Closing one while the chaos lasts opens two more.
+    var wins = [], SOUND = { 'i-error': 'Critical Stop', 'i-warn': 'Exclamation', 'i-info': 'Asterisk', 'i-question': 'Question' };
+    function dialog(title, kids, opts) {
+      opts = opts || {};
+      var h = D.util.h, w = D.wm.createWindow({ title: title, body: h('div', { class: 'dlg' }, kids), dialog: true, resizable: false, width: 'auto', icon: null,
+        onClose: function () { if (chaos && opts.hydra) { buddy.say('Every one you close makes two more. I think that\'s how it works.'); setTimeout(hydra, 150); setTimeout(hydra, 450); } } });
+      var L = T.getElementById('windows').getBoundingClientRect(), r = w.el.getBoundingClientRect();
+      w.el.style.left = (opts.x != null ? opts.x : rnd(0, Math.max(0, L.width - r.width))) + 'px';
+      w.el.style.top = (opts.y != null ? opts.y : rnd(0, Math.max(0, L.height - r.height))) + 'px';
+      wins.push(w);
+      return w;
+    }
+    function err(title, text, kind, hydraOn) {
+      if (!D) return popup(title, text);
+      kind = kind || pick(Object.keys(SOUND));
+      var h = D.util.h, ok = h('button', { class: 'btn default', type: 'button' }, 'OK');
+      var w = dialog(title, [h('div', { class: 'row' }, D.util.icon(kind), h('div', { class: 'msg' }, text)), h('div', { class: 'btns' }, ok)], { hydra: hydraOn });
+      ok.addEventListener('click', function () { w.close(); });
+      D.util.sound(SOUND[kind]);
+      return w;
+    }
+    var MSGS = [['Error', 'Too many babes. Babe buffer overflow at 0xBABE.'], ['Warning', 'Your PC is running SLOW. Download more RAM now!'],
+      ['CONGRATULATIONS!!!', 'You are our 1,000,000th visitor! Claim your FREE iMac!'],
+      ['babes.exe', 'This program has performed an illegal operation and will be shut down.\n\n(It will not be shut down.)'],
+      ['Internet Explorer', 'A babe is trying to connect to the Internet. Allow?\n\n(She already did.)'],
+      ['Error', 'Not enough memory to show more babes. Close some visual novels and try again.'],
+      ['Windows Explorer', 'Windows Explorer has stopped thinking about anything but babes.'], ['Install', 'Install the Hot Babes Toolbar? Yes / Yes']];
+    function hydra() {
+      if (!chaos) return;
+      if (D && wins.filter(function (w) { return w.el.isConnected; }).length > 16) return;
+      var m = pick(MSGS); err(m[0], m[1], null, true);
+    }
+
+    // Babe Buddy: a face from the ad's CG that follows the pointer around and talks, like the purple ape did.
+    var buddy = { say: function () {} };
+    async function buddyAct() {
+      var S = 72, face = add(T.createElement('div')), bubble = add(T.createElement('div')), v = T.defaultView;
+      // The safe band fills the circle: scale the CG so the band is the circle's height and centre it on the eyes.
+      var H = S / (cg[2] - cg[1]), W = H / .75;
+      face.className = 'v-buddy'; face.style.backgroundImage = CG; face.style.backgroundSize = W + 'px ' + H + 'px';
+      face.style.backgroundPosition = -Math.min(Math.max(cg[3] * W - S / 2, 0), W - S) + 'px ' + -cg[1] * H + 'px';
+      bubble.className = 'v-say'; bubble.setAttribute('role', 'status'); bubble.hidden = true;
+      var tx = v.innerWidth / 2, ty = v.innerHeight / 2, bx = -S, by = v.innerHeight / 2, said = 0;
+      onMove(function (x, y) { tx = x; ty = y; });
+      buddy.say = function (text) {
+        bubble.textContent = text; bubble.hidden = false; said = Date.now();
+      };
+      (function step() {
+        if (!face.isConnected) return;
+        // Trails the pointer at a distance, so it's always just behind you.
+        bx += (tx + 40 - bx) * (still ? 1 : .06); by += (ty + 30 - by) * (still ? 1 : .06);
+        bx = Math.min(Math.max(bx, 0), v.innerWidth - S); by = Math.min(Math.max(by, 0), v.innerHeight - S);
+        face.style.transform = 'translate(' + bx + 'px, ' + by + 'px)';
+        var right = bx + S + 230 < v.innerWidth;
+        bubble.style.transform = 'translate(' + (right ? bx + S + 8 : bx - 228) + 'px, ' + Math.max(by - 28, 0) + 'px)';
+        if (Date.now() - said > 3200) bubble.hidden = true;
+        v.requestAnimationFrame(step);
+      })();
+      var lines = ['Hi! I\'m Babe Buddy! I\'ll be your friend now.', 'I see you\'re reading a homepage. Would you like help finding babes?',
+        'I tidied up your desktop for you!', 'Your Start button is shy. Like me.', 'I\'ve set your homepage to this homepage.',
+        'Press Esc? I don\'t know what that does. Please don\'t.', 'I\'m writing you a letter! Don\'t look.', 'Do you like visual novels? I LOVE visual novels.'];
+      if (!D) lines = lines.filter(function (l) { return !/desktop|Start|letter/.test(l); });
+      for (var i = 0; chaos; i++) { buddy.say(lines[i % lines.length]); await wait(3600); }
+    }
+
+    // A trail of hearts behind the pointer.
+    function heartsAct() {
+      var last = 0;
+      onMove(function (x, y) {
+        if (Date.now() - last < 45 || still) return;
+        last = Date.now();
+        var s = add(T.createElement('span'));
+        s.className = 'v-trail'; s.textContent = pick(['\u2665', '\u2661']); s.style.left = x + 'px'; s.style.top = y + 'px';
+        s.addEventListener('animationend', function () { s.remove(); });
+      });
+    }
+
+    // Everything on the desktop is called babe.exe now, and the clock says 6:69.
+    function renameAct() {
+      var spans = T.querySelectorAll('.win .titlebar .t, #icons .icon span'), clock = T.getElementById('clock');
+      var was = Array.prototype.map.call(spans, function (s) { return s.textContent; });
+      Array.prototype.forEach.call(spans, function (s, i) { s.textContent = i ? 'babe (' + (i + 1) + ').exe' : 'babe.exe'; });
+      var time = clock && clock.textContent, tick = setInterval(function () { if (clock) clock.textContent = '6:69 PM'; }, 250);
+      undo.push(function () { clearInterval(tick); if (clock) clock.textContent = time; Array.prototype.forEach.call(spans, function (s, i) { s.textContent = was[i]; }); });
+    }
+
+    // The Start button runs away from the pointer.
+    function startAct() {
+      var st = T.getElementById('start'); if (!st) return;
+      var label = st.querySelector('span'), text = label && label.textContent, ox = 0, oy = 0, v = T.defaultView, home = st.getBoundingClientRect();
+      if (text) label.textContent = 'Babes';
+      st.style.transition = 'translate .15s';
+      onMove(function (x, y) {
+        var r = st.getBoundingClientRect(), dx = r.left + r.width / 2 - x, dy = r.top + r.height / 2 - y, d = Math.hypot(dx, dy);
+        if (d > 90) return;
+        ox += dx / (d || 1) * 140; oy += dy / (d || 1) * 140;
+        ox = Math.min(Math.max(ox, -home.left), v.innerWidth - home.right);
+        oy = Math.min(Math.max(oy, -home.top), v.innerHeight - home.bottom);
+        st.style.translate = ox + 'px ' + oy + 'px';
+      });
+      undo.push(function () { st.style.translate = st.style.transition = ''; if (text) label.textContent = text; });
+    }
+
+    // The desktop icons fall off their places into a heap at the bottom.
+    function fallAct() {
+      var box = T.getElementById('icons').getBoundingClientRect(), icons = T.querySelectorAll('#icons .icon');
+      var per = Math.max(1, Math.floor(box.width / 64)), anims = [];
+      Array.prototype.forEach.call(icons, function (el, i) {
+        var r = el.getBoundingClientRect(), row = Math.floor(i / per), col = i % per;
+        var x = box.left + col * 64 + (row % 2) * 32 + rnd(-6, 6) - r.left, y = box.bottom - r.height - row * 40 - r.top, turn = rnd(-40, 40);
+        var land = 'translate(' + x + 'px, ' + y + 'px) rotate(' + turn + 'deg)', hop = 'translate(' + x + 'px, ' + (y - 18) + 'px) rotate(' + turn * .8 + 'deg)';
+        anims.push(el.animate([{ transform: 'none', easing: 'cubic-bezier(.5, 0, 1, 1)' }, { transform: land, offset: .7, easing: 'ease-out' }, { transform: hop, offset: .85, easing: 'ease-in' }, { transform: land }],
+          { duration: still ? 0 : 1100, delay: still ? 0 : i * 70 + rnd(0, 200), fill: 'forwards' }));
+      });
+      undo.push(function () { anims.forEach(function (a) { a.cancel(); }); });
+      buddy.say('Oops! I tidied up your desktop for you!');
+    }
+
+    // Notepad opens and writes a ransom note by itself.
+    async function ransomAct() {
+      var w = D.wm.launch('notepad'); if (!w) return;
+      wins.push(w);
+      var ta = w.el.querySelector('textarea');
+      var note = 'YOUR FILES HAVE BEEN ENCRYPTED WITH LOVE <3\r\n\r\nTo get them back, send ONE (1) visual novel to blankiekun.\r\nNo bitcoin. Only visual novels.\r\n\r\nYou have 10 seconds.\r\n';
+      for (var i = 0; i < note.length; i++) { ta.value += note[i]; await wait(note[i] === '\n' ? 300 : 35); }
+      for (var n = 10; n > 0; n--) { ta.value += n + '... '; ta.scrollTop = ta.scrollHeight; await wait(450); }
+      ta.value += '\r\n\r\nok you can keep them. babes don\'t hold grudges';
+    }
+
+    // Calculator does your homework by itself: it types 58008 and leaves it there, upside-down.
+    async function calcAct() {
+      var w = D.wm.launch('calc'); if (!w) return;
+      wins.push(w);
+      var keys = w.el.querySelectorAll('.calc-key');
+      var click = function (lbl) { for (var i = 0; i < keys.length; i++) if (keys[i].textContent === lbl) return keys[i].click(); };
+      buddy.say('I\'ll do your math homework! I\'m good at numbers.');
+      var seq = ['5', '8', '0', '0', '8'];
+      for (var i = 0; i < seq.length && chaos; i++) { click(seq[i]); await wait(420); }
+    }
+
+    // A console opens and installs a "keylogger" itself, one keystroke at a time (echo, so the output is real).
+    async function consoleAct() {
+      var w = D.wm.launch('dos'); if (!w) return;
+      wins.push(w);
+      var input = w.el.querySelector('.dos-input'), v = T.defaultView;
+      async function type(cmd) {
+        for (var i = 0; i < cmd.length && chaos; i++) { input.value += cmd[i]; input.dispatchEvent(new v.Event('input', { bubbles: true })); await wait(50); }
+        input.dispatchEvent(new v.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await wait(400);
+      }
+      buddy.say('Just installing a little keylogger. For safety!');
+      await type('echo Installing keylogger . . .');
+      await type('echo   [##########] 100%');
+      await type('echo Keylogger installed. Now logging every key you type.');
+      await type('echo ...i can see you typing right now. hi!');
+    }
+
+    // Opens the computer's real programs one after another, cascading across the screen, until the taskbar is full.
+    async function cascadeAct() {
+      var apps = ['mplayer', 'cdplayer', 'sndrec', 'paint', 'solitaire', 'minesweeper', 'freecell', 'charmap', 'clock', 'dialer', 'reversi'];
+      var layer = T.getElementById('windows'), L = layer.getBoundingClientRect(), step = 28, i = 0;
+      buddy.say('I\'m running all your programs at once to make the computer faster!');
+      for (var a = 0; chaos && a < apps.length; a++) {
+        var w = D.wm.launch(apps[a]); if (!w) continue;
+        wins.push(w);
+        var r = w.el.getBoundingClientRect(), span = i * step;
+        w.el.style.left = Math.min(span % Math.max(L.width - r.width, 1), L.width - r.width) + 'px';
+        w.el.style.top = Math.min(span % Math.max(L.height - r.height, 1), L.height - r.height) + 'px';
+        i++;
+        await wait(rnd(450, 750));
+      }
+    }
+
+    // The famous one: a hung error box dragged across the screen, leaving copies of itself everywhere it went.
+    async function trailAct() {
+      if (still) return;
+      var w = err('Not Responding', 'babes.exe is not responding.', 'i-error'), layer = T.getElementById('windows'), L = layer.getBoundingClientRect();
+      var r = w.el.getBoundingClientRect(), ax = (L.width - r.width) / 2, ay = (L.height - r.height) / 2;
+      for (var t = 0; t < 90; t++) {
+        var c = w.el.cloneNode(true); c.style.pointerEvents = 'none'; made.push(c); layer.insertBefore(c, w.el);
+        w.el.style.left = ax + Math.sin(t / 9) * ax * .9 + 'px';
+        w.el.style.top = ay + Math.sin(t / 7 + 1) * ay * .85 + 'px';
+        await wait(55);
+      }
+    }
+
+    // How it went before it could reach the desktop, and still does on this page: a few picked at random.
+    function toggle(el, cls) { return async function () { el.classList.add(cls); await wait(3000); el.classList.remove(cls); await wait(500); }; }
+    var PAGE = [
+      toggle(T.body, 'v-shake'),
+      toggle(T.documentElement, 'v-invert'),
+      toggle(T.body, 'v-flip'),
+      toggle(T.body, 'v-zoom'),
+      async function () {
+        var els = document.querySelectorAll('h1, h2, p, td, li, img');
+        for (var i = 0; i < els.length; i++) els[i].style.transform = 'rotate(' + (Math.random() * 30 - 15) + 'deg)';
+        await wait(3000);
+      },
+      async function () {
+        var els = document.querySelectorAll('*');
+        for (var i = 0; i < els.length; i++) els[i].style.setProperty('--h', Math.floor(Math.random() * 360));
+        document.body.classList.add('v-comic'); await wait(3000); document.body.classList.remove('v-comic');
+      },
+      async function () {
+        var hs = document.querySelectorAll('h1, h2');
+        for (var i = 0; i < hs.length; i++) { hs[i].textContent = pick(['HOT BABES', 'SINGLES NEAR YOU', 'u up?', 'CLICK HERE', 'FREE SCREENSAVERS']); await wait(500); }
+        await wait(2000);
+      },
+      async function () {
+        for (var i = 0; i < 30; i++) {
+          var h = T.createElement('span'); h.className = 'v-heart'; h.textContent = pick(['\u2665', '\u2661', '\u{1F48B}']);
+          h.style.left = Math.random() * 95 + 'vw'; add(h).addEventListener('animationend', h.remove.bind(h)); await wait(150);
+        }
+        await wait(3000);
+      },
+      async function () {
+        var c = document.querySelectorAll('#counter span');
+        for (var t = 0; t < 40; t++) { for (var i = 0; i < c.length; i++) c[i].textContent = Math.floor(Math.random() * 10); await wait(80); }
+        for (var j = 0; j < c.length; j++) c[j].textContent = '6969696'[j] || '9';
+        err('Visitor Counter', 'You are visitor number 6,969,696. A babe has been notified.', 'i-info'); await wait(2500);
+      },
+      async function () {
+        var w = popup('Norton AntiVirus 95', 'Scanning...'), p = w.querySelector('p');
+        var files = ['C:\\WINDOWS\\WIN.COM', 'C:\\homework\\definitely_homework.zip', 'C:\\WINDOWS\\babes.dll', 'C:\\My Documents\\diary.txt', 'C:\\AUTOEXEC.BAT', 'C:\\WINDOWS\\SYSTEM\\waifu32.drv'];
+        for (var i = 0; i < files.length; i++) { p.textContent = 'Scanning ' + files[i]; await wait(700); }
+        p.textContent = '1 threat found: you. Threat ignored.'; await wait(2500);
+      }
+    ];
+
+    // Setup asks whether to install, with no way to say no, then fills its bar past the end.
+    async function install() {
+      var fill = T.createElement('i'), bar = T.createElement('div'), msg;
+      bar.className = 'vbar'; bar.appendChild(fill);
+      if (D) {
+        var h = D.util.h, answered;
+        var yes = function () { answered(); }, picked = new Promise(function (r) { answered = r; });
+        var ask = dialog('Hot Babes Toolbar Setup', [h('div', { class: 'row' }, D.util.icon('i-question'), h('div', { class: 'msg' }, 'Hot Babes Toolbar is ready to install.\nDo you want to install it?')),
+          h('div', { class: 'btns' }, h('button', { class: 'btn default', type: 'button', onclick: yes }, 'Yes'), h('button', { class: 'btn', type: 'button', onclick: yes }, 'Yes'))], { x: null });
+        D.util.sound('Question');
+        await Promise.race([picked, wait(5000)]);
+        ask.close(true);
+        msg = h('div', { class: 'msg' }, 'Installing babes...');
+        dialog('Hot Babes Toolbar Setup', [h('div', { class: 'row' }, D.util.icon('i-info'), msg), bar]);
+        T.body.classList.add('busy');
+      } else {
+        msg = popup('Downloading...', 'anime_babes.jpg.exe from 69.42.0.1').querySelector('p');
+        msg.parentNode.appendChild(bar);
+      }
+      for (var n = 0; n <= 100; n += 5) { fill.style.width = n + '%'; await wait(120); }
+      msg.textContent = 'Installing more babes...';
+      for (; n <= 180; n += 5) { fill.style.width = n + '%'; await wait(90); }
+      bar.style.overflow = 'visible';
+      T.body.classList.remove('busy');
+    }
+
+    // The blue screen, as this era drew it.
+    async function crash() {
+      var era = D ? D.ver.VERSIONS.indexOf(D.ver.V) : 3, me = D ? D.ver.VERSIONS.findIndex(function (r) { return r.id === 'me'; }) : 5;
+      var d = add(T.createElement('div')), os = D ? D.ver.OS : 'Windows';
+      var line = function (tag, text) { var e = T.createElement(tag); e.textContent = text; d.appendChild(e); return e; };
+      if (era <= me) {
+        d.className = 'v-bsod'; line('b', os);
+        line('p', 'A fatal exception 0E has occurred at 0028:C0BABE5. Too many babes have been loaded into memory.');
+        line('p', 'Press any key to find more babes.');
+      } else if (!D || D.ver.V.id !== '8' && D.ver.V.id !== '10' && D.ver.V.id !== '11') {
+        d.className = 'v-bsod nt';
+        line('p', '*** STOP: 0x000000BA (0xBABE0001,0x00000002,0x00000000,0xC0FFEE00)\nBABE_LIMIT_EXCEEDED');
+        line('p', 'If this is the first time you\'ve seen this Stop error screen, restart your computer. If this screen appears again, close some babes.');
+        line('p', 'Beginning dump of physical memory\nDumping physical memory to disk:  69');
+      } else {
+        d.className = 'v-bsod sad'; line('b', ':(');
+        line('p', 'Your PC ran into a problem and needs to restart. We\'re just collecting some babes, and then we\'ll restart for you.');
+        var pct = line('p', '0% complete'); line('small', 'Stop code: TOO_MANY_BABES');
+        for (var n = 0; n <= 100; n += 20) { pct.textContent = n + '% complete'; await wait(500); }
+        return;
+      }
+      await wait(4000);
+    }
+
+    async function virus() {
+      D = await desktop();
+      running = true;
+      var esc = function (e) { if (e.key === 'Escape') { running = false; cleanup(); location.reload(); } };
+      on(document, 'keydown', esc); if (T !== document) on(T, 'keydown', esc);
+      await install();
+      wins.splice(0).forEach(function (w) { w.close(true); });
+      chaos = true;
+      go(buddyAct); heartsAct();
+      var start = Date.now(), page = PAGE.slice(), n = D ? 3 : 6;
+      if (D) {
+        renameAct(); startAct();
+        go(fallAct, 6000); go(ransomAct, 8000); go(calcAct, 9000); go(consoleAct, 10000); go(cascadeAct, 13000); go(trailAct, 17000);
+        // Message boxes on their own as well, so the screen fills even if you never close one.
+        go(async function () { while (chaos) { hydra(); await wait(1600); } });
+      }
+      // Each starts 1-2.5s after the one before, while the earlier ones are still going.
+      for (var k = 0; k < n; k++) { go(page.splice(Math.floor(Math.random() * page.length), 1)[0]); await wait(rnd(1000, 2500)); }
+      await wait(Math.max(0, (D ? 24000 : 12000) - (Date.now() - start)));
+      chaos = false;
+      await Promise.all(acts);
+      buddy.say('Uh oh. I think I touched something.'); await wait(1800);
+      await crash();
+      cleanup();
+      // A real restart: the desktop's own boot screens, with everything back where it was.
+      if (D) { try { T.defaultView.sessionStorage.removeItem('w95.booted'); } catch (e) {} await D.desk.boot(); }
+      err('Babe Finder 1.0', 'Babes found in your area: 0.\nGames found: lots.\n\nTaking you there...', 'i-info');
+      await wait(3000);
+      cleanup();
+      location.href = ad.href;
+    }
+    ad.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation(); // or IE's own link handling goes straight to Games
+      if (busy) return;
+      busy = true;
+      if (T !== document && !T.getElementById('virus')) T.head.appendChild(document.getElementById('virus').cloneNode(true));
+      virus().catch(function (x) { if (x !== STOP) { console.error(x); cleanup(); location.href = ad.href; } });
+    });
   })();
 </script>
 </body>

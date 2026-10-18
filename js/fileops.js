@@ -5,6 +5,7 @@ import { h, icon, download } from './util.js';
 import { msgbox } from './dialogs.js';
 import { recycle, parentOf, remove, copy, move, canWrite, rename, restore, shortcut, desktopFolder, FsError } from './fs.js';
 import { confirmDelete } from './props.js';
+import { OS } from './version.js';
 
 export const clip = { nodes: [], cut: false };
 
@@ -56,7 +57,7 @@ export async function del(nodes, parent, shift) {
   const locked = nodes.find(n => !n.user && parentOf(n) !== recycle);
   if (locked) {
     return msgbox({ title: 'Error Deleting File', icon: 'error', parent,
-      text: `Cannot delete ${locked.name}: Access is denied.\n\nIt's one of the files that came with blankiekun 95, so it can't be deleted.` });
+      text: `Cannot delete ${locked.name}: Access is denied.\n\nIt's one of the files that came with ${OS}, so it can't be deleted.` });
   }
   if (confirmDelete() || forGood) {
     const one = nodes.length === 1, n = nodes[0];
@@ -106,7 +107,7 @@ export async function makeShortcut(n, folder, parent) {
   let into = folder;
   if (!canWrite(into)) {
     const b = await msgbox({ title: 'Shortcut', icon: 'question', parent, buttons: ['&Yes', '&No'],
-      text: 'blankiekun 95 cannot create a shortcut here.\n\nDo you want the shortcut to be placed on the desktop instead?' });
+      text: OS + ' cannot create a shortcut here.\n\nDo you want the shortcut to be placed on the desktop instead?' });
     if (b !== 'Yes') return null;
     into = desktopFolder();
   }

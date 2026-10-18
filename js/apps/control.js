@@ -5,6 +5,7 @@
 import { h, icon, store, clamp, wait } from '../util.js';
 import { createWindow, launch, appInfo } from '../wm.js';
 import { msgbox, inputbox } from '../dialogs.js';
+import { OS } from '../version.js';
 
 // ---------- shared pieces ----------
 
@@ -287,7 +288,7 @@ function mouse() {
           schemeSel.value = draft.scheme = name; glyphs(); dirty();
         } }),
         h('button', { class: 'btn', type: 'button', html: '<u>D</u>elete', onclick: () => {
-          if (POINTER_SCHEMES.includes(schemeSel.value)) { msgbox({ title: 'Mouse Properties', text: 'You cannot delete a scheme that came with blankiekun 95.', icon: 'warn', parent: p.win }); return; }
+          if (POINTER_SCHEMES.includes(schemeSel.value)) { msgbox({ title: 'Mouse Properties', text: 'You cannot delete a scheme that came with ' + OS + '.', icon: 'warn', parent: p.win }); return; }
           schemeSel.selectedOptions[0].remove();
           schemeSel.value = draft.scheme = 'Windows Standard'; glyphs(); dirty();
         } })))),
@@ -674,7 +675,7 @@ function installWizard(parent) {
     [back, next, cancel].forEach(b => { b.disabled = true; });
     text.replaceChildren(h('p', null, 'Searching for an installation program on drive A:...'), h('div', { class: 'cp-prog busy' }, h('i')));
     await wait(1200);
-    const r = await msgbox({ title: 'Insert Disk', text: 'Please insert the disk labeled \'blankiekun 95 Plus! Disk 1 of 47\' into drive A:, and then click OK.', icon: 'warn', buttons: ['OK', 'Cancel'], parent: win });
+    const r = await msgbox({ title: 'Insert Disk', text: `Please insert the disk labeled '${OS} Plus! Disk 1 of 47' into drive A:, and then click OK.`, icon: 'warn', buttons: ['OK', 'Cancel'], parent: win });
     if (r === 'OK') {
       await wait(700);
       await msgbox({ title: 'Install Program', text: 'The disk in drive A: appears to be a slice of toast.\n\nRemove the toast, insert a floppy disk, and try again.', icon: 'error', parent: win });
@@ -733,7 +734,7 @@ async function uninstall(parent, name) {
   await wait(600);
   if (cancelled) return;
   marks[STEPS.length - 1].textContent = '✗';
-  await msgbox({ title: 'Remove Programs', text: `blankiekun 95 could not remove ${name} because it is too much fun.`, icon: 'error', parent: win });
+  await msgbox({ title: 'Remove Programs', text: `${OS} could not remove ${name} because it is too much fun.`, icon: 'error', parent: win });
   if (cancelled) return;
   status.textContent = `Uninstall did not complete. ${name} is still installed, and that's probably for the best.`;
   ok.disabled = false;
@@ -813,7 +814,7 @@ function addremove() {
       h('p', null, 'If you have trouble starting Windows, you can use a startup disk to start your computer, run diagnostic programs, and fix many problems.')),
     h('p', { class: 'cp-note' }, 'To create a startup disk, click Create Disk. You will need one floppy disk.'),
     h('div', { class: 'cp-line right' }, h('button', { class: 'btn', type: 'button', html: '<u>C</u>reate Disk...', onclick: async () => {
-      const r = await msgbox({ title: 'Insert Disk', text: 'Label a disk \'blankiekun 95 Startup Disk\' and insert it into drive A:.\n\nCaution: Setup will delete any existing files on this disk.', icon: 'warn', buttons: ['OK', 'Cancel'], parent: p.win });
+      const r = await msgbox({ title: 'Insert Disk', text: `Label a disk '${OS} Startup Disk' and insert it into drive A:.\n\nCaution: Setup will delete any existing files on this disk.`, icon: 'warn', buttons: ['OK', 'Cancel'], parent: p.win });
       if (r !== 'OK') return;
       const pr = progress(p.win, 'Startup Disk', 'Preparing the startup disk...');
       for (let i = 1; i <= 4; i++) { await wait(180); pr.set(i / 10); }
@@ -1053,7 +1054,7 @@ function sounds() {
     group('Sound',
       h('label', { class: 'cp-col', for: 'cp-sname' }, h('span', { html: '<u>N</u>ame:' })),
       h('div', { class: 'cp-line' }, nameSel,
-        h('button', { class: 'btn', type: 'button', html: '<u>B</u>rowse...', onclick: () => msgbox({ title: 'Browse', text: 'blankiekun 95 makes all of its sounds itself, so there are no .WAV files to browse.', icon: 'info', parent: p.win }) })),
+        h('button', { class: 'btn', type: 'button', html: '<u>B</u>rowse...', onclick: () => msgbox({ title: 'Browse', text: OS + ' makes all of its sounds itself, so there are no .WAV files to browse.', icon: 'info', parent: p.win }) })),
       h('div', { class: 'cp-line' },
         h('button', { class: 'btn', type: 'button', html: '<u>D</u>etails...', onclick: () => {
           const n = nameSel.value;
@@ -1071,7 +1072,7 @@ function sounds() {
         } }),
         h('button', { class: 'btn', type: 'button', html: 'D<u>e</u>lete', onclick: async () => {
           const n = schemeSel.value;
-          if (!draft.custom[n]) { msgbox({ title: 'Sounds Properties', text: 'You cannot delete a scheme that came with blankiekun 95.', icon: 'warn', parent: p.win }); return; }
+          if (!draft.custom[n]) { msgbox({ title: 'Sounds Properties', text: 'You cannot delete a scheme that came with ' + OS + '.', icon: 'warn', parent: p.win }); return; }
           if (await msgbox({ title: 'Delete Scheme', text: `Are you sure you want to remove the '${n}' sound scheme?`, icon: 'question', buttons: ['&Yes', '&No'], parent: p.win }) !== 'Yes') return;
           delete draft.custom[n];
           syncSchemes(); p.dirty();

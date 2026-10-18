@@ -8,6 +8,7 @@ import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { saveAs, saveTo } from '../filedlg.js';
 import { sendEnabled, sendDialog } from '../send.js';
+import { OS } from '../version.js';
 
 const KEY = 'w95.inbox';
 const MAX = 2000;              // the worker keeps the first 2,000 characters of a note
@@ -18,10 +19,10 @@ const folderName = f => FOLDERS.find(x => x[0] === f)[1];
 
 // The mail that comes with the Inbox. Only where it is and whether it was read is stored.
 const CANNED = {
-  w1: { important: true, date: +new Date(1995, 7, 24, 11, 30), subject: 'Welcome to blankiekun 95!', body:
+  w1: { important: true, date: +new Date(1995, 7, 24, 11, 30), subject: 'Welcome to ' + OS + '!', body:
 `Hi there,
 
-Welcome to blankiekun 95, my homepage dressed up as a PC from 1995. Everything works: open things, poke around, and save files to the pretend disk (they stay in your browser).
+Welcome to ${OS}, my homepage dressed up as a PC from 1995. Everything works: open things, poke around, and save files to the pretend disk (they stay in your browser).
 
 A bit about me: I'm blank, I live in the US, and I'm learning Japanese by reading visual novels (Umineko, Oretsuba and Subahibi are some favourites).
 

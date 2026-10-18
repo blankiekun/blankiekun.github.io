@@ -3,6 +3,15 @@
 
 import { h, icon, clamp, small, reducedMotion, sound } from './util.js';
 import { closeMenus, openMenu } from './menu.js';
+import { rename, V, VERSIONS } from './version.js';
+
+// From XP on, windows show their contents while dragged instead of an outline, and a
+// maximized window can be pulled down off the top by its title bar.
+const LIVE = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === 'xp');
+// 1.0 tiled its windows: they split the screen between them and can't be moved or sized.
+// Dialogs and fixed-size windows still float over the tiles.
+const TILED = V.id === '1.0';
+let opened = 0;
 
 const layer = document.getElementById('windows');
 const tasks = document.getElementById('tasks');
@@ -16,6 +25,12 @@ let busyTimer = 0;
 export function register(app) { apps.set(app.id, app); }
 export function appInfo(id) { return apps.get(id); }
 export function onRouteChange(fn) { routeListener = fn; }
+// Where a new window's taskbar button goes; the desktop moves it next to its pin from 7 on.
+let placeTask = w => tasks.append(w.task);
+export function onPlaceTask(fn) { placeTask = fn; }
+// What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
+let taskMenu = (win, at) => systemMenu(win, at);
+export function onTaskMenu(fn) { taskMenu = fn; }
 export function all() { return wins.slice(); }
 export function find(pred) { return wins.find(pred); }
 export function activeWindow() { return active; }
@@ -38,10 +53,12 @@ export function launch(id, arg) {
 function area() { return layer.getBoundingClientRect(); }
 
 export function createWindow(o) {
+  o.title = rename(o.title);
   const resizable = o.resizable !== false;
   const win = {
     app: o.app || null, opts: o, state: 'normal', route: o.route || null,
     minW: o.minW || 160, minH: o.minH || 90,
+    tiled: TILED && !o.dialog && resizable, seq: opened++,
   };
 
   const title = h('span', { class: 't' }, o.title);
@@ -81,7 +98,7 @@ export function createWindow(o) {
   const body = h('div', { class: 'win-body' });
   if (o.body) body.append(o.body);
   const el = h('section', {
-    class: 'win' + (o.dialog ? ' dialog' : '') + (o.className ? ' ' + o.className : '') + (o.width === 'auto' ? ' autosize' : ''),
+    class: 'win' + (win.tiled ? ' tiled' : '') + (o.dialog ? ' dialog' : '') + (o.className ? ' ' + o.className : '') + (o.width === 'auto' ? ' autosize' : ''),
     'aria-label': o.title, tabindex: '-1',
   }, bar, body);
 
@@ -93,7 +110,7 @@ export function createWindow(o) {
 
   Object.assign(win, {
     el, body, bar, maxBtn,
-    setTitle(t) { title.textContent = t; el.setAttribute('aria-label', t); if (win.task) { win.task.querySelector('span').textContent = t; win.task.title = t; } },
+    setTitle(t) { t = rename(t); title.textContent = t; el.setAttribute('aria-label', t); if (win.task) { win.task.querySelector('span').textContent = t; win.task.title = t; } },
     setIcon(id) { bar.querySelector('use').setAttribute('href', '#' + id); if (win.task) win.task.querySelector('use').setAttribute('href', '#' + id); },
     setRoute(r) { win.route = r; if (active === win) syncRoute(); },
     close: force => close(win, force),
@@ -145,14 +162,15 @@ export function createWindow(o) {
     win.task.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
       if (win.state !== 'min') focus(win);
-      systemMenu(win, { x: e.clientX, y: e.clientY });
+      taskMenu(win, { x: e.clientX, y: e.clientY }, e);
     });
-    tasks.append(win.task);
+    placeTask(win);
   }
 
   if (o.parent && o.modal !== false && o.dialog) o.parent.modal = win;
   wins.push(win);
   if ((small.matches && !o.dialog) || o.maximized) maximize(win);
+  retile();
   focus(win);
   el.classList.add('opening');
   el.addEventListener('animationend', () => el.classList.remove('opening'), { once: true });
@@ -170,6 +188,8 @@ export function focus(win) {
     win.el.classList.remove('min');
     win.state = win.wasMax ? 'max' : 'normal';
     zoom(win, false);
+    win.task?.classList.remove('min');
+    retile();
   }
   wins.splice(wins.indexOf(win), 1);
   wins.push(win);
@@ -224,11 +244,14 @@ function zoom(win, down) {
 }
 
 export function minimize(win) {
+  // 3.1 shows only minimized windows' buttons, as icons, so the class goes on before the zoom measures it.
+  win.task?.classList.add('min');
   zoom(win, true);
   sound('Minimize');
   win.wasMax = win.state === 'max';
   win.state = 'min';
   win.el.classList.add('min');
+  retile();
   const next = topVisible();
   if (next) focus(next); else blurAll();
 }
@@ -239,6 +262,7 @@ export function maximize(win) {
   win.maxBtn.querySelector('use').setAttribute('href', '#i-restore');
   win.maxBtn.setAttribute('aria-label', 'Restore');
   if (win.opts.onResize) win.opts.onResize();
+  retile();
 }
 
 export function restore(win) {
@@ -249,6 +273,7 @@ export function restore(win) {
   win.maxBtn.setAttribute('aria-label', 'Maximize');
   fit(win);
   if (win.opts.onResize) win.opts.onResize();
+  retile();
 }
 
 export function toggleMax(win) {
@@ -266,6 +291,7 @@ export async function close(win, force) {
   wins.splice(wins.indexOf(win), 1);
   if (win.opts.parent && win.opts.parent.modal === win) win.opts.parent.modal = null;
   win.el.remove();
+  retile();
   if (win.task) { win.task.remove(); sound('Close program'); }
   if (win.opts.onClosed) win.opts.onClosed();
   if (active === win) {
@@ -299,16 +325,18 @@ function center(win) {
 // Moving and resizing draw a dithered outline that follows the pointer;
 // the window itself only jumps there when the button is released.
 function outlineDrag(win, e, mode) {
-  if (e.button !== 0 || (small.matches && !win.opts.dialog)) return;
+  if (e.button !== 0 || (small.matches && !win.opts.dialog) || (win.tiled && win.state === 'normal')) return;
   // A maximized window can't be moved or sized, as in Windows 95.
-  if (win.state === 'max') return;
+  let wasMax = win.state === 'max';
+  if (wasMax && !(LIVE && mode === 'move')) return;
   closeMenus('drag');
   const target = e.currentTarget;
   const A = area();
-  const r = win.el.getBoundingClientRect();
-  const sx = e.clientX, sy = e.clientY;
+  let r = win.el.getBoundingClientRect();
+  let sx = e.clientX, sy = e.clientY;
+  const before = { left: win.el.style.left, top: win.el.style.top, width: win.el.style.width, height: win.el.style.height };
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
-  let outline = null, drawn = -Infinity, snap = false;
+  let outline = null, drawn = -Infinity, snap = false, preview = null, frame = 0;
   // Dragging to the top edge offers to maximize, as later Windows does.
   const canSnap = mode === 'move' && !win.opts.dialog && !win.maxBtn.disabled;
   const id = e.pointerId;
@@ -322,17 +350,34 @@ function outlineDrag(win, e, mode) {
     const dx = ev.clientX - sx, dy = ev.clientY - sy;
     if (!outline) {
       if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
-      outline = h('div', { class: 'drag-outline' });
-      document.body.append(outline);
+      outline = LIVE ? win.el : h('div', { class: 'drag-outline' });
+      if (!LIVE) document.body.append(outline);
+      // A window that fitted its content keeps the size it's given from now on.
+      if (mode !== 'move') win.el.classList.remove('autosize');
       document.body.classList.add('dragging');
       document.body.style.cursor = cursor;
+      if (wasMax) {
+        // Restored under the pointer, keeping its spot along the title bar.
+        const at = (sx - r.left) / r.width;
+        restore(win);
+        const w = win.el.offsetWidth;
+        win.el.style.left = Math.round(ev.clientX - A.left - w * at) + 'px';
+        win.el.style.top = Math.max(0, Math.round(ev.clientY - A.top - (sy - r.top))) + 'px';
+        r = win.el.getBoundingClientRect(); sx = ev.clientX; sy = ev.clientY;
+        return;
+      }
     }
     if (mode === 'move') {
       box.x = clamp(r.left + dx, A.left - r.width + 40, A.right - 40);
       box.y = clamp(r.top + dy, A.top, A.bottom - 20);
       const was = snap;
       snap = canSnap && ev.clientY <= A.top + 2;
-      if (snap !== was) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
+      if (snap !== was && !LIVE) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
+      // A live drag can't stretch the window itself, so a frame shows where it will go.
+      if (snap !== was && LIVE) {
+        if (snap) { preview = h('div', { class: 'snap-preview' }); document.body.append(preview); Object.assign(preview.style, { left: A.left + 6 + 'px', top: A.top + 6 + 'px', width: A.width - 12 + 'px', height: A.height - 12 + 'px' }); }
+        else { preview.remove(); preview = null; }
+      }
     } else {
       const minW = win.minW, minH = win.minH;
       let { left, top, right, bottom } = r;
@@ -343,6 +388,11 @@ function outlineDrag(win, e, mode) {
       Object.assign(box, { x: left, y: top, w: right - left, h: bottom - top });
     }
     // The real XOR rectangle couldn't keep up with the mouse, so redraw in steps.
+    if (LIVE) {
+      place();
+      if (mode !== 'move' && win.opts.onResize && !frame) frame = requestAnimationFrame(() => { frame = 0; win.opts.onResize(); });
+      return;
+    }
     if (ev.timeStamp - drawn < 70) return;
     drawn = ev.timeStamp;
     draw();
@@ -359,17 +409,25 @@ function outlineDrag(win, e, mode) {
     document.removeEventListener('keydown', esc, true);
     try { target.releasePointerCapture(id); } catch {}
     if (!outline) return;
-    outline.remove();
+    if (!LIVE) outline.remove();
+    if (preview) preview.remove();
+    cancelAnimationFrame(frame);
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
-    if (cancel) return;
+    if (cancel) {
+      if (LIVE) { Object.assign(win.el.style, before); if (wasMax) maximize(win); else if (mode !== 'move' && win.opts.onResize) win.opts.onResize(); }
+      return;
+    }
     if (snap) { maximize(win); sound('Maximize'); return; }
+    place();
+    if (mode !== 'move' && win.opts.onResize) win.opts.onResize();
+  }
+  function place() {
     win.el.style.left = Math.round(box.x - A.left) + 'px';
     win.el.style.top = Math.round(box.y - A.top) + 'px';
     if (mode !== 'move') {
       win.el.style.width = Math.round(box.w) + 'px';
       win.el.style.height = Math.round(box.h) + 'px';
-      if (win.opts.onResize) win.opts.onResize();
     }
   }
   const up = ev => end(ev, false);
@@ -396,6 +454,7 @@ function onViewport() {
     else if (w.state !== 'max') fit(w);
     if (w.opts.onResize) w.opts.onResize();
   });
+  retile();
 }
 window.addEventListener('resize', onViewport);
 small.addEventListener('change', onViewport);
@@ -419,8 +478,8 @@ export function systemMenu(win, at) {
     ? [{ label: '&Move', action: () => keyMove(win, 'move') }, '-', { label: '&Close', key: 'Alt+F4', className: 'bold', action: () => close(win) }]
     : [
       { label: '&Restore', disabled: normal, action: () => win.state === 'min' ? focus(win) : restore(win) },
-      { label: '&Move', disabled: !normal, action: () => keyMove(win, 'move') },
-      { label: '&Size', disabled: !normal || !resizable, action: () => keyMove(win, 'size') },
+      { label: '&Move', disabled: !normal || win.tiled, action: () => keyMove(win, 'move') },
+      { label: '&Size', disabled: !normal || !resizable || win.tiled, action: () => keyMove(win, 'size') },
       { label: 'Mi&nimize', disabled: win.state === 'min', action: () => minimize(win) },
       { label: 'Ma&ximize', disabled: win.state === 'max' || win.maxBtn.disabled, action: () => { if (win.state === 'min') focus(win); maximize(win); } },
       '-',
@@ -527,6 +586,17 @@ export function tile(vertical) {
   const list = arrangeable();
   if (!list.length) return;
   remember(list, '&Undo Tile');
+  layout(list, vertical);
+}
+
+// 1.0's tiles, oldest window first, side by side.
+function retile() {
+  if (!TILED) return;
+  const list = wins.filter(w => w.tiled && w.state === 'normal').sort((a, b) => a.seq - b.seq);
+  if (list.length) layout(list, true);
+}
+
+function layout(list, vertical) {
   const A = area();
   const n = list.length;
   const lines = n <= 3 ? n : Math.ceil(Math.sqrt(n));

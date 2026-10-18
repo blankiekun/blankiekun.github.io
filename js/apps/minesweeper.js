@@ -34,8 +34,8 @@ function open() {
   const prefs = { level: 'beginner', marks: true, color: true, custom: { w: 20, h: 12, m: 30 }, ...store.get(PREFS, {}) };
   let cfg, cells, state, opened, flags, timer, seconds, pressed = [], chording = false;
 
-  const counter = h('div', { class: 'ms-led', 'aria-label': 'Mines left', role: 'status' });
-  const clock = h('div', { class: 'ms-led', 'aria-label': 'Seconds' });
+  const counter = h('div', { class: 'ms-led ms-mines', 'aria-label': 'Mines left', role: 'status' });
+  const clock = h('div', { class: 'ms-led ms-time', 'aria-label': 'Seconds' });
   const face = h('button', { class: 'ms-face smile', type: 'button', 'aria-label': 'New game' });
   const board = h('div', { class: 'ms-board', role: 'grid', 'aria-label': 'Minefield', tabindex: '0' });
   const root = h('div', { class: 'ms' + (prefs.color ? '' : ' mono') },
@@ -52,7 +52,15 @@ function open() {
     board.replaceChildren(...cells.map(c => (c.el = h('div', { class: 'c', role: 'gridcell', 'data-i': c.i }))));
     setFace('smile');
     updateCounters();
-    if (win) win.fit();
+    if (win) { win.fit(); scale(); }
+  }
+
+  // Resized or maximized, the whole game zooms to fill the window; otherwise the window fits the field.
+  function scale() {
+    root.style.zoom = '';
+    if (!win || (win.state !== 'max' && !win.el.style.width)) return;
+    const wrap = root.parentElement;
+    root.style.zoom = Math.max(.5, Math.min(wrap.clientWidth / root.offsetWidth, (wrap.clientHeight - bar.offsetHeight) / root.offsetHeight));
   }
 
   function neighbors(c) {
@@ -95,6 +103,9 @@ function open() {
   function updateCounters() {
     counter.innerHTML = sevenSeg(cfg.m - flags);
     clock.innerHTML = sevenSeg(seconds);
+    // From Vista on the counters are plain numbers (css/games.css).
+    counter.dataset.n = cfg.m - flags;
+    clock.dataset.n = seconds;
   }
   function setFace(f) { face.className = 'ms-face ' + f; }
 
@@ -304,7 +315,8 @@ function open() {
   newGame();
   win = createWindow({
     app: 'minesweeper', title: 'Minesweeper', icon: 'i-mine', body: h('div', { class: 'ms-wrap' }, bar, root),
-    width: 'auto', resizable: false, maximizable: false, route: 'minesweeper',
+    width: 'auto', route: 'minesweeper',
+    onResize: scale,
     onClosed: () => clearInterval(timer),
   });
   return win;

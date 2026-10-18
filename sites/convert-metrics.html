@@ -44,7 +44,7 @@ footer { text-align: center; font-size: 14px; display: flex; flex-direction: col
 <body>
 <div class="wrap">
   <h1>How much of each game converts</h1>
-  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. Calls <b>left out on purpose</b>, in code the game can't reach such as a debug menu, count as done. The red bar shows the share that converts fully; it fills its cell when nothing is missing.</p>
+  <p class="lede">Every command call in a game's scripts is either <b>fully converted</b> or has a <b>gap</b>: the converter dropped it, approximated it, or ignored one of its arguments. Calls <b>left out on purpose</b>, in code the game can't reach such as a debug menu, count as done. The red bar shows how much is converted, each call weighted by the share of its arguments the converter reads (a call with one of three arguments ignored counts two thirds, one not converted counts nothing); it fills its cell when nothing is missing. Below the percentage, the share of calls with every argument read.</p>
   <hr class="groove">
 
   <div class="scroll">
@@ -107,10 +107,14 @@ function row(name, engine) {
 
 function render(t, det, name, m) {
   const tot = m.totals;
-  const p = tot.calls ? 100 * (tot.full + (tot.left_out || 0)) / tot.calls : 0;
+  // Weighted by the arguments read (metrics.json's "weighted", since #326), else whole calls.
+  const done = tot.weighted !== undefined ? tot.weighted : tot.full;
+  const p = tot.calls ? 100 * (done + (tot.left_out || 0)) / tot.calls : 0;
+  const pFull = tot.calls ? 100 * (tot.full + (tot.left_out || 0)) / tot.calls : 0;
   // Floor, so a game with any gap never shows 100.0.
   const shown = (Math.floor(p * 10) / 10).toFixed(1);
   t.pct.textContent = shown + "%";
+  if (tot.weighted !== undefined) t.pct.append(el("small", (Math.floor(pFull * 10) / 10).toFixed(1) + "% fully"));
   // Next frame, so the bar grows from the left instead of appearing.
   requestAnimationFrame(() => requestAnimationFrame(() => t.bar.style.setProperty("--p", p)));
 
@@ -132,7 +136,7 @@ function render(t, det, name, m) {
   det.append(sum);
   const table = el("table", null, "kinds");
   const head = table.createTHead().insertRow();
-  for (const h of ["Command", "Calls", "Gaps", "Top reasons"]) {
+  for (const h of ["Command", "Calls", "Gaps", "Read", "Top reasons"]) {
     const th = el("th", h);
     th.scope = "col";
     head.append(th);
@@ -140,7 +144,8 @@ function render(t, det, name, m) {
   const body = table.createTBody();
   for (const [cmd, k] of kinds) {
     const row = body.insertRow();
-    row.append(el("td", cmd), el("td", fmt(k.calls), "n"), el("td", fmt(k.gaps), "n"));
+    const read = k.weighted !== undefined && k.calls ? (Math.floor(1000 * k.weighted / k.calls) / 10).toFixed(1) + "%" : "";
+    row.append(el("td", cmd), el("td", fmt(k.calls), "n"), el("td", fmt(k.gaps), "n"), el("td", read, "n"));
     const ul = el("ul");
     for (const [why, n] of k.reasons) ul.append(el("li", fmt(n) + "  " + why));
     const td = el("td");

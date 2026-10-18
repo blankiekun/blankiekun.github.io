@@ -1,5 +1,8 @@
 /* The shell: desktop, windows, taskbar, menus and the standard controls.
    Colours are variables so Display Properties can swap the scheme at runtime. */
+/* A pixel rebuild of MS Sans Serif, as converted by 98.css; see THIRD-PARTY.txt. */
+@font-face { font-family: "Pixelated MS Sans Serif"; src: url(../fonts/ms_sans_serif.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Pixelated MS Sans Serif"; src: url(../fonts/ms_sans_serif_bold.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 :root {
   color-scheme: light;
   --desktop: #008080;
@@ -21,7 +24,7 @@
   --tip: #ffffe1;
   --link: #0000ff;
 
-  --font-ui: Tahoma, "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Pixelated MS Sans Serif", Tahoma, "MS Sans Serif", "Microsoft Sans Serif", "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
   --font-pixel: "DotGothic16", "MS Gothic", "Osaka", monospace;
   --font-dos: "VT323", "Lucida Console", "Courier New", monospace;
 
@@ -64,7 +67,7 @@ body {
   margin: 0;
   background: var(--desktop);
   color: var(--ink);
-  font: 12px/1.35 var(--font-ui);
+  font: 11px/1.35 var(--font-ui);
   user-select: none; -webkit-user-select: none; /* UI chrome isn't text; reading panes opt back in with user-select: text */
   -webkit-font-smoothing: none;
   font-smooth: never;
@@ -76,6 +79,8 @@ button { font: inherit; color: inherit; }
 a { color: var(--link); }
 :focus { outline: none; }
 :focus-visible { outline: 1px dotted var(--ink); outline-offset: -4px; }
+.win:focus-visible { outline: none; } /* windows show focus by their title bar, never a focus rect */
+:is(input, textarea).field:focus-visible { outline: none; } /* text boxes show focus by their caret */
 .noscript { position: fixed; inset: 0; display: grid; place-items: center; color: #fff; padding: 16px; text-align: center; }
 
 /* ---------- scrollbars ---------- */
@@ -132,6 +137,18 @@ a { color: var(--link); }
 .icon .lnk::after { content: ""; position: absolute; inset: 2px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h4v4H6V2H5v1H4v1H3v1H2v1H0V5h1V4h1V3h1V2h1V1H3z'/%3E%3C/svg%3E") no-repeat; }
 
 .windows { position: absolute; inset: 0; pointer-events: none; }
+/* 98's Channel Bar (js/desktop.js): a column of channel buttons at the top right of the desktop */
+.channelbar { position: absolute; top: 12px; right: 12px; width: 132px; display: flex; flex-direction: column; gap: 3px; padding: 4px; background: #0008; border: 1px solid #fff6; border-radius: 4px; }
+.ch-head { color: #fff; font-weight: bold; text-align: center; padding: 2px 0 4px; }
+.ch-btn { height: 26px; border: 1px solid #0006; border-radius: 3px; color: #fff; font: bold 11px var(--font-ui); text-shadow: 1px 1px #0008; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: var(--arrow); }
+.ch-btn:hover { filter: brightness(1.15); }
+.ch-btn.c1 { background: linear-gradient(#ff5c8a, #b0003a); }
+.ch-btn.c2 { background: linear-gradient(#5aa0ff, #0b3fa8); }
+.ch-btn.c3 { background: linear-gradient(#7ad35a, #1d7a10); }
+.ch-btn.c4 { background: linear-gradient(#ffb347, #b85f00); }
+.ch-btn.c5 { background: linear-gradient(#b67cff, #5410a8); }
+.ch-btn.c6 { background: linear-gradient(#4fd9d9, #00707a); }
+@media (max-width: 640px) { .channelbar { display: none; } }
 .windows > * { pointer-events: auto; }
 
 /* ---------- window chrome ---------- */
@@ -156,7 +173,7 @@ a { color: var(--link); }
 }
 .win.active > .titlebar { background: var(--title); color: var(--title-ink); }
 .titlebar > svg { width: 16px; height: 16px; flex: none; }
-.titlebar .t { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 12px; }
+.titlebar .t { font-weight: bold; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 11px; }
 .tbtns { display: flex; flex: none; }
 .tbtn {
   width: 16px; height: 14px; padding: 0;
@@ -185,6 +202,8 @@ a { color: var(--link); }
 /* The drag rectangle: a dithered frame inverted over whatever is underneath,
    like Win95 with "Show window contents while dragging" turned off. */
 .drag-outline.snap { padding: 6px; }
+/* From XP on the window drags itself; the top-edge maximize shows as a translucent frame. */
+.snap-preview { position: fixed; z-index: 99999; pointer-events: none; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, .7); border-radius: 6px; background: rgba(160, 200, 255, .3); box-shadow: 0 0 0 1px rgba(0, 0, 0, .3); }
 .marquee { position: fixed; z-index: 100000; pointer-events: none; border: 1px dotted #fff; mix-blend-mode: difference; }
 .drag-outline {
   position: fixed; z-index: 100000; pointer-events: none;
@@ -266,14 +285,14 @@ body.dragging iframe { pointer-events: none; }
   padding: 4px 2px calc(2px + env(safe-area-inset-bottom, 0px));
   display: flex; gap: 4px; align-items: stretch;
 }
-.start {
+.taskbar .start {
   display: flex; align-items: center; gap: 3px;
   font-weight: bold; padding: 2px 5px 2px 4px;
   background: var(--face); box-shadow: var(--raised-btn); border: 0; cursor: var(--arrow); color: var(--ink);
 }
-.start[aria-expanded="true"] { box-shadow: var(--sunken); padding: 3px 4px 1px 5px; }
-.start[aria-expanded="true"] span { outline: 1px dotted var(--ink); }
-.start svg { width: 20px; height: 18px; }
+.taskbar .start[aria-expanded="true"] { box-shadow: var(--sunken); padding: 3px 4px 1px 5px; }
+.taskbar .start[aria-expanded="true"] span { outline: 1px dotted var(--ink); }
+.taskbar .start svg { width: 20px; height: 18px; }
 .quick { display: flex; align-items: center; gap: 1px; padding: 0 4px 0 6px; flex: none; box-shadow: inset 1px 0 var(--shadow), inset 2px 0 var(--hilite), inset -1px 0 var(--shadow), inset -2px 0 var(--hilite); }
 .quick:empty { display: none; }
 .quick button { touch-action: none; width: 22px; height: 22px; padding: 0; border: 0; background: var(--face); display: grid; place-items: center; cursor: var(--arrow); }
@@ -350,8 +369,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 /* ---------- boot & shutdown ---------- */
 .screen { position: fixed; inset: 0; z-index: 90000; }
 .screen.post { background: #000; color: #aaa; font: 20px/1.2 var(--font-dos); padding: 16px; }
-.screen.splash {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+/* Boot screens, one look per era (desktop.js bootParts) */
+.screen.splash { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: #000; color: #fff; cursor: var(--wait); }
+.splash .copy { position: absolute; bottom: 24px; font: 12px Arial, sans-serif; }
+.screen.splash.b-9x {
+  gap: 0;
   background:
     radial-gradient(ellipse 18% 9% at 18% 22%, #fff 0 60%, transparent 100%),
     radial-gradient(ellipse 12% 7% at 26% 25%, #f4f8ff 0 55%, transparent 100%),
@@ -361,7 +383,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
     radial-gradient(ellipse 18% 8% at 84% 72%, #fff 0 55%, transparent 100%),
     radial-gradient(ellipse 12% 6% at 60% 86%, #f4f8ff 0 55%, transparent 100%),
     linear-gradient(#3a6ee8, #79a6f6 60%, #9cc0fa);
-  color: #000; cursor: var(--wait);
+  color: #000;
 }
 .splash .logo { display: flex; align-items: center; gap: 18px; }
 .splash .logo svg { width: 120px; height: 108px; filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, .25)); }
@@ -369,6 +391,82 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 .splash .word small { display: block; font: italic bold 15px/1.4 Arial, sans-serif; }
 .splash .word b { display: block; font: bold 64px/0.95 "Franklin Gothic Medium", "Arial Black", Arial, sans-serif; letter-spacing: -.03em; }
 .splash .word b sup { font-size: 34px; vertical-align: top; color: #c00000; margin-left: 4px; }
+
+/* 1.0 and 2.0: a ruled box on white */
+.splash.b-1 { background: #fff; color: #000; }
+.splash.b-1 .box { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 48px; border: 3px double #000; box-shadow: 6px 6px 0 #0000aa; background: #fff; font: 20px var(--font-pixel); }
+.splash.b-1 .box b { font: bold 44px/1 var(--font-pixel); letter-spacing: .08em; padding: 4px 18px; color: #fff; background: #0000aa; }
+.splash.b-1 .copy { font: 16px var(--font-pixel); }
+
+/* 3.1: the flag beside the name on white, the copyright under it */
+.splash.b-3 { background: #fff; color: #000; }
+.splash.b-3 .logo svg { width: 132px; height: 118px; filter: none; }
+.splash.b-3 .word b { font: bold 58px/1 "Times New Roman", serif; letter-spacing: -.02em; }
+.splash.b-3 .word i { display: block; margin-top: 8px; font: italic 22px "Times New Roman", serif; }
+.splash.b-3 .copy { position: static; font: 13px "Pixelated MS Sans Serif", Arial, sans-serif; }
+
+/* 2000: a white band with the logo over black, then a blue block bar */
+.splash.b-2000 { gap: 14px; }
+.splash.b-2000 .band { display: flex; align-items: center; gap: 22px; padding: 26px 56px; width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
+  background: linear-gradient(#fff 70%, #d8e0f0); color: #000; box-shadow: 0 6px 0 #1a3e9c, 0 10px 0 #5c80d8; }
+.splash.b-2000 .band svg { width: 76px; height: 68px; flex: none; }
+.splash.b-2000 .word b { font: bold 40px/1 Arial, sans-serif; }
+.splash.b-2000 .word b sup { color: #000; font-size: 40px; vertical-align: baseline; margin-left: 8px; }
+.splash.b-2000 .word span { display: block; font: bold 18px Arial, sans-serif; color: #1a3e9c; }
+.splash.b-2000 .word small { display: block; margin-top: 6px; font: 12px Arial, sans-serif; color: #555; }
+.splash.b-2000 .prog { width: min(560px, calc(100vw - 32px)); height: 14px; margin-top: 18px; box-sizing: border-box; padding: 2px; border: 1px solid #888; }
+.splash.b-2000 .prog i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(90deg, #2c4fb8 0 9px, transparent 9px 11px); animation: fill2000 2.2s steps(24) forwards; }
+.splash.b-2000 p { margin: 0; font: 12px Tahoma, "Pixelated MS Sans Serif", sans-serif; }
+@keyframes fill2000 { to { width: 100%; } }
+
+/* XP: the logo on black, three blue blocks running through a rounded track */
+.splash.b-xp { gap: 40px; }
+.splash.b-xp .logo svg { width: 92px; height: 82px; filter: drop-shadow(0 0 6px #fff3); }
+.splash.b-xp .word b { font: bold 54px/1 "Franklin Gothic Medium", Arial, sans-serif; font-style: normal; }
+.splash.b-xp .word b sup { color: #ff7a00; font: italic bold 28px Arial, sans-serif; }
+.splash .track { position: relative; width: 120px; height: 14px; border: 2px solid #b2b2b2; border-radius: 5px; overflow: hidden; }
+.splash.b-xp .track span { position: absolute; top: 2px; left: 0; display: flex; gap: 2px; animation: xpblocks 2.4s linear infinite; }
+.splash.b-xp .track i { width: 8px; height: 10px; border-radius: 1px; background: linear-gradient(#2838c7, #3d5cef 30%, #8e9fff 50%, #3d5cef 70%, #2838c7); }
+.splash.b-xp .copy { left: 24px; }
+.splash.b-xp .maker { position: absolute; bottom: 20px; right: 28px; font: italic bold 20px Arial, sans-serif; }
+@keyframes xpblocks { from { transform: translateX(-32px); } to { transform: translateX(124px); } }
+
+/* Vista: a green glow running through a thin bar on black */
+.splash.b-vista .track { width: 180px; height: 9px; border: 1px solid #555; border-radius: 3px; }
+.splash.b-vista .track i { position: absolute; inset: 0; width: 70px; background: linear-gradient(90deg, transparent, #2bd34b 30%, #c8ffcf 50%, #2bd34b 70%, transparent);
+  animation: vistaglow 1.6s linear infinite; }
+@keyframes vistaglow { from { transform: translateX(-70px); } to { transform: translateX(180px); } }
+.splash.b-vista .copy, .splash.b-7 .copy { font: 13px "Segoe UI", Arial, sans-serif; color: #ccc; }
+
+/* 7: "Starting" under a glowing flag that brightens in */
+.splash.b-7 .logo svg { width: 100px; height: 90px; animation: glow7 2.2s ease-out forwards; }
+.splash.b-7 p { margin: 0; font: 18px "Segoe UI", Arial, sans-serif; letter-spacing: .02em; }
+@keyframes glow7 { from { opacity: 0; transform: scale(.7); filter: blur(6px) drop-shadow(0 0 30px #fff); } 60% { opacity: 1; filter: blur(0) drop-shadow(0 0 26px #fffc); } to { opacity: 1; transform: none; filter: drop-shadow(0 0 10px #fff6); } }
+
+/* 8, 10 and 11: the four-pane logo over a ring of orbiting dots */
+.splash.b-metro { gap: 70px; }
+.splash .panes { width: 110px; height: 110px; background: linear-gradient(90deg, transparent 47%, #000 47% 53%, transparent 53%), linear-gradient(transparent 47%, #000 47% 53%, transparent 53%), #00a3ef; }
+[data-win="10"] .splash .panes { background-color: #0078d7; transform: perspective(300px) rotateY(-14deg); clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 92%); }
+[data-win="11"] .splash .panes { width: 96px; height: 96px; background: linear-gradient(90deg, transparent 48%, #000 48% 52%, transparent 52%), linear-gradient(transparent 48%, #000 48% 52%, transparent 52%), linear-gradient(135deg, #3ccdfd, #0078d4 60%, #0050a8); }
+.splash .spin { position: relative; width: 40px; height: 40px; }
+.splash .spin i { position: absolute; inset: 0; opacity: 0; animation: orbit 5.5s infinite; animation-delay: calc(var(--n) * .24s); }
+.splash .spin i::before { content: ""; position: absolute; top: 0; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #fff; }
+@keyframes orbit {
+  0% { transform: rotate(225deg); opacity: 1; animation-timing-function: ease-out; }
+  7% { transform: rotate(345deg); animation-timing-function: linear; }
+  30% { transform: rotate(455deg); animation-timing-function: ease-in-out; }
+  39% { transform: rotate(690deg); animation-timing-function: linear; }
+  70% { transform: rotate(815deg); opacity: 1; animation-timing-function: ease-out; }
+  75% { transform: rotate(945deg); animation-timing-function: ease-out; }
+  76%, 100% { transform: rotate(945deg); opacity: 0; }
+}
+/* Phones: shrink the big logos to fit */
+@media (max-width: 600px) { .splash :is(.logo, .box, .band) { zoom: .55; } .splash.b-2000 .band { width: auto; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash :is(.prog i, .track span, .track i, .logo svg, .spin i) { animation: none !important; }
+  .splash .spin i, .splash.b-2000 .prog i { opacity: 1; width: 100%; }
+}
+
 .splash .bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 18px;
   background: linear-gradient(90deg, #00f, #0ff, #0f0, #ff0, #f00, #f0f, #00f) 0 0 / 50% 100%;
@@ -379,6 +477,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--ink); margin: 
 .screen.wait div { background: linear-gradient(#2c4fb8, #6e9cf0); padding: 40px 60px; font: bold 20px Arial, sans-serif; text-align: center; color: #fff; }
 .screen.off { display: grid; place-items: center; background: #000; color: #ff7f00; font: bold clamp(20px, 4vw, 34px)/1.3 Arial, sans-serif; text-align: center; padding: 16px; cursor: var(--hand); }
 .screen.off small { display: block; color: #555; font-size: 13px; font-weight: normal; margin-top: 30px; }
+.screen.off.dos { place-items: start; color: #aaa; font: 20px/1.2 var(--font-dos); text-align: left; }
 .screen.dim { position: absolute; background: repeating-conic-gradient(#000 0 25%, transparent 0 50%) 0 0 / 2px 2px; z-index: 9000; }
 body.shutting .taskbar::after { content: ""; position: absolute; inset: 0; background: repeating-conic-gradient(#000 0 25%, transparent 0 50%) 0 0 / 2px 2px; }
 .screen.logon { background: var(--desktop); z-index: 45000; }

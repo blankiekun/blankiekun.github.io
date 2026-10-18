@@ -19,11 +19,14 @@
 <link rel="stylesheet" href="css/calc.css">
 <link rel="stylesheet" href="css/comm.css">
 <link rel="stylesheet" href="css/mplayer.css">
+<link rel="stylesheet" href="css/versions.css">
 <script>
   // Apply saved display settings before first paint so the desktop doesn't flash teal.
   try {
     const d = JSON.parse(localStorage.getItem('w95.display') || 'null');
     if (d && d.vars) for (const [k, v] of Object.entries(d.vars)) document.documentElement.style.setProperty(k, v);
+    // Which Windows skin css/versions.css draws (see js/version.js).
+    document.documentElement.dataset.win = JSON.parse(localStorage.getItem('w95.version') || '"95"');
   } catch {}
 </script>
 </head>
@@ -66,6 +69,25 @@
   <symbol id="i-computer" viewBox="0 0 16 16" shape-rendering="crispEdges">
     <path fill="#000" d="M2 1h12v10H2z"/><path fill="#c0c0c0" d="M3 2h10v8H3z"/><path fill="#008080" d="M4 3h8v6H4z"/>
     <path fill="#808080" d="M6 11h4v1H6z"/><path fill="#000" d="M2 12h12v3H2z"/><path fill="#c0c0c0" d="M3 13h10v1H3z"/>
+  </symbol>
+  <symbol id="i-setup" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 3h10v8H1z"/><path fill="#c0c0c0" d="M2 4h8v6H2z"/><path fill="#008080" d="M3 5h6v4H3z"/>
+    <path fill="#000" d="M0 12h12v3H0z"/><path fill="#c0c0c0" d="M1 13h10v1H1z"/>
+    <path fill="#000" d="M10 0h6v8h-6z"/><path fill="#fff" d="M11 1h4v6h-4z"/><path fill="#000080" d="M11 1h4v2h-4z"/><path fill="#000" d="M12 5h2v1h-2z"/>
+  </symbol>
+  <symbol id="i-reversi" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M0 0h16v16H0z"/><path fill="#008000" d="M1 1h14v14H1z"/><path fill="#000" d="M7 1h1v14H7zM1 7h14v1H1z"/>
+    <path fill="#000" d="M2 3h1V2h3v1h1v3H6v1H3V6H2zM9 10h1V9h3v1h1v3h-1v1h-3v-1H9z"/>
+    <path fill="#fff" d="M9 3h1V2h3v1h1v3h-1v1h-3V6H9zM2 10h1V9h3v1h1v3H6v1H3v-1H2z"/>
+  </symbol>
+  <symbol id="i-clock" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M5 0h6v1h2v1h1v2h1v2h1v4h-1v2h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1v-2H0V6h1V4h1V2h1V1h2z"/>
+    <path fill="#fff" d="M5 1h6v1h2v2h1v2h1v4h-1v2h-1v2h-2v1H5v-1H3v-2H2v-2H1V6h1V4h1V2h2z"/>
+    <path fill="#000" d="M7 3h2v1H7zM7 12h2v1H7zM3 7h1v2H3zM12 7h1v2h-1zM7 4h1v5H7zM8 8h3v1H8z"/>
+  </symbol>
+  <symbol id="i-stickynotes" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#b39700" d="M1 1h14v10l-4 4H1z"/><path fill="#fff5a0" d="M2 2h12v8h-4v4H2z"/><path fill="#e8d250" d="M2 2h12v2H2zM11 11h3l-3 3z"/>
+    <path fill="#8a7a20" d="M4 6h8v1H4zM4 8h6v1H4zM4 10h5v1H4z"/>
   </symbol>
   <symbol id="i-shutdown" viewBox="0 0 16 16" shape-rendering="crispEdges">
     <path fill="#000" d="M2 1h12v10H2z"/><path fill="#c0c0c0" d="M3 2h10v8H3z"/><path fill="#000080" d="M4 3h8v6H4z"/>
@@ -430,6 +452,229 @@
   <symbol id="i-arrow" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#000" d="M1 7h9V3h1v1h1v1h1v1h1v1h1v2h-1v1h-1v1h-1v1h-1v1h-1V9H1z"/></symbol>
   <symbol id="i-speaker" viewBox="0 0 16 16" shape-rendering="crispEdges"><path fill="#000" d="M2 6h3V5h1V4h1V3h1v10H7v-1H6v-1H5v-1H2z"/><path fill="#808080" d="M10 5h1v6h-1zM12 4h1v8h-1z"/></symbol>
 </svg>
+
+<!-- Each era's own icons. Elements here have no id until the script below gives the ones whose
+     data-win names this version their data-id, replacing the 95 symbol of that name. 2000 on share
+     one set of shapes; what tells them apart is the gradients (g-*): 256-colour 2000/Me, glossy XP, glassy Vista/7, flat 8-11. -->
+<svg id="era-icons" width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient data-id="g-edge" data-win="2000 me" x2="0" y2="1"><stop stop-color="#3c3c3c"/></linearGradient>
+    <linearGradient data-id="g-case" data-win="2000 me" x2="0" y2="1"><stop stop-color="#f4f1e8"/><stop offset="1" stop-color="#c7c1ae"/></linearGradient>
+    <linearGradient data-id="g-screen" data-win="2000 me" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5a8fc4"/><stop offset="1" stop-color="#0a3a74"/></linearGradient>
+    <linearGradient data-id="g-shine" data-win="2000 me" x2="0" y2="1"><stop stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient data-id="g-folder" data-win="2000 me" x2="0" y2="1"><stop stop-color="#fff3a8"/><stop offset="1" stop-color="#e3c04c"/></linearGradient>
+    <linearGradient data-id="g-folderback" data-win="2000 me" x2="0" y2="1"><stop stop-color="#dcb444"/><stop offset="1" stop-color="#b08414"/></linearGradient>
+    <linearGradient data-id="g-blue" data-win="2000 me" x2="0" y2="1"><stop stop-color="#6c9ad6"/><stop offset="1" stop-color="#1a4a9a"/></linearGradient>
+    <linearGradient data-id="g-paper" data-win="2000 me" x2="0" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#e6e6e6"/></linearGradient>
+    <linearGradient data-id="g-green" data-win="2000 me" x2="0" y2="1"><stop stop-color="#7ccc58"/><stop offset="1" stop-color="#2a8a18"/></linearGradient>
+    <linearGradient data-id="g-red" data-win="2000 me" x2="0" y2="1"><stop stop-color="#f07a58"/><stop offset="1" stop-color="#b8300c"/></linearGradient>
+    <linearGradient data-id="g-wood" data-win="2000 me" x2="0" y2="1"><stop stop-color="#f2dcae"/><stop offset="1" stop-color="#c89c58"/></linearGradient>
+    <linearGradient data-id="g-bin" data-win="2000 me" x2="0" y2="1"><stop stop-color="#e6e6e6"/><stop offset="1" stop-color="#9a9a9a"/></linearGradient>
+    <linearGradient data-id="g-globe" data-win="2000 me" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8d4ff"/><stop offset="1" stop-color="#1c5cb4"/></linearGradient>
+    <linearGradient data-id="g-cd" data-win="2000 me" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8f8f8"/><stop offset="0.33" stop-color="#e0d0f0"/><stop offset="0.67" stop-color="#c8e8dc"/><stop offset="1" stop-color="#b4bcc8"/></linearGradient>
+    <linearGradient data-id="g-sky" data-win="2000 me" x2="0" y2="1"><stop stop-color="#3a6ea5"/><stop offset="1" stop-color="#a8c8e8"/></linearGradient>
+    <linearGradient data-id="g-edge" data-win="xp" x2="0" y2="1"><stop stop-color="#4e5a6a"/></linearGradient>
+    <linearGradient data-id="g-edge" data-win="vista 7" x2="0" y2="1"><stop stop-color="#27303b"/></linearGradient>
+    <linearGradient data-id="g-edge" data-win="8 10 11" x2="0" y2="1"><stop stop-opacity="0"/></linearGradient>
+    <linearGradient data-id="g-case" data-win="xp" x2="0" y2="1"><stop stop-color="#fdfdfd"/><stop offset="1" stop-color="#c3cad5"/></linearGradient>
+    <linearGradient data-id="g-case" data-win="vista 7" x2="0" y2="1"><stop stop-color="#66717e"/><stop offset=".5" stop-color="#2a313a"/><stop offset="1" stop-color="#11151a"/></linearGradient>
+    <linearGradient data-id="g-case" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#2d3e50"/></linearGradient>
+    <linearGradient data-id="g-screen" data-win="xp" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a8dcff"/><stop offset="1" stop-color="#1f62d0"/></linearGradient>
+    <linearGradient data-id="g-screen" data-win="vista 7" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6fd0ff"/><stop offset="1" stop-color="#0a3c78"/></linearGradient>
+    <linearGradient data-id="g-screen" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#2a8ad4"/></linearGradient>
+    <linearGradient data-id="g-shine" data-win="xp vista 7" x2="0" y2="1"><stop stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient data-id="g-shine" data-win="8 10 11" x2="0" y2="1"><stop stop-opacity="0"/></linearGradient>
+    <linearGradient data-id="g-folder" data-win="xp" x2="0" y2="1"><stop stop-color="#fff1b8"/><stop offset="1" stop-color="#efc04a"/></linearGradient>
+    <linearGradient data-id="g-folder" data-win="vista 7" x2="0" y2="1"><stop stop-color="#fdf0c4"/><stop offset="1" stop-color="#dfb150"/></linearGradient>
+    <linearGradient data-id="g-folder" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#ffd35c"/></linearGradient>
+    <linearGradient data-id="g-folderback" data-win="xp" x2="0" y2="1"><stop stop-color="#eab53c"/><stop offset="1" stop-color="#c98a12"/></linearGradient>
+    <linearGradient data-id="g-folderback" data-win="vista 7" x2="0" y2="1"><stop stop-color="#dcae4c"/><stop offset="1" stop-color="#a8761c"/></linearGradient>
+    <linearGradient data-id="g-folderback" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#e8a92c"/></linearGradient>
+    <linearGradient data-id="g-blue" data-win="xp" x2="0" y2="1"><stop stop-color="#7fb6ff"/><stop offset="1" stop-color="#1f5fd6"/></linearGradient>
+    <linearGradient data-id="g-blue" data-win="vista 7" x2="0" y2="1"><stop stop-color="#79c6f5"/><stop offset="1" stop-color="#1559a8"/></linearGradient>
+    <linearGradient data-id="g-blue" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#1e7fd6"/></linearGradient>
+    <linearGradient data-id="g-paper" data-win="xp" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e2e8f2"/></linearGradient>
+    <linearGradient data-id="g-paper" data-win="vista 7" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#edf2f7"/></linearGradient>
+    <linearGradient data-id="g-paper" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#fff"/></linearGradient>
+    <linearGradient data-id="g-green" data-win="xp" x2="0" y2="1"><stop stop-color="#8ee05a"/><stop offset="1" stop-color="#2e9c16"/></linearGradient>
+    <linearGradient data-id="g-green" data-win="vista 7" x2="0" y2="1"><stop stop-color="#a6ea86"/><stop offset="1" stop-color="#23802a"/></linearGradient>
+    <linearGradient data-id="g-green" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#3aa935"/></linearGradient>
+    <linearGradient data-id="g-red" data-win="xp" x2="0" y2="1"><stop stop-color="#ff8a5c"/><stop offset="1" stop-color="#d23a10"/></linearGradient>
+    <linearGradient data-id="g-red" data-win="vista 7" x2="0" y2="1"><stop stop-color="#ff7a6a"/><stop offset="1" stop-color="#a81a12"/></linearGradient>
+    <linearGradient data-id="g-red" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#e2483a"/></linearGradient>
+    <linearGradient data-id="g-wood" data-win="xp vista 7" x2="0" y2="1"><stop stop-color="#f6e2b6"/><stop offset="1" stop-color="#d4a862"/></linearGradient>
+    <linearGradient data-id="g-wood" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#e8c27a"/></linearGradient>
+    <linearGradient data-id="g-bin" data-win="xp" x2="0" y2="1"><stop stop-color="#e2ebf5"/><stop offset="1" stop-color="#7b94b4"/></linearGradient>
+    <linearGradient data-id="g-bin" data-win="vista 7" x1="0" x2="1"><stop stop-color="#cfe9fa" stop-opacity=".75"/><stop offset=".5" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#8fb8d6" stop-opacity=".75"/></linearGradient>
+    <linearGradient data-id="g-bin" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#6c7a89"/></linearGradient>
+    <linearGradient data-id="g-globe" data-win="xp" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c4e6ff"/><stop offset="1" stop-color="#2a6ed6"/></linearGradient>
+    <linearGradient data-id="g-globe" data-win="vista 7" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b0f2ff"/><stop offset="1" stop-color="#0b55a2"/></linearGradient>
+    <linearGradient data-id="g-globe" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#2a8ad4"/></linearGradient>
+    <linearGradient data-id="g-cd" data-win="xp vista 7" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4f8ff"/><stop offset=".4" stop-color="#f4d6ef"/><stop offset=".6" stop-color="#d6f4e6"/><stop offset="1" stop-color="#bcc6d8"/></linearGradient>
+    <linearGradient data-id="g-cd" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#c8d0da"/></linearGradient>
+    <linearGradient data-id="g-sky" data-win="xp" x2="0" y2="1"><stop stop-color="#3f8ff0"/><stop offset="1" stop-color="#cfe6ff"/></linearGradient>
+    <linearGradient data-id="g-sky" data-win="vista 7" x2="0" y2="1"><stop stop-color="#0b3040"/><stop offset="1" stop-color="#2a9ab0"/></linearGradient>
+    <linearGradient data-id="g-sky" data-win="8 10 11" x2="0" y2="1"><stop stop-color="#1b6f8c"/></linearGradient>
+  </defs>
+
+  <!-- 2000 to 11: smooth 32×32 icons coloured by the g-* gradients above -->
+  <symbol data-id="i-computer" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="22.5" y="8.5" width="7" height="20" rx="1" fill="url(#g-case)" stroke="url(#g-edge)"/>
+    <path d="M24 12h4M24 14h4" stroke="#8a929c"/><circle cx="26" cy="25" r="1" fill="#3fbf2a"/>
+    <rect x="1.5" y="3.5" width="22" height="18" rx="2" fill="url(#g-case)" stroke="url(#g-edge)"/>
+    <rect x="4" y="6" width="17" height="13" fill="url(#g-screen)"/><path d="M4 6h17v5L4 15z" fill="url(#g-shine)"/>
+    <path d="M10 22h6l1 3H9z" fill="#8f99a5"/><rect x="5.5" y="25.5" width="15" height="3" rx="1" fill="url(#g-case)" stroke="url(#g-edge)"/>
+  </symbol>
+  <symbol data-id="i-network" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <circle cx="19" cy="13" r="11.5" fill="url(#g-globe)" stroke="url(#g-edge)"/>
+    <path d="M11 7c3 1 4 4 7 3s3 3 6 2M15 20c1-3 4-3 5-6M24 19c1-2 3-2 4-3" stroke="#4fae3c" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10 6a11 11 0 0 1 14-2v4H10z" fill="url(#g-shine)"/>
+    <rect x="1.5" y="14.5" width="15" height="11" rx="1" fill="url(#g-case)" stroke="url(#g-edge)"/>
+    <rect x="3.5" y="16.5" width="11" height="7" fill="url(#g-screen)"/>
+    <rect x="4.5" y="27.5" width="9" height="2.5" rx="1" fill="url(#g-case)" stroke="url(#g-edge)"/>
+  </symbol>
+  <symbol data-id="i-folder" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M2.5 6.5h10l2 3h15v17h-27z" fill="url(#g-folderback)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M2.5 12.5h27v14h-27z" fill="url(#g-folder)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M3 13.5h26" stroke="#fff" opacity=".7"/>
+  </symbol>
+  <symbol data-id="i-folder-open" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M2.5 6.5h10l2 3h13v17h-25z" fill="url(#g-folderback)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <rect x="5.5" y="8.5" width="19" height="14" fill="url(#g-paper)" stroke="#9aa6b4"/>
+    <path d="M7.5 13.5h24l-4 13h-25z" fill="url(#g-folder)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+  </symbol>
+  <symbol data-id="i-programs" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <use href="#i-folder"/>
+    <rect x="11.5" y="15.5" width="14" height="9" fill="url(#g-paper)" stroke="url(#g-edge)"/><path d="M11.5 15.5h14v2.5h-14z" fill="url(#g-blue)"/>
+  </symbol>
+  <symbol data-id="i-docs" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M2.5 6.5h10l2 3h15v17h-27z" fill="url(#g-folderback)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M8.5 3.5h11l4 4v9h-15z" fill="url(#g-paper)" stroke="#9aa6b4"/><path d="M11 8h8M11 11h10" stroke="#9fb2cf"/>
+    <path d="M2.5 14.5h27v12h-27z" fill="url(#g-folder)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M3 15.5h26" stroke="#fff" opacity=".7"/>
+  </symbol>
+  <symbol data-id="i-trash" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M6.5 8.5h19l-2.5 20h-14z" fill="url(#g-bin)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M11 12l1.2 13.5M16 12v13.5M21 12l-1.2 13.5" stroke="#fff" opacity=".6"/>
+    <ellipse cx="16" cy="8.5" rx="9.5" ry="2.5" fill="url(#g-paper)" stroke="url(#g-edge)"/>
+  </symbol>
+  <symbol data-id="i-trash-full" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <use href="#i-trash"/>
+    <path d="M8.5 8.5l3-6 5 2 1.5 4z" fill="url(#g-paper)" stroke="#8090a0" stroke-linejoin="round"/>
+    <path d="M15.5 8.5l4-6 5 3-1 3z" fill="#f4f0c8" stroke="#8090a0" stroke-linejoin="round"/>
+  </symbol>
+  <symbol data-id="i-ie" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M8 17h16a8 8 0 1 0-2.4 5.7" fill="none" stroke="url(#g-blue)" stroke-width="5"/>
+    <path d="M4 26c-3-6 9-18 22-20 5-.5 3 4-2 8" fill="none" stroke="#f2b51a" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-dos" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="1.5" y="4.5" width="29" height="23" rx="2" fill="url(#g-blue)" stroke="url(#g-edge)"/>
+    <rect x="4" y="9" width="24" height="16" fill="#000"/>
+    <path d="M7 13l3 2.5L7 18M12 19h6" stroke="#ccc" stroke-width="1.6" fill="none"/>
+  </symbol>
+  <symbol data-id="i-notepad" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="5.5" y="4.5" width="21" height="25" rx="1" fill="url(#g-paper)" stroke="url(#g-edge)"/>
+    <path d="M5.5 4.5h21v4h-21z" fill="url(#g-blue)"/>
+    <path d="M9 13h14M9 17h14M9 21h14M9 25h9" stroke="#9fb2cf"/>
+    <path d="M10 2v5M14 2v5M18 2v5M22 2v5" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-txt" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M6.5 2.5h13l6 6v21h-19z" fill="url(#g-paper)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M19.5 2.5v6h6" fill="#dfe5ee" stroke="#7b8796" stroke-linejoin="round"/>
+    <path d="M10 13h12M10 17h12M10 21h12M10 25h8" stroke="#8aa0c0"/>
+  </symbol>
+  <symbol data-id="i-paint" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M16 4.5C8 4.5 2.5 9.5 2.5 16s5 10.5 10.5 10.5c3 0 3-3 1-4s0-4 3-4h6c4 0 6.5-2 6.5-5 0-5-6-9-13.5-9z" fill="url(#g-wood)" stroke="url(#g-edge)"/>
+    <circle cx="8.5" cy="14" r="2.2" fill="#e8302a"/><circle cx="12.5" cy="9" r="2.2" fill="#f2c41b"/><circle cx="19" cy="8.5" r="2.2" fill="#2e9c16"/><circle cx="24.5" cy="12" r="2.2" fill="#2f63d8"/>
+    <path d="M30 19L19.5 28.5" stroke="#8a4a1a" stroke-width="2.5" stroke-linecap="round"/><path d="M19.5 28.5l-4 2.5 1.5-4z" fill="#222"/>
+  </symbol>
+  <symbol data-id="i-calc" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="5.5" y="1.5" width="21" height="29" rx="2" fill="url(#g-case)" stroke="url(#g-edge)"/>
+    <rect x="8.5" y="4.5" width="15" height="6" fill="#d9ecd0" stroke="#7a8a70"/>
+    <path fill="#7b8796" d="M9 14h4v3H9zM14 14h4v3h-4zM9 18.5h4v3H9zM14 18.5h4v3h-4zM9 23h4v3H9zM14 23h4v3h-4z"/>
+    <path fill="url(#g-red)" d="M19 14h4v12h-4z"/>
+  </symbol>
+  <symbol data-id="i-ctrl" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="2.5" y="3.5" width="27" height="25" rx="2" fill="url(#g-case)" stroke="url(#g-edge)"/>
+    <path d="M9 8v16M16 8v16M23 8v16" stroke="#59626e" stroke-width="1.5"/>
+    <rect x="5.5" y="17" width="7" height="4" rx="1" fill="url(#g-red)"/><rect x="12.5" y="10" width="7" height="4" rx="1" fill="url(#g-green)"/><rect x="19.5" y="14" width="7" height="4" rx="1" fill="url(#g-blue)"/>
+  </symbol>
+  <symbol data-id="i-display" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="2.5" y="2.5" width="27" height="20" rx="2" fill="url(#g-case)" stroke="url(#g-edge)"/>
+    <rect x="5" y="5" width="22" height="15" fill="url(#g-sky)"/><path d="M5 15c6-4 13-3 22 0v5H5z" fill="url(#g-green)"/>
+    <path d="M12 23h8l1 3H11z" fill="#8f99a5"/><rect x="7.5" y="26.5" width="17" height="3" rx="1" fill="url(#g-case)" stroke="url(#g-edge)"/>
+  </symbol>
+  <symbol data-id="i-find" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M19 19l9 9" stroke="#59626e" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="13" cy="13" r="9" fill="url(#g-globe)" fill-opacity=".45" stroke="url(#g-blue)" stroke-width="3"/>
+    <path d="M9 10a5 5 0 0 1 5-3" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-run" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="6.5" y="4.5" width="24" height="21" rx="2" fill="url(#g-paper)" stroke="url(#g-edge)"/><path d="M6.5 6.5a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v3h-24z" fill="url(#g-blue)"/>
+    <path d="M1.5 18.5h9v-4l7.5 6.5-7.5 6.5v-4h-9z" fill="url(#g-green)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+  </symbol>
+  <symbol data-id="i-helpbook" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M6.5 3.5h18a2 2 0 0 1 2 2v23h-18a2 2 0 0 1-2-2z" fill="url(#g-blue)" stroke="url(#g-edge)"/>
+    <path d="M8.5 25.5h18v3h-18a1.5 1.5 0 0 1 0-3z" fill="url(#g-paper)" stroke="url(#g-edge)"/>
+    <path d="M13 11a3.5 3.5 0 1 1 4.5 3.3c-1 .5-1.5 1-1.5 2.7M16 20.5v.5" stroke="#ffd640" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-shutdown" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="2.5" y="2.5" width="27" height="27" rx="5" fill="url(#g-red)" stroke="url(#g-edge)"/>
+    <path d="M2.5 7.5a5 5 0 0 1 5-5h17a5 5 0 0 1 5 5v5h-27z" fill="url(#g-shine)"/>
+    <path d="M11 11a7 7 0 1 0 10 0" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M16 7v8" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-setup" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <use href="#i-computer"/>
+    <circle cx="24" cy="23" r="7.5" fill="url(#g-cd)" stroke="#7a8490"/><circle cx="24" cy="23" r="2" fill="#fff" stroke="#9aa3ad"/>
+  </symbol>
+  <symbol data-id="i-cd" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="13.5" fill="url(#g-cd)" stroke="#7a8490"/>
+    <circle cx="16" cy="16" r="4" fill="#fff" stroke="#9aa3ad"/><circle cx="16" cy="16" r="1.5" fill="#d8dde3"/>
+    <path d="M7 10a11 11 0 0 1 6-5" stroke="#fff" stroke-width="2" fill="none" opacity=".8"/>
+  </symbol>
+  <symbol data-id="i-drive" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <path d="M2.5 14.5l4-6h19l4 6v9h-27z" fill="url(#g-case)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+    <path d="M3 14.5h26" stroke="#59626e"/><path d="M6 19h12" stroke="#8a929c" stroke-width="2"/><circle cx="25" cy="19" r="1.4" fill="#3fbf2a"/>
+  </symbol>
+  <symbol data-id="i-mail" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="2.5" y="6.5" width="27" height="19" rx="1" fill="url(#g-paper)" stroke="url(#g-edge)"/>
+    <path d="M3 7.5l13 10 13-10" fill="none" stroke="#6b7b94"/>
+  </symbol>
+  <symbol data-id="i-inbox" data-win="2000 me xp vista 7 8 10 11" viewBox="0 0 32 32">
+    <rect x="7.5" y="3.5" width="17" height="13" fill="url(#g-paper)" stroke="#6b7b94"/><path d="M8 4.5l8 6 8-6" fill="none" stroke="#6b7b94"/>
+    <path d="M1.5 17.5h8l2 3h9l2-3h8v10h-29z" fill="url(#g-blue)" stroke="url(#g-edge)" stroke-linejoin="round"/>
+  </symbol>
+
+  <!-- 1.0 to 3.1: Program Manager's group window and File Manager's cabinet, 16-colour pixels -->
+  <symbol data-id="i-computer" data-win="1.0 2.0 3.1" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 2h14v12H1z"/><path fill="#fff" d="M2 4h12v9H2z"/><path fill="#000080" d="M2 3h12v1H2z"/>
+    <path fill="#ff0000" d="M3 6h2v2H3z"/><path fill="#008000" d="M7 6h2v2H7z"/><path fill="#0000ff" d="M11 6h2v2h-2z"/>
+    <path fill="#808000" d="M3 10h2v2H3z"/><path fill="#008080" d="M7 10h2v2H7z"/>
+  </symbol>
+  <symbol data-id="i-programs" data-win="1.0 2.0 3.1" viewBox="0 0 16 16"><use href="#i-computer"/></symbol>
+  <symbol data-id="i-network" data-win="1.0 2.0 3.1" viewBox="0 0 16 16"><use href="#i-computer"/></symbol>
+  <symbol data-id="i-folder-open" data-win="1.0 2.0 3.1" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 4h10v11H3z"/><path fill="#c0c0c0" d="M4 5h8v9H4z"/><path fill="#000" d="M4 9h8v1H4z"/>
+    <path fill="#808080" d="M7 6h2v1H7zM7 11h2v1H7z"/>
+    <path fill="#000" d="M5 1h3v1h4v3H5z"/><path fill="#ffff00" d="M6 2h1v1h4v1H6z"/>
+  </symbol>
+  <symbol data-id="i-dos" data-win="1.0 2.0 3.1" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M1 2h14v12H1z"/><path fill="#fff" d="M2 3h12v10H2z"/>
+    <path fill="#000" d="M3 5h3v1H3zM3 6h1v3H3zM3 9h3v1H3zM7 6h1v1H7zM7 9h1v1H7zM9 5h1v1h1v2h1v2h1v1h-1v-1h-1V8h-1V6H9zM3 11h4v1H3z"/>
+  </symbol>
+  <symbol data-id="i-notepad" data-win="1.0 2.0 3.1" viewBox="0 0 16 16" shape-rendering="crispEdges">
+    <path fill="#000" d="M3 2h10v13H3z"/><path fill="#ffff00" d="M4 3h8v11H4z"/>
+    <path fill="#000" d="M4 1h1v3H4zM6 1h1v3H6zM8 1h1v3H8zM10 1h1v3h-1z"/>
+    <path fill="#808000" d="M5 6h6v1H5zM5 8h6v1H5zM5 10h6v1H5zM5 12h4v1H5z"/>
+  </symbol>
+</svg>
+<script>
+  // Swap in this version's icons (and gradients) before any code draws one.
+  for (const el of document.querySelectorAll(`#era-icons [data-win~="${document.documentElement.dataset.win}"]`)) {
+    document.getElementById(el.dataset.id)?.remove();
+    el.id = el.dataset.id;
+  }
+</script>
 
 <div id="desktop" class="desktop">
   <div id="icons" class="icons" role="listbox" aria-label="Desktop" aria-orientation="vertical"></div>

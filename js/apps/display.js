@@ -6,6 +6,7 @@ import { createWindow, launch } from '../wm.js';
 import { msgbox } from '../dialogs.js';
 import { screenSaverTab, setScreenSaver, loadScreenSaver, SAVERS } from './screensaver.js';
 import { setSoundMap } from './control.js';
+import { V } from '../version.js';
 
 const KEY = 'w95.display';
 
@@ -38,15 +39,22 @@ function patternUrl(bits) {
 const CLOUDS = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='s' x2='0' y2='1'><stop offset='0' stop-color='#2c5fd6'/><stop offset='1' stop-color='#a4c6fb'/></linearGradient><filter id='b' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='12'/></filter></defs><rect width='800' height='600' fill='url(#s)'/><g fill='#fff' filter='url(#b)'><ellipse cx='150' cy='120' rx='120' ry='38'/><ellipse cx='220' cy='100' rx='70' ry='40'/><ellipse cx='610' cy='90' rx='150' ry='36'/><ellipse cx='560' cy='70' rx='60' ry='34'/><ellipse cx='260' cy='450' rx='200' ry='48'/><ellipse cx='330' cy='420' rx='90' ry='46'/><ellipse cx='680' cy='400' rx='130' ry='40'/><ellipse cx='480' cy='280' rx='80' ry='22' opacity='.7'/><ellipse cx='90' cy='300' rx='70' ry='20' opacity='.6'/></g></svg>`;
 const SETUP = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x2='0' y2='1'><stop offset='0' stop-color='#0000a8'/><stop offset='1' stop-color='#000010'/></linearGradient></defs><rect width='800' height='600' fill='url(#g)'/><text x='40' y='90' font-family='Arial Black, Arial, sans-serif' font-style='italic' font-weight='900' font-size='54' fill='#fff'>blankiekun<tspan fill='#ff4040' font-size='30' dy='-22'>95</tspan></text></svg>`;
 const RIVETS = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'><rect width='32' height='32' fill='#2050a8'/><path fill='#5080d8' d='M0 0h32v1H0zM0 0h1v32H0z'/><path fill='#103070' d='M0 31h32v1H0zM31 0h1v32h-1z'/><path fill='#80a8f0' d='M4 4h2v1H4zM4 4h1v2H4zM26 4h2v1h-2zM26 4h1v2h-1zM4 26h2v1H4zM4 26h1v2H4zM26 26h2v1h-2zM26 26h1v2h-1z'/><path fill='#082050' d='M6 5h1v2H5V6h1zM28 5h1v2h-2V6h1zM6 27h1v2H5v-1h1zM28 27h1v2h-2v-1h1z'/></svg>`;
-const WALLPAPERS = {
+export const WALLPAPERS = {
   '(None)': null,
   'Blue Rivets': { url: svgUrl(RIVETS), size: 'auto', repeat: 'repeat' },
   'Clouds': { url: svgUrl(CLOUDS), size: 'cover', repeat: 'no-repeat' },
   'Setup': { url: svgUrl(SETUP), size: 'cover', repeat: 'no-repeat' },
+  // The later versions' default wallpapers, drawn with gradients.
+  'Bliss': { url: 'radial-gradient(ellipse 120% 55% at 25% 108%, #6cbb34 0 55%, transparent 56%), radial-gradient(ellipse 90% 45% at 90% 112%, #4f9e25 0 60%, transparent 61%), radial-gradient(ellipse 18% 6% at 70% 22%, #fff, transparent), linear-gradient(#2a6bd4, #6ba5ec 45%, #c4ddf6 72%)', size: 'cover', repeat: 'no-repeat' },
+  'Aurora': { url: 'radial-gradient(ellipse 70% 30% at 35% 62%, rgba(140, 230, 120, .55), transparent 70%), radial-gradient(ellipse 60% 25% at 70% 42%, rgba(70, 170, 255, .5), transparent 70%), linear-gradient(135deg, #0d4433, #0a2a4a 60%, #051a2c)', size: 'cover', repeat: 'no-repeat' },
+  'Harmony': { url: 'radial-gradient(circle at 50% 45%, #bfe6ff 0, #4aa3ec 12%, transparent 34%), radial-gradient(ellipse 80% 40% at 30% 80%, rgba(120, 200, 80, .35), transparent 70%), linear-gradient(#2a74c4, #0f3d7a)', size: 'cover', repeat: 'no-repeat' },
+  'Hero': { url: 'linear-gradient(100deg, transparent 52%, rgba(120, 200, 255, .5) 58%, transparent 66%), radial-gradient(ellipse 30% 45% at 62% 50%, #7cc8ff, #1a73d9 45%, transparent 70%), linear-gradient(#001a40, #003b86)', size: 'cover', repeat: 'no-repeat' },
+  'Bloom': { url: 'radial-gradient(ellipse 30% 40% at 50% 58%, #e4f0ff, #3b82f6 45%, transparent 70%), radial-gradient(ellipse 50% 30% at 50% 70%, rgba(0, 70, 200, .5), transparent 70%), linear-gradient(#d5e6ff, #8fb6f2)', size: 'cover', repeat: 'no-repeat' },
 };
 
 const SCHEMES = {
   'Windows Standard': { face: '#c0c0c0', title: '#000080', desktop: '#008080' },
+  'Windows Classic': { face: '#d4d0c8', title: '#0a246a', desktop: '#3a6ea5' },
   'Brick': { face: '#c2bfa5', title: '#800000', desktop: '#3f1010' },
   'Desert': { face: '#d5ccbb', title: '#008080', desktop: '#a28d68' },
   'Eggplant': { face: '#90b0a8', title: '#588078', desktop: '#400040' },
@@ -61,7 +69,7 @@ const SCHEMES = {
   'Wheat': { face: '#d6d5a8', title: '#808000', desktop: '#808040' },
 };
 
-const COLORS = ['#008080', '#000000', '#808080', '#c0c0c0', '#800000', '#ff0000', '#808000', '#ffff00',
+export const COLORS = ['#008080', '#000000', '#808080', '#c0c0c0', '#800000', '#ff0000', '#808000', '#ffff00',
   '#008000', '#00ff00', '#004040', '#00ffff', '#000080', '#0000ff', '#800080', '#ff00ff', '#3a6ea5', '#a28d68'];
 
 function mix(hex, to, t) {
@@ -92,14 +100,19 @@ function varsFor(s) {
 }
 
 // Paint's Set As Wallpaper puts the picture here.
-const PAINTED = 'Paint Wallpaper';
+export const PAINTED = 'Paint Wallpaper';
 
-const DEFAULTS = { pattern: '(None)', wallpaper: '(None)', color: '#008080', scheme: 'Windows Standard', depth: 'High Color (16 bit)' };
+const DEFAULTS = { pattern: '(None)', wallpaper: V.wallpaper, color: V.desktop, scheme: V.scheme, depth: 'High Color (16 bit)' };
 const DEPTHS = { '16 Color': '16', '256 Color': '256', 'High Color (16 bit)': '', 'True Color (24 bit)': '' };
-function current() { return { ...DEFAULTS, ...(store.get(KEY, null) || {}) }; }
+export function current() { return { ...DEFAULTS, ...(store.get(KEY, null) || {}) }; }
 
 export function setWallpaper(dataUrl, tile) {
-  const s = { ...current(), wallpaper: PAINTED, painted: dataUrl, paintedTile: tile };
+  setDesktop({ wallpaper: PAINTED, painted: dataUrl, paintedTile: tile });
+}
+
+// Settings (10 and 11) changes the desktop straight away, one choice at a time.
+export function setDesktop(patch) {
+  const s = { ...current(), ...patch };
   store.set(KEY, { ...s, vars: varsFor(s) });
   applyDisplay(s);
 }
@@ -132,7 +145,9 @@ function listbox(options, value, onpick, label) {
   return lb;
 }
 
-function open() {
+function open(arg) {
+  // 10 and 11 send Display to Settings, as the real ones did; only its screen saver link comes back here.
+  if (['10', '11'].includes(V.id) && arg !== 'Screen Saver') return launch('settings', 'Background');
   const draft = current();
   const screen = h('div', { class: 'dp-screen' }, h('div', { class: 'dp-win' }, h('div', { class: 'dp-tb' }), h('div', { class: 'dp-wb' })));
   const monitor = h('div', { class: 'dp-monitor', 'aria-hidden': 'true' }, screen, h('div', { class: 'dp-stand' }));
@@ -216,10 +231,11 @@ function open() {
   body.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); win.close(); } });
 
   const win = createWindow({
-    app: 'display', title: 'Display Properties', icon: 'i-display', body, dialog: true, taskbar: true,
+    app: 'display', title: arg === 'Screen Saver' ? 'Screen Saver Settings' : 'Display Properties', icon: 'i-display', body, dialog: true, taskbar: true,
     resizable: false, width: 'auto', route: 'display', help: () => launch('help'),
     onClosed: () => ss.destroy(),
   });
+  if (arg === 'Screen Saver') tabs.children[1].click();
   preview();
   applyBtn.disabled = true;
   return win;
@@ -229,7 +245,7 @@ function open() {
 // Plus!-style themes made from what's already here: one pick sets the colours,
 // wallpaper, pattern, event sounds and screen saver together.
 const THEMES = {
-  'Windows Default': { scheme: 'Windows Standard', color: '#008080', wallpaper: '(None)', pattern: '(None)', saver: 'flying', sounds: null },
+  'Windows Default': { scheme: V.scheme, color: V.desktop, wallpaper: V.wallpaper, pattern: '(None)', saver: 'flying', sounds: null },
   'Inside Your Computer': { scheme: 'Slate', color: '#3a5070', wallpaper: '(None)', pattern: 'Circuits', saver: 'pipes',
     sounds: { 'Default sound': 'Ding', 'Asterisk': 'Chord', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' } },
   'Mystery': { scheme: 'Storm', color: '#000000', wallpaper: '(None)', pattern: '(None)', saver: 'mystify',

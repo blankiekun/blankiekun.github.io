@@ -44,3 +44,57 @@
 @media (prefers-reduced-motion: no-preference) {
   .hr-board .cd { transition: left .25s ease-out, top .25s ease-out, width .25s, height .25s; }
 }
+
+/* ---------- Reversi ---------- */
+.rv { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rv-board { flex: 1; min-height: 0; aspect-ratio: 1; max-width: 100%; margin: 4px auto; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr);
+  gap: 1px; background: #000; box-shadow: 0 0 0 1px #000; }
+.rv-board.can { cursor: var(--cross); }
+.rv-cell { border: 0; padding: 0; background: #008000; display: grid; place-items: center; cursor: inherit; min-width: 0; }
+.rv-cell i { width: 76%; height: 76%; border-radius: 50%; }
+.rv-cell[data-v="1"] i { background: #000; box-shadow: inset -2px -2px rgba(255, 255, 255, .25); }
+.rv-cell[data-v="2"] i { background: #fff; box-shadow: inset -2px -2px rgba(0, 0, 0, .3); }
+.rv-cell.hint { background: #00c000; }
+/* 1.0 and 2.0 drew it in black and white */
+:is([data-win="1.0"], [data-win="2.0"]) .rv-cell { background: #fff; }
+:is([data-win="1.0"], [data-win="2.0"]) .rv-cell[data-v="2"] i { box-shadow: inset 0 0 0 2px #000; }
+:is([data-win="1.0"], [data-win="2.0"]) .rv-cell.hint { background: #c0c0c0; }
+
+/* ---------- Vista on: the games redrawn (8 to 11 bundled none, so they keep 7's) ----------
+   Felt with a lit middle, rounded cards that cast a shadow, see-through slots, and
+   Minesweeper's glossy blue squares with the time and mines counted under the field. */
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) :is(.sol-board, .fc-board, .hr-board) { background: radial-gradient(ellipse at 50% 35%, #44a244, #1f6f1f 65%, #134f13); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .cd { border-radius: calc(var(--cw) * .07); background: linear-gradient(#fff, #f1f1f1); box-shadow: inset 0 0 0 1px #8c8c8c, 1px 1px 3px rgba(0, 0, 0, .4); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .cd-back { inset: 4px; border-radius: calc(var(--cw) * .04); box-shadow: 0 0 0 1px rgba(0, 0, 0, .35); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .cd-back::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(160deg, rgba(255, 255, 255, .35), transparent 45%); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .cd-court { border-color: rgba(0, 0, 0, .3); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) :is(.sol-slot, .fc-cell) { border: 1px solid rgba(255, 255, 255, .45); border-radius: calc(var(--cw) * .07); background: rgba(255, 255, 255, .08); box-shadow: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .sol-slot.stock::after { border-color: rgba(255, 255, 255, .5); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .fc-king { display: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .fc-board .cd.sel { filter: none; background: linear-gradient(#e4f0ff, #c6defc); box-shadow: inset 0 0 0 2px #3c8ee0, 1px 1px 3px rgba(0, 0, 0, .4); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .hr-board .cd.focus::after { inset: 0; outline: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px #3c8ee0; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .hr-name { text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
+
+/* The window is often wider than the field, so the whole body under the menus gets the gradient. */
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-wrap { background: linear-gradient(#eef4fc, #c9d9ef); }
+:is([data-win="vista"], [data-win="7"]) .ms-wrap > .menubar { background: var(--face); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms { background: none; padding: 10px; box-shadow: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-top { order: 1; padding: 2px 0 0; box-shadow: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-face { display: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-led { display: flex; align-items: center; gap: 5px; padding: 0; background: none; box-shadow: none; line-height: normal; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-led svg { display: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-led::after { content: attr(data-n); min-width: 30px; padding: 1px 6px; text-align: center; background: #fff; border: 1px solid #8ea6c8; border-radius: 3px; font-variant-numeric: tabular-nums; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-led::before { content: ""; width: 16px; height: 16px; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-time { order: -1; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-time::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23556' d='M6 0h4v2H6z'/%3E%3Ccircle cx='8' cy='9' r='6' fill='%23fff' stroke='%23335' stroke-width='1.5'/%3E%3Cpath d='M8 9V5' stroke='%23c00' stroke-width='1.5'/%3E%3C/svg%3E"); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-mines { flex-direction: row-reverse; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-mines::before { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1v14M1 8h14M3 3l10 10M13 3 3 13' stroke='%23222' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='5' fill='%23222'/%3E%3Ccircle cx='6.5' cy='6.5' r='1.5' fill='%23fff'/%3E%3C/svg%3E"); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board { gap: 1px; padding: 1px; background: #5a7bb0; box-shadow: 0 0 0 1px #2f4f86; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c { font-family: var(--font-ui); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c:not(.o) { border-radius: 2px; background-color: #4d82d6; background-image: linear-gradient(#b4d0f6, #5d90dc 50%, #3d70c4); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c:not(.o, .f, .down):hover { background-image: linear-gradient(#dcebff, #8db6f0 50%, #6a9ae2); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c.o { background-color: #dde5f0; box-shadow: none; }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c.down { border-radius: 0; background: #dde5f0; box-shadow: none; }
+/* A flag keeps its drawing over the tile's colour. */
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c.f { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Cpath fill='%23f00' d='M7 3h2v1H7zM5 4h4v1H5zM4 5h5v1H4zM5 6h4v1H5zM7 7h2v1H7z'/%3E%3Cpath d='M8 8h1v2H8zM6 10h4v1H6zM4 11h8v2H4z'/%3E%3C/svg%3E") center no-repeat, linear-gradient(#b4d0f6, #5d90dc 50%, #3d70c4); }
+:is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .ms-board .c.m.hit { background-color: #e84a4a; }

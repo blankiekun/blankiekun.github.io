@@ -7,6 +7,10 @@ import { msgbox, inputbox, about } from '../dialogs.js';
 import { saveAs, openFile, saveTo } from '../filedlg.js';
 import { sendEnabled, sendButton, sendDialog, tipLater } from '../send.js';
 import { formatTime, formatDate } from './control.js';
+import { V } from '../version.js';
+
+// 11's Notepad: File, Edit and View with a settings gear, a status bar, and no bevels.
+const ELEVEN = V.id === '11';
 
 const stamp = () => formatTime() + ' ' + formatDate();
 
@@ -86,39 +90,50 @@ function open(arg) {
     sendDialog({ kind: 'note', parent: win, text: t });
   }
 
-  const bar = menubar([
-    { label: '&File', items: () => [
-      { label: '&New', action: async () => { if (await confirmSave()) load('Untitled', ''); } },
-      { label: '&Open...', action: openDialog },
-      { label: '&Save', key: 'Ctrl+S', action: () => save() },
-      ...(sendEnabled() && own ? [{ label: 'S&end to blankiekun...', icon: 'i-mail', action: sendNote }] : []),
-      { label: 'Save &As...', action: () => save(true) },
-      '-',
-      { label: '&Print', action: () => import('./printers.js').then(m => m.printJob(name, '<pre style="white-space:pre-wrap;font:10pt monospace">' + esc(ta.value) + '</pre>')) },
-      '-',
-      { label: 'E&xit', action: () => win.close() },
+  const undo = { label: '&Undo', key: 'Ctrl+Z', action: () => { ta.focus(); document.execCommand('undo'); } };
+  const clipItems = [
+    { label: 'Cu&t', key: 'Ctrl+X', action: () => { ta.focus(); document.execCommand('cut'); } },
+    { label: '&Copy', key: 'Ctrl+C', action: () => { ta.focus(); document.execCommand('copy'); } },
+    { label: '&Paste', key: 'Ctrl+V', action: async () => { try { insert(await navigator.clipboard.readText()); } catch { ta.focus(); } } },
+    { label: 'De&lete', key: 'Del', action: () => insert('') },
+  ];
+  const findItems = [
+    { label: '&Find...', key: ELEVEN ? 'Ctrl+F' : null, action: findDialog },
+    { label: 'Find &Next', key: 'F3', action: findNext },
+  ];
+  const selItems = [
+    { label: 'Select &All', key: ELEVEN ? 'Ctrl+A' : null, action: () => { ta.focus(); ta.select(); } },
+    { label: 'Time/&Date', key: 'F5', action: () => insert(stamp()) },
+  ];
+  const wrapItem = () => ({ label: '&Word Wrap', checked: wrap, action: () => { wrap = !wrap; ta.classList.toggle('nowrap', !wrap); } });
+  const fileItems = () => [
+    { label: '&New', action: async () => { if (await confirmSave()) load('Untitled', ''); } },
+    { label: '&Open...', key: ELEVEN ? 'Ctrl+O' : null, action: openDialog },
+    { label: '&Save', key: 'Ctrl+S', action: () => save() },
+    ...(sendEnabled() && own ? [{ label: 'S&end to blankiekun...', icon: 'i-mail', action: sendNote }] : []),
+    { label: 'Save &As...', action: () => save(true) },
+    '-',
+    { label: '&Print', action: () => import('./printers.js').then(m => m.printJob(name, '<pre style="white-space:pre-wrap;font:10pt monospace">' + esc(ta.value) + '</pre>')) },
+    '-',
+    { label: 'E&xit', action: () => win.close() },
+  ];
+  const helpItems = () => [
+    { label: '&Help Topics', action: () => launch('help') }, '-',
+    { label: '&About Notepad', action: () => about('Notepad', 'i-notepad', win) },
+  ];
+  const bar = menubar(ELEVEN ? [
+    { label: '&File', items: fileItems },
+    { label: '&Edit', items: () => [undo, '-', ...clipItems, '-', ...findItems, '-', ...selItems] },
+    { label: '&View', items: () => [
+      { label: '&Status bar', checked: !info.hidden, action: () => { info.hidden = !info.hidden; } },
+      wrapItem(),
     ] },
-    { label: '&Edit', items: () => [
-      { label: '&Undo', key: 'Ctrl+Z', action: () => { ta.focus(); document.execCommand('undo'); } },
-      '-',
-      { label: 'Cu&t', key: 'Ctrl+X', action: () => { ta.focus(); document.execCommand('cut'); } },
-      { label: '&Copy', key: 'Ctrl+C', action: () => { ta.focus(); document.execCommand('copy'); } },
-      { label: '&Paste', key: 'Ctrl+V', action: async () => { try { insert(await navigator.clipboard.readText()); } catch { ta.focus(); } } },
-      { label: 'De&lete', key: 'Del', action: () => insert('') },
-      '-',
-      { label: 'Select &All', action: () => { ta.focus(); ta.select(); } },
-      { label: 'Time/&Date', key: 'F5', action: () => insert(stamp()) },
-      '-',
-      { label: '&Word Wrap', checked: wrap, action: () => { wrap = !wrap; ta.classList.toggle('nowrap', !wrap); } },
-    ] },
-    { label: '&Search', items: () => [
-      { label: '&Find...', action: findDialog },
-      { label: 'Find &Next', key: 'F3', action: findNext },
-    ] },
-    { label: '&Help', items: () => [
-      { label: '&Help Topics', action: () => launch('help') }, '-',
-      { label: '&About Notepad', action: () => about('Notepad', 'i-notepad', win) },
-    ] },
+    { label: '\u2699', items: helpItems },
+  ] : [
+    { label: '&File', items: fileItems },
+    { label: '&Edit', items: () => [undo, '-', ...clipItems, '-', ...selItems, '-', wrapItem()] },
+    { label: '&Search', items: () => findItems },
+    { label: '&Help', items: helpItems },
   ]);
 
   ta.addEventListener('keydown', e => {
@@ -127,7 +142,21 @@ function open(arg) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
   });
 
-  const root = h('div', { class: 'np' }, bar, ta);
+  // Ln/Col count from the caret, the way 11's status bar does.
+  const pos = h('span'), info = h('div', { class: 'np-status', hidden: !ELEVEN },
+    pos, h('span', null, '100%'), h('span', null, 'Windows (CRLF)'), h('span', null, 'UTF-8'));
+  const where = () => {
+    const before = ta.value.slice(0, ta.selectionStart).split('\n');
+    pos.textContent = `Ln ${before.length}, Col ${before.at(-1).length + 1}`;
+  };
+  if (ELEVEN) for (const ev of ['input', 'keyup', 'pointerup', 'select', 'focus']) ta.addEventListener(ev, where);
+  if (ELEVEN) ta.addEventListener('keydown', e => {
+    const k = (e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase();
+    const map = { f: findDialog, o: openDialog };
+    if (map[k]) { e.preventDefault(); map[k](); }
+  });
+
+  const root = h('div', { class: 'np' + (ELEVEN ? ' np11' : '') }, bar, ta, info);
   let sendBtn = null, foot = null;
   if (sendEnabled()) {
     sendBtn = sendButton('Send to blankiekun...', sendNote);

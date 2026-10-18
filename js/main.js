@@ -1,12 +1,15 @@
 // Boots the desktop, registers the programs, and maps the URL hash to windows.
 
 import { register, launch, appInfo, activeWindow, maximize } from './wm.js';
-import { initDesktop, boot, freshBoot } from './desktop.js';
-import { store } from './util.js';
+import { initDesktop, boot } from './desktop.js';
+import { OS } from './version.js';
+import { initScrollbars } from './fxscroll.js';
+
+document.title = OS;
 
 const MODULES = ['ie', 'explorer', 'notepad', 'minesweeper', 'solitaire', 'conscripter', 'paint', 'calc', 'dos', 'display', 'system',
   'freecell', 'hearts', 'wordpad', 'charmap', 'sndrec', 'cdplayer', 'screensaver', 'control', 'taskman', 'disktools',
-  'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers', 'regedit', 'dialer', 'winpopup', 'sysmon'];
+  'hyperterm', 'inbox', 'mplayer', 'clipbrd', 'printers', 'regedit', 'dialer', 'winpopup', 'sysmon', 'setup', 'reversi', 'clock', 'stickynotes', 'restore', 'settings'];
 
 // Older links to this site used #welcome, #chimimouryou, #convert and #conscripter.
 const LEGACY = { welcome: 'ie/home', chimimouryou: 'ie/chimimouryou', convert: 'ie/convert', conscripter: 'ie/conscripter' };
@@ -47,11 +50,11 @@ async function start() {
     if (location.hash.slice(1) !== cur) route(location.hash);
   });
   if (!route(location.hash)) launch('ie', 'home');
-  if (freshBoot && store.get('w95.welcome', true)) launch('welcome');
 }
 
 if (solo) document.body.classList.add('solo'); else boot();
 start();
+initScrollbars();
 
 // Offline: sw.js keeps the site's files as they load. The ones loaded before it ran, and
 // CONscripter's engine (only fetched once a game starts), are handed to it the first time.

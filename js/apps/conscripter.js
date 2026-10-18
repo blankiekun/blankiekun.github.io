@@ -17,12 +17,13 @@ const NO_TIP = 'w95.cons.notip';
 const NO_OFFLINE_TIP = 'w95.cons.noofflinetip';
 const FLAGS = 'w95.cons.flags';
 const FILTERS = 'w95.cons.filters';
+const TEXT_OVERLAY = 'w95.cons.textoverlay'; // Debug > Text Overlay (for Scanning), on at first
 const RECENT = 'w95.cons.recent';
 const MAX_RECENT = 6;
 const KEEP_GAMES = 'w95.cons.keepgames';
 const FOLD = 'w95.cons.fold';  // touch screens: Menu / Skip buttons folded away  // File > Settings: keep a copy of games in this browser
 // The engine release in cons/ (conscripter.js/.wasm); CONscripter's update_site workflow bumps it.
-const ENGINE_VERSION = 'v0.27.0';
+const ENGINE_VERSION = 'v0.30.0';
 
 // Debug > Engine Flags: engine options, used from the next start.
 const FLAG_LIST = [
@@ -35,7 +36,6 @@ const FLAG_LIST = [
   { flag: '--render-font-outline', label: 'Text &Outline Instead of Shadow' },
   { flag: '--no-video', label: '&No Movies' },
   { flag: '--disable-rescale', label: 'Don\'t &Rescale Images' },
-  { flag: '--no-text-overlay', label: 'No Text Overla&y (for Scanning)' },
   '-',
   { flag: '--fontcache', label: '&Cache Font' },
   { flag: '--no-vsync', label: 'No &VSync' },
@@ -418,8 +418,10 @@ function open() {
   let frame = null;     // the running player
   let skip = false;
   let showText = false;
+  let textOverlay = store.get(TEXT_OVERLAY, true);
   const flags = new Set(store.get(FLAGS, ['--debug:1', '--trace'])); // on at first, so a bug report has them
   const filters = new Set(store.get(FILTERS, []));
+  flags.delete('--no-text-overlay'); // was an engine flag; now Debug > Text Overlay, at once
 
   // Google Drive sync (further down)
   let syncState = '';   // '', 'busy', 'ok', 'signin' (waiting for a sign-in), 'error'
@@ -817,7 +819,8 @@ function open() {
       { label: 'Save Game State as &JSON', disabled: !tracing(), action: () => dumpState(true) },
       { label: 'Engine L&og', disabled: !player(), action: engineLog },
       { label: 'Save Tr&ace', disabled: !tracing(), action: saveTrace },
-      { label: 'Show &Text Overlay', checked: showText, disabled: !player(), action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
+      { label: 'Te&xt Overlay (for Scanning)', checked: textOverlay, action: () => { textOverlay = !textOverlay; store.set(TEXT_OVERLAY, textOverlay); if (player()) { player().setTextOverlay(textOverlay); frame.focus(); } } },
+      { label: 'Show &Text Overlay', checked: showText, disabled: !player() || !textOverlay, action: () => { showText = !showText; player().showText(showText); frame.focus(); } },
       '-',
       { label: 'Storage &Used...', action: storageUsed },
       { label: '&Reset Tips', disabled: !store.get(NO_TIP, false) && !store.get(NO_OFFLINE_TIP, false), action: () => { store.set(NO_TIP, false); store.set(NO_OFFLINE_TIP, false); tipShown = false; showOfflineTip(); say('Tips will show again'); } },
@@ -836,7 +839,8 @@ function open() {
   const syncBtn = h('button', { class: 'cons-fs cons-sync', type: 'button', onclick: syncMenu }, driveLogo(), syncLabel);
   const ankiLabel = h('span', { class: 'cons-sync-label' });
   const ankiBtn = h('button', { class: 'cons-fs cons-sync cons-anki', type: 'button', hidden: true, onclick: ankiMenu }, h('b', { class: 'anki-logo', 'aria-hidden': 'true' }, '★'), ankiLabel);
-  bar.append(fsBtn, ankiBtn);
+  const ankiRetry = h('button', { class: 'cons-fs cons-sync', type: 'button', hidden: true, title: 'Try connecting to AnkiConnect again', onclick: () => ankiReconnect() }, 'Retry');
+  bar.append(fsBtn, ankiBtn, ankiRetry);
   if (drive.available) bar.append(syncBtn);
 
   // In full screen: point at (or click) the top edge for the menu bar.
@@ -911,6 +915,7 @@ function open() {
       w.onGameDrop = takeDrop;
       w.onSaved = () => { if (frame === me) savedSoon(); };
       w.showText(showText);
+      w.setTextOverlay(textOverlay);
       w.start({
         files: g.files, title: g.title, font: g.font, encoding: g.encoding, args: [...flags].flatMap(f => f === '--trace' ? [f, '/dev/null'] : f).concat(filterArgs(), args), // the trace's records go to the page
         keepLines: g.jp && anki.settings().on,
@@ -1261,20 +1266,30 @@ function open() {
 
   // ---------- Anki mining (Japanese games) ----------
 
-  let ankiStop = null, ankiError = '';
+  // ankiBusy: what Anki mining is doing right now, shown on the button until it's done.
+  let ankiStop = null, ankiError = '', ankiBusy = '';
 
   // Watches Anki while a Japanese game plays with mining on.
   function ankiWatch() {
     const on = !!(frame && game && game.jp && anki.settings().on);
     if (on && !ankiStop) {
+      ankiBusy = 'Connecting...';
       ankiStop = anki.watch(ankiNote, e => {
         // Said once per kind of failure, not on every check.
         if (e && e.message !== ankiError) say(e.message);
         ankiError = e ? e.message : '';
+        if (ankiBusy === 'Connecting...') ankiBusy = '';
         showAnki();
       });
-    } else if (!on && ankiStop) { ankiStop(); ankiStop = null; ankiError = ''; }
+    } else if (!on && ankiStop) { ankiStop(); ankiStop = null; ankiError = ''; ankiBusy = ''; }
     showAnki();
+  }
+
+  function ankiReconnect() {
+    if (ankiStop) { ankiStop(); ankiStop = null; }
+    ankiError = '';
+    say('Connecting to Anki...');
+    ankiWatch();
   }
 
   // The card gets the screen and sound of the line its sentence was mined from, kept by the
@@ -1282,25 +1297,32 @@ function open() {
   async function ankiNote(note) {
     const p = player(), s = anki.settings();
     if (!p) return;
+    const busy = text => { ankiBusy = text; showAnki(); };
+    busy('Reading New Card...');
     const sentence = anki.noteSentence(note);
     const kept = anki.lineFor(sentence, p.ankiTexts()), shown = anki.lineFor(sentence, p.ankiShownTexts());
-    if (kept < 0 && shown < 0) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text or backlog`);
+    if (kept < 0 && shown < 0) return busy(''), say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text or backlog`);
     try {
       say('Adding media to the Anki card...');
-      const filled = await anki.addMedia(note, await p.ankiMedia(kept, shown, { picture: s.screenshot, audio: s.audio }));
+      busy(`Adding ${[s.screenshot && 'Screenshot', s.audio && 'Voice'].filter(Boolean).join(' and ') || 'Media'}...`);
+      const media = await p.ankiMedia(kept, shown, { picture: s.screenshot, audio: s.audio });
+      busy('Saving to Card...');
+      const filled = await anki.addMedia(note, media);
       say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : 'Nothing added to the Anki card (fields missing or already filled)');
     } catch (e) {
       say('Anki: ' + e.message);
     }
+    busy('');
   }
 
   function showAnki() {
     const s = anki.settings();
     ankiBtn.hidden = !(frame && game && game.jp);
-    ankiLabel.textContent = !s.on ? 'Anki' : ankiError ? 'Anki: Not Connected' : 'Anki: On';
+    ankiLabel.textContent = !s.on ? 'Anki' : ankiError ? 'Anki: Not Connected' : 'Anki: ' + (ankiBusy || 'On');
     ankiBtn.title = !s.on ? 'Anki mining is off. Click to turn it on.' : ankiError || 'Cards added to Anki while playing get a screenshot and the line\'s voice.';
     ankiBtn.classList.toggle('off', !s.on);
     ankiBtn.classList.toggle('warn', s.on && !!ankiError);
+    ankiRetry.hidden = ankiBtn.hidden || !s.on || !ankiError;
   }
 
   async function ankiField(key, label) {
@@ -1325,7 +1347,7 @@ function open() {
       '<p>Cards you add to Anki while playing (with Yomitan, for example) get a screenshot of the game and the line\'s voice.</p>' +
       '<ol style="margin:6px 0;padding-left:20px;line-height:1.5">' +
       '<li>In Anki, choose <b>Tools &gt; Add-ons &gt; Get Add-ons</b> and enter the code <b>2055492159</b> (AnkiConnect).</li>' +
-      '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>:<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
+      '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>, exactly as shown (no slash at the end):<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
       '<li>Restart Anki and leave it open while you play.</li>' +
       '<li>If the browser asks to let this site reach apps on your device (or local network), choose <b>Allow</b>.</li>' +
       '<li>Your note type needs the fields named in the Anki menu (<b>Sentence</b>, <b>Picture</b> and <b>SentenceAudio</b> unless you change them). Filled fields are left alone.</li></ol>' +
