@@ -51,3 +51,6 @@ The FontStruction “MS Sans Serif Bold”
 (https://fontstruct.com/fontstructions/show/1384862) by “lou” is licensed
 under a Creative Commons Attribution Share Alike license
 (http://creativecommons.org/licenses/by-sa/3.0/).
+
+== Shippori Mincho B1 (demo/default.ttf, cut down to the characters the demo game uses) https://github.com/fontdasu/ShipporiMincho
+Copyright 2021 The Shippori Mincho Project Authors. SIL Open Font License 1.1, in full in demo/OFL.txt.

@@ -1,0 +1,52 @@
+; CONscripter's demo game, written for this site. demo/make.py draws the pictures and cuts the font.
+*define
+caption "CONscripter Demo"
+effect 9,10,500
+rmenu "Save",save,"Load",load,"Skip",skip,"Back Log",lookback,"Reset",reset
+game
+
+*start
+; here rather than in *define, where game puts the default window back
+setwindow 44,326,30,4,18,18,0,8,25,0,1,#7080b0,28,314,611,458
+bg "title.png",9
+click
+bg "room.png",9
+`Hello, and welcome to the CONscripter demo!@
+`This little story was drawn and written for this site.\
+ld c,"conny.png",9
+`Conny: Hi! I'm Conny. I live inside this window.@
+`Everything you see is a WebAssembly build of
+`CONscripter, running right here in your browser.\
+「こんにちは！日本語も読めますよ。」@
+`(That said: "Hello! I can read Japanese too.")\
+`Conny: Where shall we go? You decide.\
+select "Step outside for some air",*outside,"Look at the computer",*computer
+
+*outside
+cl c,1
+bg "park.png",9
+ld c,"conny-smile.png",9
+`The sky is turning orange over the hill.@
+`Conny: Fresh air! Games can change scenes like this,
+`with a fade, a slide or a melt.\
+goto *ending
+
+*computer
+cl c,1
+bg "screen.png",9
+ld c,"conny-smile.png",9
+`The old monitor hums. A script scrolls past:@
+`  bg "room.png",9 / ld c,"conny.png",9 / select ...@
+`Conny: That's me! A few lines of NScripter make a scene.\
+goto *ending
+
+*ending
+cl c,1
+bg "room.png",9
+ld c,"conny-smile.png",9
+`Conny: Thanks for playing! CONscripter is open source:
+`github.com/blankiekun/CONscripter@
+`For longer games, see the Software Depot
+`(Internet Explorer, the Games page). Bye!\
+; back to the title: end leaves the web build on a black screen
+reset

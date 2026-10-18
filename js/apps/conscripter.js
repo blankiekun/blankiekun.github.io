@@ -86,6 +86,9 @@ const DRIVE_LOGO = `<svg viewBox="0 0 87.3 78" aria-hidden="true"><path fill="#0
 const driveLogo = cls => h('span', { class: 'drive-logo ' + (cls || ''), html: DRIVE_LOGO });
 
 const SCRIPTS = ['0.txt', '00.txt', 'nscript.dat', 'nscr_sec.dat', 'onscript.nt', 'onscript.nt2', 'onscript.nt3', 'nscript.___'];
+// The sample game in demo/ (drawn by demo/make.py), fetched and opened like a picked folder.
+const DEMO = 'CONscripter Demo';
+const DEMO_FILES = ['0.txt', 'default.ttf', 'title.png', 'room.png', 'park.png', 'screen.png', 'conny.png', 'conny-smile.png'];
 
 // ---------- reading what the visitor gave us ----------
 
@@ -413,7 +416,7 @@ async function unzipAll(list) {
 
 // ---------- the window ----------
 
-function open() {
+function open(arg) {
   let game = null;      // what's loaded: { files, font, title, size }
   let frame = null;     // the running player
   let skip = false;
@@ -489,11 +492,12 @@ function open() {
       h('span', null, 'CON', h('b', null, 'scripter'))),
     h('div', { class: 'cons-main' },
       h('h2', null, 'Welcome to CONscripter'),
-      h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder, or a .zip of one, from your computer to start. The game is read from your disk and never leaves this computer.'),
+      h('p', null, 'CONscripter plays NScripter visual novels. Open a game folder, or a .zip of one, from your computer to start, or play the one-minute demo. The game is read from your disk and never leaves this computer.'),
       dropBox,
       h('div', { class: 'cons-btns' },
         h('button', { class: 'btn default', type: 'button', onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
         h('button', { class: 'btn', type: 'button', onclick: openZip }, h('span', { html: 'Open <u>Z</u>ip...' })),
+        h('button', { class: 'btn', type: 'button', onclick: playDemo }, h('span', { html: 'Play the <u>D</u>emo' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'CONscripter') }, h('span', { html: '<u>H</u>elp' }))),
       offlineTip,
       promo,
@@ -1024,11 +1028,27 @@ function open() {
     document.body.append(input);
     input.click();
   }
+  async function playDemo() {
+    say('Downloading the demo...');
+    let list;
+    try {
+      list = await Promise.all(DEMO_FILES.map(async name => {
+        const res = await fetch('demo/' + name);
+        if (!res.ok) throw new Error(`${name}: ${res.status} ${res.statusText}`);
+        return { path: DEMO + '/' + name, file: new File([await res.blob()], name) };
+      }));
+    } catch (e) {
+      idle();
+      return msgbox({ title: 'CONscripter', icon: 'error', parent: win, text: 'The demo could not be downloaded.\n\n' + e.message });
+    }
+    load({ list });
+  }
   function takeDrop(dt) { const p = fromDrop(dt); win.focus(); p.then(load); }
 
   // Opening the folder again, or asking to read it again, needs the click that got us here,
   // so nothing slow happens before.
   async function openRecent(r) {
+    if (r.title === DEMO && !r.kept) return playDemo();
     if (r.kept) {
       let handle = null;
       try { handle = await keptDir(r.title); } catch { markKept(r.title, 0); } // the browser cleared it
@@ -1404,7 +1424,10 @@ function open() {
       if (isFull()) document.exitFullscreen().catch(() => {});
     },
   });
+  win.playDemo = playDemo;
+  if (arg === 'demo') playDemo();
   return win;
 }
 
-export default { id: 'cons', title: 'CONscripter', icon: 'i-game', single: true, open };
+// #cons/demo, or a page's ie:cons/demo link, starts the demo.
+export default { id: 'cons', title: 'CONscripter', icon: 'i-game', single: true, open, reopen(win, arg) { if (arg === 'demo') win.playDemo(); } };

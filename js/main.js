@@ -19,7 +19,8 @@ function route(hash) {
   r = LEGACY[r] || r;
   if (!r) return false;
   if (r.startsWith('ie/')) { launch('ie', r.slice(3)); return true; }
-  if (appInfo(r)) { launch(r); return true; }
+  const [id, arg] = r.split('/');  // #cons/demo: a program and what to open in it
+  if (appInfo(id)) { launch(id, arg); return true; }
   return false;
 }
 
