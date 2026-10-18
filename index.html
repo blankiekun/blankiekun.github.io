@@ -39,6 +39,10 @@
     // A ?v= link wins over the saved one; ids are js/version.js VERSIONS, which applies it for good.
     const want = new URLSearchParams(location.search).get('v');
     document.documentElement.dataset.win = ['1.0', '2.0', '3.1', '95', '98', 'me', '2000', 'xp', 'vista', '7', '8', '10', '11'].includes(want) ? want : JSON.parse(localStorage.getItem('w95.version') || '"95"');
+    // Dark mode and accent from Settings > Colors (js/apps/settings.js applyDisplay), so a dark reload doesn't flash light.
+    const t = JSON.parse(localStorage.getItem('w95.theme') || '{}');
+    document.documentElement.dataset.theme = t.dark ? 'dark' : 'light';
+    if (t.accent) document.documentElement.style.setProperty('--accent', t.accent);
   } catch {}
 </script>
 </head>
