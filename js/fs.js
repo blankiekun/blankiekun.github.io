@@ -130,6 +130,7 @@ export const root = {
             { name: 'Start Menu', kind: 'folder', dos: 'STARTM~1', children: [{ name: 'Programs', kind: 'folder', children: [{ name: 'StartUp', kind: 'folder', dos: 'STARTUP', children: [] }] }] },
             { name: 'MEDIA', kind: 'folder', children: [app('BLANKIEKUN.AVI', 'mplayer', 'i-mplayer', 1048576, 'demo')] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
+            app('CRASHME.EXE', 'crashme', 'i-exe', 8192),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
             app('SOL.EXE', 'solitaire', 'i-sol', 180736),
             app('WINMINE.EXE', 'minesweeper', 'i-mine', 24064),
