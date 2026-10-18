@@ -5,7 +5,7 @@
 // The files that ship with the site are read-only. Anything the visitor makes on C:
 // (folders, notes, drawings, copies) is marked `user` and kept in localStorage.
 
-import { OS, V } from './version.js';
+import { OS, V, absent } from './version.js';
 
 const README = `${OS} - README.TXT
 ==========================
@@ -114,7 +114,7 @@ export const root = {
           name: 'Program Files', kind: 'folder', dos: 'PROGRA~1', children: [
             { name: 'Internet Explorer', kind: 'folder', dos: 'INTERN~1', children: [app('IEXPLORE.EXE', 'ie', 'i-ie', 1012736)] },
             { name: 'Accessories', kind: 'folder', dos: 'ACCESS~1', children: [
-              app('MSPAINT.EXE', 'paint', 'i-paint', 344064), app('WORDPAD.EXE', 'wordpad', 'i-wordpad', 183296),
+              app('MSPAINT.EXE', 'paint', 'i-paint', 344064), app('WORDPAD.EXE', 'wordpad', 'i-wordpad', 183296), app('IMGVIEW.EXE', 'viewer', 'i-viewer', 97280),
               { name: 'HyperTerminal', kind: 'folder', dos: 'HYPERT~1', children: [app('HYPERTRM.EXE', 'hyperterm', 'i-hyperterm', 26112)] },
             ] },
             { name: 'blankiekun Exchange', kind: 'folder', dos: 'BLANKI~1', children: [app('EXCHNG32.EXE', 'inbox', 'i-inbox', 427520)] },
@@ -321,7 +321,7 @@ export function openerFor(node) {
   if (/\.(wav|mp3|ogg)$/i.test(node.name)) return 'sndrec';
   if (/\.ht$/i.test(node.name)) return 'hyperterm';
   if (/\.(avi|mp4|webm|mid|rmi)$/i.test(node.name)) return 'mplayer';
-  if (/\.(bmp|png|gif|jpe?g)$/i.test(node.name) || node.data) return 'paint';
+  if (/\.(bmp|png|gif|jpe?g)$/i.test(node.name) || node.data) return absent('viewer') ? 'paint' : 'viewer';
   return 'notepad';
 }
 

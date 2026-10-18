@@ -942,3 +942,8 @@ html[data-win] .sn-win .tbtn.x, .sn-add { order: 2; width: 20px; height: 18px; m
 .sn-add { order: 0; font: 16px/1 var(--font-ui); padding: 0; }
 html[data-win] .sn-win .tbtn.x:hover, .sn-add:hover { background: rgba(0, 0, 0, .1); color: #000; }
 html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
+
+.vw { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.vw-tools { flex: none; display: flex; flex-wrap: wrap; gap: 2px; padding: 2px; }
+.vw-stage { flex: 1; min-height: 0; overflow: auto; background: #808080; box-shadow: var(--thin-in); }
+.vw-img { display: block; image-rendering: auto; }
