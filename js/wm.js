@@ -682,7 +682,7 @@ export function deactivate() { blurAll(); }
 let sw = null;
 function drawSwitch() {
   sw.el.replaceChildren(
-    h('div', { class: 'alttab-icons' }, ...sw.list.map((w, i) => h('span', { class: i === sw.i ? 'on' : '' }, icon(w.opts.icon || 'i-exe')))),
+    h('div', { class: 'alttab-icons' }, ...sw.list.map((w, i) => h('span', { class: i === sw.i ? 'on' : '', onclick: () => { sw.i = i; endSwitch(true); } }, icon(w.opts.icon || 'i-exe')))),
     h('div', { class: 'alttab-t' }, sw.list[sw.i].task.title));
 }
 function endSwitch(ok) {
@@ -690,6 +690,17 @@ function endSwitch(ok) {
   sw.el.remove(); sw = null;
   if (ok) focus(w);
 }
+// Opened from the taskbar (desktop.js taskView) with Alt not held: a click on an icon switches,
+// Escape or a click elsewhere cancels.
+export function altTab() {
+  const list = wins.filter(w => w.task).reverse();
+  if (!list.length || sw) return;
+  closeMenus();
+  sw = { list, i: Math.min(1, list.length - 1), el: h('div', { class: 'alttab', role: 'status' }) };
+  document.body.append(sw.el);
+  drawSwitch();
+}
+document.addEventListener('pointerdown', e => { if (sw && !sw.el.contains(e.target)) endSwitch(false); }, true);
 // Windows key shortcuts, from 95 on. Win+L locks (XP on).
 // shortcut: the OS often keeps the Windows key, so Ctrl+Alt+the same key does the same.
 const WINKEY = !['1.0', '2.0', '3.1'].includes(V.id);
