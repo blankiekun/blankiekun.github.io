@@ -701,6 +701,64 @@ export function altTab() {
   drawSwitch();
 }
 document.addEventListener('pointerdown', e => { if (sw && !sw.el.contains(e.target)) endSwitch(false); }, true);
+// ---------- Flip 3D ----------
+// Vista and 7: Win+Tab stacks the windows in 3D while Win is held. Tab, the arrows or the wheel
+// send the front one to the back, letting go switches to it, Escape cancels.
+// shortcut: the cards are stills cloned when the stack opens, so nothing in them moves, fine for a few seconds.
+const FLIP = ['vista', '7'].includes(V.id);
+let flip = null;
+function flipCard(w) {
+  const min = w.el.classList.contains('min');
+  w.el.classList.remove('min');
+  const r = w.el.getBoundingClientRect(), media = [...w.el.querySelectorAll('canvas, iframe, video')];
+  if (min) w.el.classList.add('min');
+  const copy = w.el.cloneNode(true);
+  copy.classList.remove('min', 'max', 'active', 'opening');
+  // A copied canvas or frame is blank (or reloads), so those show an empty frame with the program's icon.
+  copy.querySelectorAll('canvas, iframe, video').forEach((m, i) => m.replaceWith(h('div', { class: 'flip-blank', style: { width: media[i].offsetWidth + 'px', height: media[i].offsetHeight + 'px' } }, icon(w.opts.icon || 'i-exe'))));
+  copy.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+  Object.assign(copy.style, { left: 0, top: 0, width: r.width + 'px', height: r.height + 'px', transform: 'none', zIndex: 0 });
+  const el = h('div', { class: 'flip-card', style: { width: r.width + 'px', height: r.height + 'px', margin: `${-r.height / 2}px 0 0 ${-r.width / 2}px` }, onclick: () => endFlip(w) }, copy);
+  el.s = Math.min(.6 * innerWidth / r.width, .6 * innerHeight / r.height, 1);
+  return el;
+}
+function turnFlip(d) {
+  const n = flip.list.length;
+  flip.i = (flip.i + d + n) % n;
+  flip.cards.forEach((c, j) => {
+    const k = (j - flip.i + n) % n;
+    c.style.zIndex = n - k;
+    c.style.transform = `translate3d(${k * 90 - 120}px, ${-k * 50}px, ${-k * 260}px) rotateY(40deg) scale(${c.s})`;
+  });
+}
+function endFlip(w) {
+  flip.el.remove(); flip = null;
+  document.body.classList.remove('flipping');
+  if (w) focus(w);
+}
+// Handles a key while the stack is up or opens it; true when the key was used.
+function flipKey(e) {
+  if (!flip && !(e.key === 'Tab' && (e.metaKey || e.ctrlKey && e.altKey) && !document.querySelector('.screen.logon'))) return false;
+  if (e.key === 'Escape') { endFlip(); return true; }
+  if (e.key !== 'Tab' && !/^Arrow/.test(e.key)) return false;
+  if (!flip) {
+    const list = wins.filter(w => w.task && !isGadget(w)).reverse();
+    if (!list.length) return false;
+    closeMenus();
+    flip = { list, i: 0, t: 0, cards: list.map(flipCard) };
+    flip.el = h('div', { class: 'flip3d', onwheel: e => {
+      e.preventDefault();
+      // A trackpad sends a burst of wheel events per swipe.
+      if (e.timeStamp - flip.t > 150) { flip.t = e.timeStamp; turnFlip(Math.sign(e.deltaY) || 1); }
+    } }, flip.cards);
+    document.body.append(flip.el);
+    document.body.classList.add('flipping');
+    turnFlip(0);
+    flip.el.offsetWidth;   // lay the stack out before turning it, so the first turn animates
+  }
+  turnFlip(e.shiftKey || e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1);
+  return true;
+}
 // Windows key shortcuts, from 95 on. Win+L locks (XP on).
 // shortcut: the OS often keeps the Windows key, so Ctrl+Alt+the same key does the same.
 const WINKEY = !['1.0', '2.0', '3.1'].includes(V.id);
@@ -722,7 +780,9 @@ function winKey(code) {
   return true;
 }
 document.addEventListener('keydown', e => {
-  if (e.altKey && (e.key === 'Tab' || e.code === 'Backquote')) {
+  if (FLIP && flipKey(e)) {
+    e.preventDefault();
+  } else if (e.altKey && (e.key === 'Tab' || e.code === 'Backquote')) {
     const list = wins.filter(w => w.task).reverse();
     if (!list.length) return;
     e.preventDefault();
@@ -742,5 +802,8 @@ document.addEventListener('keydown', e => {
     systemMenu(active, { rect: active.el.querySelector('.titlebar').getBoundingClientRect(), left: true });
   }
 }, true);
-document.addEventListener('keyup', e => { if (sw && e.key === 'Alt') endSwitch(true); }, true);
-addEventListener('blur', () => { if (sw) endSwitch(false); });
+document.addEventListener('keyup', e => {
+  if (sw && e.key === 'Alt') endSwitch(true);
+  if (flip && !(e.metaKey || e.ctrlKey && e.altKey)) endFlip(flip.list[flip.i]);
+}, true);
+addEventListener('blur', () => { if (sw) endSwitch(false); if (flip) endFlip(); });
