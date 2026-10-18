@@ -20,14 +20,14 @@ const iconsEl = document.getElementById('icons');
 // ---------- icons ----------
 
 const ICONS = [
-  { label: 'My Computer', app: 'mycomputer', icon: 'i-computer', type: 'System', node: root, open: () => launch('mycomputer') },
+  { label: 'My Computer', modern: true, app: 'mycomputer', icon: 'i-computer', type: 'System', node: root, open: () => launch('mycomputer') },
   { label: 'Network Neighborhood', app: 'network', icon: 'i-network', type: 'System', node: network, open: () => launch('network') },
   { label: 'Windows Explorer', app: 'explorer', icon: 'i-folder-open', type: 'Application', open: () => launch('explorer', { path: 'C:\\', explore: true }) },
   { label: 'Inbox', app: 'inbox', icon: 'i-inbox', type: 'Application', open: () => launch('inbox') },
-  { label: 'Recycle Bin', app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', node: recycle, open: () => launch('recycle') },
-  { label: 'Internet Explorer', app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
-  { label: 'CONscripter', app: 'cons', icon: 'i-game', type: 'Application', open: () => launch('cons') },
-  { label: 'Games', app: 'ie', icon: 'i-cd', type: 'Shortcut', shortcut: true, open: () => launch('ie', 'games') },
+  { label: 'Recycle Bin', modern: true, app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', node: recycle, open: () => launch('recycle') },
+  { label: 'Internet Explorer', modern: true, app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
+  { label: 'CONscripter', modern: true, app: 'cons', icon: 'i-game', type: 'Application', open: () => launch('cons') },
+  { label: 'Games', modern: true, app: 'ie', icon: 'i-cd', type: 'Shortcut', shortcut: true, open: () => launch('ie', 'games') },
   { label: 'Minesweeper', app: 'minesweeper', icon: 'i-mine', type: 'Application', open: () => launch('minesweeper') },
   { label: 'Solitaire', app: 'solitaire', icon: 'i-sol', type: 'Application', open: () => launch('solitaire') },
   { label: 'Paint', app: 'paint', icon: 'i-paint', type: 'Application', open: () => launch('paint') },
@@ -43,9 +43,12 @@ const ICONS = [
   { label: 'Clock', app: 'clock', icon: 'i-clock', type: 'Application', era: true, open: () => launch('clock') },
   { label: 'Sticky Notes', app: 'stickynotes', icon: 'i-stickynotes', type: 'Application', era: true, open: () => launch('stickynotes') },
   { label: 'Display', app: 'display', icon: 'i-display', type: 'Control Panel', open: () => launch('display') },
-  { label: 'README.TXT', app: 'notepad', icon: 'i-txt', type: 'Text Document', open: () => run('notepad readme.txt') },
-  { label: 'GitHub', icon: 'i-github', type: 'Shortcut', shortcut: true, open: () => window.open(GITHUB, '_blank', 'noopener') },
+  { label: 'README.TXT', modern: true, app: 'notepad', icon: 'i-txt', type: 'Text Document', open: () => run('notepad readme.txt') },
+  { label: 'GitHub', modern: true, icon: 'i-github', type: 'Shortcut', shortcut: true, open: () => window.open(GITHUB, '_blank', 'noopener') },
 ];
+// 8 to 11 came with a bare desktop: just these (modern: true), the site's own shortcuts among them. 8 dropped Briefcase.
+const BARE = ['8', '10', '11'].includes(V.id);
+const hidden = n => BARE && n.briefcase;
 const CELL_W = 86, CELL_H = 74;
 let moved = false;
 let renaming = false;
@@ -124,15 +127,15 @@ async function emptyAll() {
 
 function renderIcons() {
   // Programs that failed to load, or that this era didn't have, don't get an icon.
-  for (let i = ICONS.length - 1; i >= 0; i--) if ((ICONS[i].app && !appInfo(ICONS[i].app)) || (ICONS[i].era && absent(ICONS[i].app))) ICONS.splice(i, 1);
+  for (let i = ICONS.length - 1; i >= 0; i--) if ((ICONS[i].app && !appInfo(ICONS[i].app)) || (ICONS[i].era && absent(ICONS[i].app)) || (BARE && !ICONS[i].modern)) ICONS.splice(i, 1);
   ICONS.forEach((it, i) => iconsEl.append(makeIcon(it, i)));
-  for (const n of desktopFolder().children) { const it = fileIcon(n); ICONS.push(it); iconsEl.append(makeIcon(it, ICONS.length)); }
+  for (const n of desktopFolder().children.filter(n => !hidden(n))) { const it = fileIcon(n); ICONS.push(it); iconsEl.append(makeIcon(it, ICONS.length)); }
   arrange();
 }
 
 // Keeps the visitor's icons in step with the Desktop folder; new ones go in the next free spot.
 function syncFiles() {
-  const nodes = desktopFolder().children;
+  const nodes = desktopFolder().children.filter(n => !hidden(n));
   for (let i = ICONS.length - 1; i >= 0; i--) {
     const it = ICONS[i];
     if (it.file && !nodes.includes(it.node)) { it.el.remove(); ICONS.splice(i, 1); }
