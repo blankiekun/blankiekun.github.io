@@ -444,6 +444,7 @@ function startItems() {
     { label: "blankiekun's Homepage", icon: 'i-htm', action: () => launch('ie', 'home') },
     '-',
     { label: 'chimimouryou', icon: 'i-book', action: () => launch('ie', 'chimimouryou') },
+    prog('chimimouryou Reader (demo)', 'reader', 'i-reader'),
     { label: 'conscripter-convert', icon: 'i-convert', action: () => launch('ie', 'convert') },
     { label: 'CONscripter', icon: 'i-game', action: () => launch('ie', 'conscripter') },
   ];

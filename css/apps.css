@@ -1018,6 +1018,27 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 .vw-stage { flex: 1; min-height: 0; overflow: auto; background: #808080; box-shadow: var(--thin-in); }
 .vw-img { display: block; image-rendering: auto; }
 
+/* chimimouryou Reader: vertical text paged right to left, in the page's own light, sepia or dark. */
+.rd { --rd-bg: #fff; --rd-ink: #111; --rd-hit: #ffe680; display: flex; flex-direction: column; flex: 1; min-height: 0; outline: 0; }
+.rd[data-theme="sepia"] { --rd-bg: #f4ecd8; --rd-ink: #5b4636; --rd-hit: #e6cf8f; }
+.rd[data-theme="dark"] { --rd-bg: #1e1e1e; --rd-ink: #d8d8d8; --rd-hit: #5a4a10; }
+.rd-stage { position: relative; flex: 1; min-height: 0; display: flex; background: var(--rd-bg); color: var(--rd-ink); box-shadow: var(--thin-in); }
+.rd-text { writing-mode: vertical-rl; flex: 1; min-width: 0; margin: 16px auto; overflow: hidden; font: var(--rd-fs, 20px)/var(--rd-lh, 40px) "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif CJK JP", "Noto Serif JP", serif; user-select: none; touch-action: pan-y pinch-zoom; cursor: pointer; }
+.rd-text p { margin: 0; text-indent: 1em; }
+.rd-text rt { font-size: .5em; }
+.rd-nofuri .rd-text rt { visibility: hidden; }
+.rd-spacer { flex: none; }
+.rd .rd-hit { background: var(--rd-hit); }
+.rd-side { flex: none; width: 28px; border: 0; background: none; color: inherit; opacity: .35; font-size: 22px; cursor: pointer; }
+.rd-side:hover { opacity: .8; }
+.rd-pop { position: absolute; z-index: 2; max-width: 240px; padding: 6px 8px; background: #ffffe1; color: #000; border: 1px solid #000; box-shadow: 2px 2px 0 rgba(0, 0, 0, .3); }
+.rd-pop b { font-size: 18px; margin-right: 6px; }
+.rd-pop p { margin: 4px 0 0; }
+.rd-pop small { display: block; margin-top: 4px; color: #666; }
+.rd-status { flex: none; display: flex; align-items: center; gap: 8px; padding: 3px 4px; }
+.rd-bar { flex: 1; height: 6px; box-shadow: var(--thin-in); background: #fff; }
+.rd-fill { height: 100%; background: var(--select, #000080); }
+
 /* The 10/11 lock screen: the desktop colour under a soft glow, with the clock low on the left. */
 .screen.lockscreen { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 0 48px 12vh; color: #fff; outline: 0; cursor: default; text-shadow: 0 1px 8px rgba(0, 0, 0, .4);
   background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .35), transparent 60%), var(--desktop); animation: lock-in .25s ease-out; }

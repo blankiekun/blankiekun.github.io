@@ -119,6 +119,7 @@ export const root = {
               { name: 'HyperTerminal', kind: 'folder', dos: 'HYPERT~1', children: [app('HYPERTRM.EXE', 'hyperterm', 'i-hyperterm', 26112)] },
             ] },
             { name: 'blankiekun Exchange', kind: 'folder', dos: 'BLANKI~1', children: [app('EXCHNG32.EXE', 'inbox', 'i-inbox', 427520)] },
+            { name: 'chimimouryou', kind: 'folder', dos: 'CHIMIM~1', children: [app('READER.EXE', 'reader', 'i-reader', 131072)] },
             { name: 'CONscripter', kind: 'folder', dos: 'CONSCR~1', children: [app('CONSCRIPTER.EXE', 'cons', 'i-game', 4767101)] },
           ],
         },

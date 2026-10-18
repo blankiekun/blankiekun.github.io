@@ -54,3 +54,7 @@ under a Creative Commons Attribution Share Alike license
 
 == Shippori Mincho B1 (demo/default.ttf, cut down to the characters the demo game uses) https://github.com/fontdasu/ShipporiMincho
 Copyright 2021 The Shippori Mincho Project Authors. SIL Open Font License 1.1, in full in demo/OFL.txt.
+
+== 坊っちゃん (Botchan) by 夏目漱石 (Natsume Soseki) (demo-reader/botchan.txt, the opening of chapter one, ruby kept as ｜base《reading》)
+From 青空文庫 (Aozora Bunko), https://www.aozora.gr.jp/cards/000148/card752.html (file https://www.aozora.gr.jp/cards/000148/files/752_14964.html).
+The work is in the public domain. demo-reader/glossary.tsv is a small glossary written for the reader demo.
