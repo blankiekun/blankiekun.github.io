@@ -6,6 +6,7 @@
 // (folders, notes, drawings, copies) is marked `user` and kept in localStorage.
 
 import { OS, V, absent } from './version.js';
+import { text as whatsnew } from './whatsnew.js';
 
 const README = `${OS} - README.TXT
 ==========================
@@ -108,6 +109,8 @@ export const root = {
           name: 'My Documents', kind: 'folder', children: [
             txt('README.TXT', README),
             txt('TODO.TXT', TODO),
+            // Built when read: the releases arrive from GitHub a moment after boot.
+            { name: 'WHATSNEW.TXT', kind: 'file', icon: 'i-txt', get text() { return whatsnew(); }, get size() { return whatsnew().length; } },
           ],
         },
         {
@@ -130,6 +133,7 @@ export const root = {
             { name: 'Start Menu', kind: 'folder', dos: 'STARTM~1', children: [{ name: 'Programs', kind: 'folder', children: [{ name: 'StartUp', kind: 'folder', dos: 'STARTUP', children: [] }] }] },
             { name: 'MEDIA', kind: 'folder', children: [app('BLANKIEKUN.AVI', 'mplayer', 'i-mplayer', 1048576, 'demo')] },
             app('CALC.EXE', 'calc', 'i-calc', 59392),
+            app('CRASHME.EXE', 'crashme', 'i-exe', 8192),
             app('NOTEPAD.EXE', 'notepad', 'i-notepad', 34304),
             app('SOL.EXE', 'solitaire', 'i-sol', 180736),
             app('WINMINE.EXE', 'minesweeper', 'i-mine', 24064),

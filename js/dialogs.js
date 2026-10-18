@@ -36,6 +36,58 @@ export function msgbox({ title = OS, text, icon: kind = 'info', buttons = ['OK']
   });
 }
 
+// The program-crashed box in each era's own words. name is the program's file name ("CRASHME.EXE").
+// Resolves when it is dismissed. Nothing is reported anywhere: Send Error Report is a progress bar.
+// shortcut: Debug and Ignore just close, there is no debugger and nothing to resume.
+export function crash(name, parent) {
+  return new Promise(resolve => {
+    const prog = name.replace(/\.EXE$/i, ''), hex = n => Math.floor(Math.random() * 16 ** n).toString(16).padStart(n, '0');
+    const r = () => hex(8), id = V.id;
+    const old = ['1.0', '2.0', '3.1'].includes(id), classic = ['95', '98', 'me'].includes(id), aero = ['vista', '7'].includes(id);
+    const msg = h('div', { class: 'msg', style: { maxWidth: '340px' } });
+    const extra = h('div');
+    let btns = [], title = name, text = '', bar = null;
+    const done = () => { win.close(true); resolve(); };
+    const b = (label, fn = done) => h('button', { class: 'btn', type: 'button', onclick: fn }, label);
+    const progress = ms => {
+      const i = h('i'); bar = h('div', { class: 'sk-progress', style: { width: '260px', marginTop: '8px' } }, i);
+      extra.replaceChildren(bar); i.style.transition = `width ${ms}ms linear`; requestAnimationFrame(() => requestAnimationFrame(() => { i.style.width = '100%'; }));
+    };
+    if (old) {
+      title = 'Application Error'; text = `${prog} caused a General Protection Fault in module ${name} at 0001:0042.`;
+      btns = [b('Close'), b('Ignore')];
+    } else if (classic) {
+      text = 'This program has performed an illegal operation and will be shut down.\n\nIf the problem persists, contact the program vendor.';
+      const dump = h('pre', { class: 'field', style: { display: 'none', margin: '8px 0 0', font: '12px monospace', width: '340px', height: '130px', overflow: 'auto', whiteSpace: 'pre', userSelect: 'text' } },
+        `${prog} caused an invalid page fault in\nmodule KERNEL32.DLL at 0167:bff7${hex(4)}.\nRegisters:\nEAX=${r()} CS=0167 EIP=bff7${hex(4)} EFLGS=00010246\nEBX=${r()} SS=016f ESP=0063${hex(4)} EBP=0063${hex(4)}\nECX=${r()} DS=016f ESI=${r()} FS=${hex(4)}\nEDX=${r()} ES=016f EDI=${r()} GS=0000\nBytes at CS:EIP:\n${Array.from({ length: 8 }, () => hex(2)).join(' ')}\nStack dump:\n${Array.from({ length: 6 }, r).join(' ')}\n${Array.from({ length: 6 }, r).join(' ')}`);
+      const det = b('Details >>', () => { const on = dump.style.display === 'none'; dump.style.display = on ? 'block' : 'none'; det.textContent = on ? '<< Details' : 'Details >>'; });
+      extra.append(dump); btns = [b('Close'), det];
+    } else if (id === '2000') {
+      text = `${name} has generated errors and will be closed by blankiekun. You will need to restart the program.\n\nAn error log is being created.`;
+      btns = [b('OK')];
+    } else if (id === 'xp') {
+      text = `${name} has encountered a problem and needs to close.  We are sorry for the inconvenience.\n\nIf you were in the middle of something, the information you were working on might be lost.`;
+      const send = b('Send Error Report', () => {
+        btns.forEach(x => { x.disabled = true; }); msg.textContent = 'Error Reporting is sending the report...'; progress(1500); setTimeout(done, 1600);
+      });
+      btns = [b('Debug'), send, b("Don't Send")];
+    } else {
+      text = `${name} has stopped working`;
+      const close = b('Close program'); close.disabled = aero;
+      btns = [close];
+      const fin = () => { msg.textContent = ''; msg.append(h('b', null, text), h('p', null, 'A problem caused the program to stop working correctly. blankiekun will close the program and notify you if a solution is available.')); extra.replaceChildren(); close.disabled = false; close.focus(); };
+      if (aero) { msg.append(h('b', null, text), h('p', null, 'blankiekun is checking for a solution to the problem...')); progress(2000); setTimeout(fin, 2000); } else fin();
+    }
+    if (!msg.firstChild) msg.textContent = rename(text);
+    btns[0].classList.add('default');
+    const body = h('div', { class: 'dlg' }, h('div', { class: 'row' }, icon('i-error'), h('div', null, msg, extra)), h('div', { class: 'btns' }, btns));
+    body.addEventListener('keydown', e => { if (e.key === 'Escape' && !btns.some(x => x.disabled)) { e.preventDefault(); done(); } });
+    const win = createWindow({ title, body, dialog: true, resizable: false, width: 'auto', taskbar: !parent, parent, icon: null, onClose: () => resolve() });
+    btns[0].focus();
+    import('./apps/control.js').then(m => m.playSound && m.playSound('Critical Stop')).catch(() => {});
+  });
+}
+
 // A dialog with a single text field. Resolves with the text, or null on Cancel.
 export function inputbox({ title, label, value = '', parent, ok = 'OK' }) {
   return new Promise(resolve => {

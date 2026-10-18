@@ -423,6 +423,29 @@
 @media (prefers-reduced-motion: reduce) { .dos-cursor { animation: none; } }
 .dos-input { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
 .win.max .dos-screen { font-size: 22px; }
+/* EDIT's MS-DOS Editor: VGA blue text, grey menu bar, cyan status line, all inside the DOS window. */
+.de { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; background: #0000aa; color: #aaa; font: 18px/1.15 var(--font-dos); box-shadow: var(--sunken); cursor: default; }
+.de-menu { display: flex; flex-wrap: wrap; background: #aaa; color: #000; padding: 0 1ch; flex: none; position: relative; z-index: 2; }
+.de-m { padding: 0 1ch; position: relative; cursor: default; }
+.de-m u, .de-item u { text-decoration: none; color: #fff; }
+.de-m.on { background: #000; color: #aaa; }
+.de-drop { position: absolute; left: 0; top: 100%; min-width: 20ch; background: #aaa; color: #000; border: 2px solid #000; outline: 1px solid #aaa; padding: 2px 0; box-shadow: 1ch 4px 0 #000; white-space: nowrap; }
+.de-item { padding: 0 1.5ch; }
+.de-item.off, .de-item.off u { color: #555; }
+.de-item.sel, .de-item:hover { background: #000; color: #aaa; }
+.de-frame { display: flex; align-items: center; justify-content: center; gap: 1ch; flex: none; color: #000; }
+.de-frame::before, .de-frame::after { content: ''; flex: 1; border-top: 2px solid #aaa; }
+.de-frame span { background: #aaa; padding: 0 1ch; }
+.de-text { flex: 1; min-height: 0; resize: none; margin: 0; padding: 0 1ch; border: solid #aaa; border-width: 0 2px 2px; border-radius: 0; background: #0000aa; color: #aaa; caret-color: #fff; font: inherit; white-space: pre; outline: none; scrollbar-color: #000 #aaa; cursor: var(--ibeam); }
+.de-text::selection { background: #aaa; color: #0000aa; }
+.de-status { display: flex; justify-content: space-between; gap: 1ch; flex: none; background: #00aaaa; color: #000; padding: 0 1ch; white-space: pre; overflow: hidden; }
+.de-dlg { position: absolute; z-index: 3; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(46ch, calc(100% - 2ch)); background: #aaa; color: #000; border: 2px solid #fff; outline: 4px solid #aaa; box-shadow: 1.5ch 10px 0 #000; padding: 6px 1.5ch; white-space: pre-line; display: flex; flex-direction: column; gap: 6px; }
+.de-field { font: inherit; background: #000; color: #aaa; border: 0; border-radius: 0; padding: 0 .5ch; outline: none; caret-color: #fff; }
+.de-btns { display: flex; justify-content: center; flex-wrap: wrap; gap: 1ch; border-top: 2px solid #fff; padding-top: 4px; }
+.de-btns button { font: inherit; background: none; color: #000; border: 0; padding: 0; cursor: default; }
+.de-btns button:focus-visible, .de-btns button:focus { color: #fff; outline: none; }
+.de-run { position: absolute; inset: 0; z-index: 4; background: #000; color: #aaa; padding: 2px 1ch; white-space: pre-wrap; display: flex; flex-direction: column; justify-content: space-between; outline: none; }
+@media (max-width: 500px) { .de { font-size: 14px; } }
 /* Windows Terminal (11): dark, its one tab laid over the title bar, a bar cursor */
 [data-win="11"] .win.terminal > .titlebar, [data-win="11"] .win.terminal.active > .titlebar { background: #202020; color: #fff; }
 .win.terminal > .titlebar :is(.sysicon, .t) { display: none; }
