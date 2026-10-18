@@ -26,7 +26,9 @@
     const d = JSON.parse(localStorage.getItem('w95.display') || 'null');
     if (d && d.vars) for (const [k, v] of Object.entries(d.vars)) document.documentElement.style.setProperty(k, v);
     // Which Windows skin css/versions.css draws (see js/version.js).
-    document.documentElement.dataset.win = JSON.parse(localStorage.getItem('w95.version') || '"95"');
+    // A ?v= link wins over the saved one; ids are js/version.js VERSIONS, which applies it for good.
+    const want = new URLSearchParams(location.search).get('v');
+    document.documentElement.dataset.win = ['1.0', '2.0', '3.1', '95', '98', 'me', '2000', 'xp', 'vista', '7', '8', '10', '11'].includes(want) ? want : JSON.parse(localStorage.getItem('w95.version') || '"95"');
   } catch {}
 </script>
 </head>

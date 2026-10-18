@@ -420,8 +420,8 @@ body.peeking #windows > .win:not(.peeked) { opacity: .08; transition: opacity .2
 .sp-screen h1 { flex: 1; margin: 0; font: 300 42px var(--font-ui); }
 .sp-screen .sp-user span { font-size: 20px; font-weight: 300; }
 .sp-screen .sp-user img { width: 40px; height: 40px; border-radius: 0; }
-.sp-screen .sp-power { width: auto; }
-.sp-screen .sp-power span { display: none; }
+.sp-screen :is(.sp-power, .sp-lock) { width: auto; }
+.sp-screen :is(.sp-power, .sp-lock) span { display: none; }
 .sp-screen .sp-item:hover { background: rgba(255, 255, 255, .15); }
 .sp-screen .sp-tiles { display: grid; grid-template-columns: repeat(auto-fill, 120px); grid-auto-rows: 120px; gap: 8px; max-width: 760px; }
 .sp-screen .sp-tile { align-items: flex-start; justify-content: flex-end; padding: 8px; position: relative; }
@@ -450,8 +450,8 @@ body.peeking #windows > .win:not(.peeked) { opacity: .08; transition: opacity .2
 .sp-eleven .sp-item:hover, .sp-eleven .sp-tile:hover { background: rgba(0, 0, 0, .05); color: #000; border-radius: 4px; }
 .sp-eleven footer { display: flex; justify-content: space-between; align-items: center; margin: 8px -24px 0; padding: 10px 48px; border-top: 1px solid #e5e5e5; border-radius: 0 0 8px 8px; background: rgba(0, 0, 0, .03); }
 .sp-eleven .sp-user img { width: 32px; height: 32px; border-radius: 50%; }
-.sp-eleven .sp-power { width: auto; border-radius: 4px; }
-.sp-eleven .sp-power span { display: none; }
+.sp-eleven :is(.sp-power, .sp-lock) { width: auto; border-radius: 4px; }
+.sp-eleven :is(.sp-power, .sp-lock) span { display: none; }
 @media (max-width: 640px) {
   .sp-screen { padding: 20px; }
   .sp-arrow { left: 20px; }

@@ -15,8 +15,9 @@ function open(arg = {}) {
   // shortcut: siblings come from the file's own folder by path, so a picture opened from a floppy or the clipboard has no previous/next; upgrade if those ever matter.
   const node = arg.path && resolve(arg.path);
   const folder = node && parentOf(node);
-  const pics = folder ? folder.children.filter(c => c.kind === 'file' && c.data).sort((a, b) => a.name.localeCompare(b.name)) : [];
-  let i = Math.max(0, pics.indexOf(node));
+  let pics = folder ? folder.children.filter(c => c.kind === 'file' && c.data).sort((a, b) => a.name.localeCompare(b.name)) : [];
+  let i = pics.indexOf(node);
+  if (i < 0) { pics = []; i = 0; }      // not in its folder's list (moved, or a copy): show just this one
   let cur = arg, zoom = 0, rot = 0;      // zoom 0 = fit the window
 
   const img = h('img', { class: 'vw-img', alt: '' });
