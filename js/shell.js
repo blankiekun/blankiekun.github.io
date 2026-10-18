@@ -32,7 +32,7 @@ export const ALIASES = {
   calc: 'calc', calculator: 'calc',
   command: 'dos', cmd: 'dos', 'command.com': 'dos', dos: 'dos',
   control: 'mycomputer:Control Panel', 'desk.cpl': 'display', display: 'display',
-  freecell: 'freecell', hearts: 'hearts', mshearts: 'hearts',
+  spider: 'spider', freecell: 'freecell', hearts: 'hearts', mshearts: 'hearts',
   write: 'wordpad', wordpad: 'wordpad', charmap: 'charmap',
   sndrec32: 'sndrec', sndrec: 'sndrec', soundrec: 'sndrec', cdplayer: 'cdplayer', cdplay: 'cdplayer',
   scrnsave: 'screensaver', screensaver: 'screensaver', defrag: 'defrag', scandisk: 'scandisk', scandskw: 'scandisk',

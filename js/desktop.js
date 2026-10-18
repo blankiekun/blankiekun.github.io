@@ -405,6 +405,7 @@ function startItems() {
       prog('Minesweeper', 'minesweeper', 'i-mine'),
       era('Reversi', 'reversi', 'i-reversi'),
       prog('Solitaire', 'solitaire', 'i-sol'),
+      era('Spider Solitaire', 'spider', 'i-spider'),
     ]) },
     { label: 'Multimedia', icon: 'i-programs', submenu: some([
       prog('CD Player', 'cdplayer', 'i-cdplayer'),
