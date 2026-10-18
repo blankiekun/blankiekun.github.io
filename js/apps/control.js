@@ -5,7 +5,7 @@
 import { h, icon, store, clamp, wait } from '../util.js';
 import { createWindow, launch, appInfo } from '../wm.js';
 import { msgbox, inputbox } from '../dialogs.js';
-import { OS } from '../version.js';
+import { OS, V } from '../version.js';
 
 // ---------- shared pieces ----------
 
@@ -840,19 +840,27 @@ function addremove() {
 
 const SKEY = 'w95.sounds';
 const EVENTS = ['Default sound', 'Asterisk', 'Critical Stop', 'Exclamation', 'Question', 'Start Windows', 'Exit Windows', 'Empty Recycle Bin', 'Maximize', 'Minimize', 'Menu popup', 'Open program', 'Close program'];
-const DEFAULT_MAP = { 'Default sound': 'Ding', 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' };
-const SCHEMES = { 'No Sounds': {}, 'blankiekun 95 Default': DEFAULT_MAP };
-const soundSettings = () => ({ scheme: 'blankiekun 95 Default', map: DEFAULT_MAP, custom: {}, ...(store.get(SKEY, null) || {}) });
+const FULL_MAP = { 'Default sound': 'Ding', 'Asterisk': 'Ding', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' };
+// Each era's default: 3.1 only beeps and plays Start/Exit; XP-7 and 8-11 voice the same tones higher and softer.
+const ERA = ['1.0', '2.0', '3.1'].includes(V.id) ? { name: '3.1', map: { 'Default sound': 'Ding', 'Critical Stop': 'Chord', 'Start Windows': 'Tada', 'Exit Windows': 'Tada' } }
+  : ['xp', 'vista', '7'].includes(V.id) ? { name: 'XP', map: FULL_MAP, pitch: 1.122, soft: 0.02 }
+  : ['8', '10', '11'].includes(V.id) ? { name: '8', map: FULL_MAP, pitch: 1.26, soft: 0.04 }
+  : { name: '95', map: FULL_MAP };
+const DEFAULT_MAP = ERA.map, DEFAULT_NAME = 'blankiekun ' + ERA.name + ' Default';
+const SCHEMES = { 'No Sounds': {}, [DEFAULT_NAME]: DEFAULT_MAP };
+// shortcut: a saved scheme is kept as is, so it stays when the era changes; upgrade by tagging it with its version.
+const soundSettings = () => ({ scheme: DEFAULT_NAME, map: DEFAULT_MAP, custom: {}, ...(store.get(SKEY, null) || {}) });
 
 // Desktop Themes swap the whole set of event sounds; null puts the default ones back.
-export function setSoundMap(map) { store.set(SKEY, { ...soundSettings(), scheme: map ? '' : 'blankiekun 95 Default', map: map || DEFAULT_MAP }); }
+export function setSoundMap(map) { store.set(SKEY, { ...soundSettings(), scheme: map ? '' : DEFAULT_NAME, map: map || DEFAULT_MAP }); }
 
 let actx = null, playing = null;
 
 // One voice: an oscillator through a decaying envelope.
 function tone(c, out, t, freq, dur, { type = 'sine', peak = 0.3, attack = 0.005, detune = 0 } = {}) {
   const o = c.createOscillator(), g = c.createGain();
-  o.type = type; o.frequency.value = freq; o.detune.value = detune;
+  attack += ERA.soft || 0;
+  o.type = type; o.frequency.value = freq * (ERA.pitch || 1); o.detune.value = detune;
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(peak, t + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
