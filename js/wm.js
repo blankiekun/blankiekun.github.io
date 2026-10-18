@@ -257,6 +257,7 @@ export function minimize(win) {
 }
 
 export function maximize(win) {
+  win.snapBox = null;
   win.state = 'max';
   win.el.classList.add('max');
   win.maxBtn.querySelector('use').setAttribute('href', '#i-restore');
@@ -322,6 +323,26 @@ function center(win) {
   win.el.style.top = Math.max(0, Math.round((A.height - win.el.offsetHeight) / 2.4)) + 'px';
 }
 
+// From 7 on, the left and right edges snap to half the screen; 11 adds quarters in the corners.
+const SIDES = VERSIONS.indexOf(V) >= VERSIONS.findIndex(r => r.id === '7');
+const QUARTERS = V.id === '11';
+// Where a dragged pointer snaps to, as [left, top, width, height] fractions of the work area.
+function snapZone(x, y, A, sides, quarters) {
+  const L = sides && x <= A.left + 2, R = sides && x >= A.right - 3;
+  const up = y < A.top + 40;
+  if (quarters && (L || R) && (up || y > A.bottom - 40)) return [L ? 0 : .5, up ? 0 : .5, .5, .5];
+  if (y <= A.top + 2) return [0, 0, 1, 1];
+  return L || R ? [L ? 0 : .5, 0, .5, 1] : null;
+}
+{
+  const A = { left: 0, top: 0, right: 100, bottom: 100 }, z = (...a) => snapZone(...a).join();
+  console.assert(z(50, 0, A, true, true) === '0,0,1,1', 'top edge maximizes');
+  console.assert(z(0, 50, A, true, false) === '0,0,0.5,1' && z(99, 50, A, true, false) === '0.5,0,0.5,1', 'sides are halves');
+  console.assert(z(0, 0, A, true, true) === '0,0,0.5,0.5' && z(99, 99, A, true, true) === '0.5,0.5,0.5,0.5', 'corners are quarters');
+  console.assert(z(0, 0, A, true, false) === '0,0,1,1', 'no quarters: top corner maximizes');
+  console.assert(snapZone(50, 50, A, true, true) === null && snapZone(0, 50, A, false, false) === null, 'middle and pre-7 sides do nothing');
+}
+
 // Moving and resizing draw a dithered outline that follows the pointer;
 // the window itself only jumps there when the button is released.
 function outlineDrag(win, e, mode) {
@@ -336,6 +357,7 @@ function outlineDrag(win, e, mode) {
   let sx = e.clientX, sy = e.clientY;
   const before = { left: win.el.style.left, top: win.el.style.top, width: win.el.style.width, height: win.el.style.height };
   const box = { x: r.left, y: r.top, w: r.width, h: r.height };
+  const wasSnap = win.snapBox;
   let outline = null, drawn = -Infinity, snap = false, preview = null, frame = 0;
   // Dragging to the top edge offers to maximize, as later Windows does.
   const canSnap = mode === 'move' && !win.opts.dialog && !win.maxBtn.disabled;
@@ -356,10 +378,11 @@ function outlineDrag(win, e, mode) {
       if (mode !== 'move') win.el.classList.remove('autosize');
       document.body.classList.add('dragging');
       document.body.style.cursor = cursor;
-      if (wasMax) {
+      if (wasMax || wasSnap) {
         // Restored under the pointer, keeping its spot along the title bar.
         const at = (sx - r.left) / r.width;
-        restore(win);
+        if (wasMax) restore(win);
+        else { Object.assign(win.el.style, wasSnap); win.snapBox = null; if (win.opts.onResize) win.opts.onResize(); }
         const w = win.el.offsetWidth;
         win.el.style.left = Math.round(ev.clientX - A.left - w * at) + 'px';
         win.el.style.top = Math.max(0, Math.round(ev.clientY - A.top - (sy - r.top))) + 'px';
@@ -370,13 +393,14 @@ function outlineDrag(win, e, mode) {
     if (mode === 'move') {
       box.x = clamp(r.left + dx, A.left - r.width + 40, A.right - 40);
       box.y = clamp(r.top + dy, A.top, A.bottom - 20);
-      const was = snap;
-      snap = canSnap && ev.clientY <= A.top + 2;
-      if (snap !== was && !LIVE) { outline.classList.toggle('snap', snap); drawn = -Infinity; }
+      const was = snap && snap.join();
+      snap = canSnap ? snapZone(ev.clientX, ev.clientY, A, SIDES, QUARTERS) : null;
+      const moved = (snap && snap.join()) !== was;
+      if (moved && !LIVE) { outline.classList.toggle('snap', !!snap); drawn = -Infinity; }
       // A live drag can't stretch the window itself, so a frame shows where it will go.
-      if (snap !== was && LIVE) {
-        if (snap) { preview = h('div', { class: 'snap-preview' }); document.body.append(preview); Object.assign(preview.style, { left: A.left + 6 + 'px', top: A.top + 6 + 'px', width: A.width - 12 + 'px', height: A.height - 12 + 'px' }); }
-        else { preview.remove(); preview = null; }
+      if (moved && LIVE) {
+        if (preview) { preview.remove(); preview = null; }
+        if (snap) { preview = h('div', { class: 'snap-preview' }); document.body.append(preview); Object.assign(preview.style, { left: A.left + snap[0] * A.width + 6 + 'px', top: A.top + snap[1] * A.height + 6 + 'px', width: snap[2] * A.width - 12 + 'px', height: snap[3] * A.height - 12 + 'px' }); }
       }
     } else {
       const minW = win.minW, minH = win.minH;
@@ -415,11 +439,22 @@ function outlineDrag(win, e, mode) {
     document.body.classList.remove('dragging');
     document.body.style.cursor = '';
     if (cancel) {
-      if (LIVE) { Object.assign(win.el.style, before); if (wasMax) maximize(win); else if (mode !== 'move' && win.opts.onResize) win.opts.onResize(); }
+      if (LIVE) { Object.assign(win.el.style, before); win.snapBox = wasSnap; if (wasMax) maximize(win); else if (mode !== 'move' && win.opts.onResize) win.opts.onResize(); }
       return;
     }
-    if (snap) { maximize(win); sound('Maximize'); return; }
+    if (snap) {
+      if (snap[2] * snap[3] === 1) maximize(win);
+      else {
+        // The size to come back to when it's dragged away.
+        win.snapBox = { width: win.el.offsetWidth + 'px', height: win.el.offsetHeight + 'px' };
+        win.el.classList.remove('autosize');
+        Object.assign(win.el.style, { left: snap[0] * A.width + 'px', top: snap[1] * A.height + 'px', width: snap[2] * A.width + 'px', height: snap[3] * A.height + 'px' });
+        if (win.opts.onResize) win.opts.onResize();
+      }
+      sound('Maximize'); return;
+    }
     place();
+    if (mode !== 'move') win.snapBox = null;
     if (mode !== 'move' && win.opts.onResize) win.opts.onResize();
   }
   function place() {
