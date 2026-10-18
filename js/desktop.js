@@ -3,8 +3,9 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, altTab, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, onActionCenter, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, onActionCenter, onTaskView, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
+import { taskView, closeTaskView } from './taskview.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
 import { recycle, network, root, resolve, onChange, desktopFolder, startupFolder, createFile, mkdir, emptyBin, FsError, kindLabel } from './fs.js';
@@ -851,6 +852,7 @@ function lock() {
   if (!PANEL || document.querySelector('.screen.logon')) return;
   closeMenus('replaced');
   closePanel();
+  closeTaskView();
   if (PANEL !== 'ten' && PANEL !== 'eleven') { logOn(true); return; }
   const now = new Date();
   const scr = h('div', { class: 'screen logon lockscreen', tabindex: '0', role: 'button', 'aria-label': 'Locked. Press any key or click to sign in.' },
@@ -1126,9 +1128,6 @@ function calendarFlyout(owner) {
 
 // ---------- 10 and 11: search, Task View, Widgets and the tray's network and notification icons ----------
 
-// shortcut: Task View is the Alt+Tab switcher for now, E3 builds the real one with its timeline.
-function taskView() { altTab(); }
-
 function startSearch(q) {
   openPanel(q);
   startBtn.setAttribute('aria-expanded', 'true');
@@ -1137,7 +1136,8 @@ function startSearch(q) {
 function modernTaskbar() {
   if (!MODERN) return;
   const btn = (label, ic, onclick, cls = '') => h('button', { type: 'button', class: 'tb-btn ' + cls, title: label, 'aria-label': label, onclick }, icon(ic));
-  const view = btn('Task View', 'i-tb-taskview', taskView);
+  const view = btn('Task View', 'i-tb-taskview', taskView, 'tb-taskview');
+  onTaskView(taskView);
   if (V.id === '10') {
     // The box hands over to the Start panel's search: clicked, or typed in after tabbing to it.
     const box = h('input', { class: 'tb-search-box', type: 'search', placeholder: 'Type here to search', 'aria-label': 'Type here to search' });
