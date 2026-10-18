@@ -2,9 +2,26 @@
 
 import { h, icon } from '../util.js';
 import { createWindow, launch, toggleMax } from '../wm.js';
-import { resolve, dosName, drive, pathOf, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
+import { resolve, dosName, drive, mkdir, remove, rename, copy, createFile, FsError } from '../fs.js';
 import { run, open as shellOpen, bsod, ALIASES, PROJECTS } from '../shell.js';
 import { OS, V } from '../version.js';
+import { editor } from './dosedit.js';
+
+// `type x | more`, `more < x` and `more x`: what feeds MORE, if it's there at all.
+// shortcut: MORE is the only thing a pipe or < can feed, until another filter (SORT, FIND) earns a place.
+function pipeline(line) {
+  const p = /^(.*?)\|\s*more\s*$/i.exec(line);
+  if (p) return { cmd: p[1].trim(), more: true };
+  const f = /^more(?:\s+|$)(?:<\s*)?(.*)$/i.exec(line);
+  if (f) return { file: f[1].trim(), more: true };
+  return { cmd: line };
+}
+console.assert(JSON.stringify([pipeline('type a.txt | more'), pipeline('more < a.txt'), pipeline('MORE a.txt'), pipeline('dir'), pipeline('moreover')])
+  === '[{"cmd":"type a.txt","more":true},{"file":"a.txt","more":true},{"file":"a.txt","more":true},{"cmd":"dir"},{"cmd":"moreover"}]', 'dos pipeline');
+
+// `color 0a`'s sixteen console colours, 0 to f.
+const COLORS = ['#000', '#000080', '#008000', '#008080', '#800000', '#800080', '#808000', '#c0c0c0', '#808080', '#00f', '#0f0', '#0ff', '#f00', '#f0f', '#ff0', '#fff'];
+const label = letter => letter === 'D' ? 'PROJECTS' : letter === 'E' ? 'BK95_CD' : 'BLANKIEKUN';
 
 const STAMP = [V.date[1] + 1, V.date[2], V.date[0] % 100].map(n => String(n).padStart(2, '0')).join('-') + '  11:11a';
 
@@ -13,6 +30,9 @@ function open(arg) {
   const hist = [];
   let hpos = 0;
   let pendingAbort = null;
+  let pendingMore = null, moreEl = null;
+  let sink = null;   // collects what a command prints when it's piped into MORE
+  let promptFmt = '$p$g';
 
   const out = h('div', { class: 'dos-out' });
   const typed = h('span');
@@ -28,11 +48,16 @@ function open(arg) {
     h('button', { type: 'button', class: 'dos-tb', title: 'Paste', onclick: async () => { try { input.value += await navigator.clipboard.readText(); sync(); } catch {} input.focus(); } }, 'Paste'),
     h('button', { type: 'button', class: 'dos-tb', title: 'Full screen', onclick: () => { toggleMax(win); input.focus(); } }, 'Full'));
 
-  const print = (text = '') => { out.append(h('div', null, text)); };
-  const prompt = () => cwd + '>';
+  const print = (text = '') => { if (sink) sink.push(text); else return out.appendChild(h('div', null, text)); };
+  const CODES = { p: () => canonical(cwd) || cwd, g: () => '>', l: () => '<', b: () => '|', q: () => '=', $: () => '$', _: () => '\n', n: () => cwd[0],
+    v: () => V.ver, d: () => new Date().toLocaleDateString('en-US', { weekday: 'short', month: '2-digit', day: '2-digit', year: 'numeric' }).replace(',', ''),
+    t: () => new Date().toLocaleTimeString('en-GB') + '.00' };
+  const prompt = () => promptFmt.replace(/\$(.)/g, (m, c) => CODES[c.toLowerCase()]?.() ?? '');
+  // 9x's COMMAND.COM and NT's cmd.exe word "no such command" differently.
+  const bad = name => V.nt ? (print(`'${name}' is not recognized as an internal or external command,`), print('operable program or batch file.')) : print('Bad command or file name');
   function sync() {
     typed.textContent = input.value;
-    promptEl.textContent = pendingAbort ? '' : prompt();
+    promptEl.textContent = pendingAbort || pendingMore ? '' : prompt();
     screen.scrollTop = screen.scrollHeight;
   }
 
@@ -75,7 +100,7 @@ function open(arg) {
     const d = drive(path[0]);
     if (d && d.notReady) return notReady(path[0]);
     if (!node || !node.children) { print('File not found'); return; }
-    print(` Volume in drive ${path[0]} is ${path[0] === 'D' ? 'PROJECTS' : path[0] === 'E' ? 'BK95_CD' : 'BLANKIEKUN'}`);
+    print(` Volume in drive ${path[0]} is ${label(path[0])}`);
     print(` Volume Serial Number is ${V.date[0]}-${STAMP.slice(0, 5).replace('-', '')}`);
     print(` Directory of ${canonical(path) || path}`);
     print('');
@@ -91,6 +116,102 @@ function open(arg) {
     }
     print(`${String(files).padStart(9)} file(s)${bytes.toLocaleString('en-US').padStart(15)} bytes`);
     print(`${String(dirs).padStart(9)} dir(s)     1,048,576,000 bytes free`);
+  }
+
+  // TREE: folders drawn with box lines, and with /F the files in each one first.
+  function tree(argStr) {
+    const files = /\/f/i.test(argStr);
+    const path = abs(argStr.replace(/\/[a-z]/gi, '').trim());
+    const node = resolve(path);
+    if (drive(path[0])?.notReady) return notReady(path[0]);
+    if (!node || !node.children) { print(V.nt ? 'Invalid path - ' + path.slice(2).toUpperCase() : 'Invalid path'); return; }
+    print(V.nt ? `Folder PATH listing for volume ${label(path[0])}` : `Directory PATH listing for Volume ${label(path[0])}`);
+    print(`${V.nt ? 'Volume serial number is' : 'Volume Serial Number is'} ${V.date[0]}-${STAMP.slice(0, 5).replace('-', '')}`);
+    print(argStr.replace(/\/[a-z]/gi, '').trim() ? canonical(path) || path : path.slice(0, 2) + '.');
+    const nm = c => V.nt ? c.name : dosName(c);
+    let any = false;
+    (function walk(n, pre) {
+      const dirs = n.children.filter(c => c.children);
+      if (files) {
+        const here = n.children.filter(c => !c.children);
+        for (const f of here) print(pre + (dirs.length ? '│   ' : '    ') + nm(f));
+        if (here.length) print(pre + (dirs.length ? '│' : ''));
+      }
+      dirs.forEach((d, i) => {
+        const end = i === dirs.length - 1;
+        any = true;
+        print(pre + (end ? '└───' : '├───') + nm(d));
+        walk(d, pre + (end ? '    ' : '│   '));
+      });
+    })(node, '');
+    if (!any) print(V.nt ? 'No subfolders exist' : 'No subdirectories exist');
+  }
+
+  // ATTRIB: the files that came with the site are read-only, the visitor's own have the archive bit.
+  // shortcut: attributes can only be looked at, and a name is one file or every file in the folder, no wildcards beyond *.*.
+  function attrib(argStr) {
+    if (/[+-][rash]/i.test(argStr)) { print(V.nt ? 'Access denied - ' + argStr.replace(/[+-][rash]\s*/gi, '').trim().toUpperCase() : 'Access denied'); return; }
+    const arg = argStr.replace(/\/s/gi, '').trim();
+    const all = !arg || /^\*(\.\*)?$/.test(arg);
+    const n = resolve(all ? cwd : abs(arg));
+    if (!n) { print((V.nt ? 'File not found - ' : 'File not found ') + abs(arg).toUpperCase()); return; }
+    const dir = n.children ? (all ? cwd : abs(arg)) : abs(arg).replace(/\\[^\\]*$/, '');
+    const base = (canonical(dir) || dir).replace(/\\$/, '');
+    for (const c of n.children ? n.children.filter(c => !c.children) : [n])
+      print(`${c.user ? 'A' : ' '}    ${c.kind === 'app' ? 'S' : ' '} ${c.user ? ' ' : 'R'}     ${base}\\${V.nt ? c.name : dosName(c)}`);
+  }
+
+  // MORE: a screenful, then -- More -- until a key. Enter steps a line, Esc or Q stops.
+  function more(lines, step) {
+    const rows = step || Math.max(4, Math.floor(screen.clientHeight / (line.offsetHeight || 20)) - 2);
+    lines.splice(0, rows).forEach(l => print(l));
+    pendingMore = lines.length ? lines : null;
+    if (pendingMore) moreEl = print('-- More --');
+  }
+
+  // PING: a reply from the site and from this machine; anything else times out.
+  function ping(host) {
+    if (!host) { print(''); print('Usage: ping [-t] [-n count] host'); return; }
+    host = host.split(/\s+/).filter(w => !w.startsWith('-')).at(-1) || host;
+    const h0 = host.toLowerCase();
+    const ip = /^(localhost|127\.0\.0\.1)$/.test(h0) ? '127.0.0.1' : /^(www\.)?blankiekun\.github\.io$/.test(h0) ? '185.199.108.153' : null;
+    print('');
+    print(`Pinging ${host}${ip && ip !== host ? ` [${ip}]` : ''} with 32 bytes of data:`);
+    print('');
+    const times = [];
+    for (let i = 0; i < 4; i++) {
+      if (!ip) { print('Request timed out.'); continue; }
+      const t = ip === '127.0.0.1' ? 0 : 18 + Math.floor(Math.random() * 25);
+      times.push(t);
+      print(`Reply from ${ip}: bytes=32 time${t ? '=' + t : V.nt ? '<1' : '<10'}ms TTL=${ip === '127.0.0.1' ? 128 : 57}`);
+    }
+    print('');
+    print(`Ping statistics for ${ip || host}:`);
+    print(`    Packets: Sent = 4, Received = ${times.length}, Lost = ${4 - times.length} (${(4 - times.length) * 25}% loss),`);
+    if (!times.length) return;
+    print('Approximate round trip times in milli-seconds:');
+    print(`    Minimum = ${Math.min(...times)}ms, Maximum = ${Math.max(...times)}ms, Average = ${Math.round(times.reduce((a, b) => a + b) / 4)}ms`);
+  }
+
+  // IPCONFIG: one made-up network card, nothing read from the real machine.
+  function ipconfig() {
+    const aero = !['2000', 'xp'].includes(V.id);
+    const row = (k, v) => print(`        ${(k + ' ').padEnd(36, '. ').slice(0, 36)}: ${v}`);
+    print(''); print('blankiekun IP Configuration'); print(''); print('');
+    print(`Ethernet adapter Local Area Connection:`); print('');
+    row('Connection-specific DNS Suffix', '');
+    if (aero) row('Link-local IPv6 Address', 'fe80::1111:b1a:4e:95%11');
+    row(aero ? 'IPv4 Address' : 'IP Address', '192.168.1.95');
+    row('Subnet Mask', '255.255.255.0');
+    row('Default Gateway', '192.168.1.1');
+  }
+
+  function openEditor(arg, qbasic) {
+    const p = arg ? abs(arg) : null;
+    const n = p && resolve(p);
+    if (n && (n.children || n.text == null)) { print(V.nt ? 'Access is denied.' : 'Path not found'); return; }
+    screen.hidden = true;
+    editor({ host: screen, abs, path: p, text: n ? n.text : '', qbasic, done: () => { screen.hidden = false; sync(); input.focus({ preventScroll: true }); } });
   }
 
   function notReady(letter) {
@@ -110,10 +231,15 @@ function open(arg) {
     '  TYPE file       Show a text file, e.g. TYPE README.TXT',
     '  MD, RD          Make or remove a directory',
     '  COPY, REN, DEL  Copy, rename or delete a file',
-    '  EDIT file       Edit a text file in Notepad',
+    '  EDIT [file]     Edit a text file in the MS-DOS Editor',
+    '  TREE [/F]       Draw the directory tree (/F lists the files too)',
+    '  ATTRIB [file]   Show which files are read-only',
+    '  TYPE x | MORE   Show a long file a screenful at a time',
+    '  PROMPT $P$G     Change the prompt ($P path, $G >, $D date, $T time)',
+    '  PING host       Check whether a computer answers',
     '  START name      Open a program or project page',
     '  CLS             Clear the screen',
-    '  VER, DATE, TIME, MEM, ECHO',
+    '  VER, DATE, TIME, MEM, ECHO' + (V.nt ? ', COLOR, IPCONFIG' : ', QBASIC'),
     '  EXIT            Close this window',
     '',
     'Programs: NOTEPAD  CALC  MSPAINT  WINMINE  SOL  IEXPLORE  EXPLORER',
@@ -123,6 +249,20 @@ function open(arg) {
   function exec(raw) {
     const cmdline = raw.trim();
     if (!cmdline) return;
+    const pipe = pipeline(cmdline);
+    if (pipe.more) {
+      if (pipe.file === '') return;
+      if (pipe.file) {
+        const n = resolve(abs(pipe.file));
+        if (!n || n.text == null) { print(V.nt ? 'Cannot access file ' + abs(pipe.file).toUpperCase() : 'File not found'); return; }
+        more(n.text.split('\n'));
+      } else {
+        const lines = sink = [];
+        try { exec(pipe.cmd); } finally { sink = null; }
+        more(lines);
+      }
+      return;
+    }
     const [cmd0, ...rest] = cmdline.split(/\s+/);
     const cmd = cmd0.toLowerCase();
     const argStr = cmdline.slice(cmd0.length).trim();
@@ -162,9 +302,19 @@ function open(arg) {
         n.text.split('\n').forEach(l => print(l));
         return;
       }
-      case 'edit': {
-        const n = argStr ? resolve(abs(argStr)) : null;
-        launch('notepad', n && n.text != null ? { name: n.name, text: n.text, path: n.user ? pathOf(n) : null } : argStr ? { name: argStr.toUpperCase(), text: '' } : null);
+      case 'edit': openEditor(argStr); return;
+      case 'qbasic': if (V.nt) break; openEditor(argStr, true); return;
+      case 'tree': tree(argStr); return;
+      case 'attrib': attrib(argStr); return;
+      case 'ping': ping(argStr); return;
+      case 'prompt': promptFmt = argStr || '$p$g'; return;
+      case 'ipconfig': if (!V.nt) break; ipconfig(); return;
+      case 'color': {
+        if (!V.nt) break;
+        const m = /^([0-9a-f])?([0-9a-f])$/i.exec(argStr);
+        if (argStr && (!m || (m[1] || '0').toLowerCase() === m[2].toLowerCase())) return;   // cmd leaves the colours alone when they'd match
+        screen.style.background = m ? COLORS[parseInt(m[1] || '0', 16)] : '';
+        screen.style.color = m ? COLORS[parseInt(m[2], 16)] : '';
         return;
       }
       case 'start': {
@@ -224,8 +374,7 @@ function open(arg) {
     const local = resolve(abs(cmd0)) || resolve(abs(cmd0 + '.exe')) || resolve(abs(cmd0 + '.htm'));
     if (local && (local.kind === 'app' || local.kind === 'page' || local.kind === 'link')) { shellOpen(local, win); return; }
     if (ALIASES[cmd.replace(/\.(exe|com)$/, '')] || PROJECTS[cmd]) { run(cmdline, win); return; }
-    if (local && local.text != null) { print('Bad command or file name'); return; }
-    print('Bad command or file name');
+    bad(cmd0);
   }
 
   function complete() {
@@ -243,6 +392,16 @@ function open(arg) {
 
   input.addEventListener('input', sync);
   input.addEventListener('keydown', e => {
+    if (pendingMore) {
+      if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+      e.preventDefault();
+      moreEl.remove();
+      if (e.key === 'Escape' || e.key.toLowerCase() === 'q' || (e.ctrlKey && e.key === 'c')) pendingMore = null;
+      else more(pendingMore, e.key === 'Enter' ? 1 : 0);
+      if (!pendingMore) { print(''); input.value = ''; }
+      sync();
+      return;
+    }
     if (pendingAbort) {
       const k = e.key.toLowerCase();
       if (k === 'a' || k === 'f' || k === 'escape' || k === 'enter') { e.preventDefault(); print(k === 'f' ? 'Fail' : 'Abort'); pendingAbort = null; print(''); input.value = ''; sync(); }
@@ -256,7 +415,7 @@ function open(arg) {
       if (v.trim()) { hist.push(v); hpos = hist.length; }
       input.value = '';
       exec(v);
-      if (!pendingAbort && v.trim() && out.lastChild && out.lastChild.textContent !== '') print('');
+      if (!pendingAbort && !pendingMore && screen.isConnected && !screen.hidden && v.trim() && out.lastChild && out.lastChild.textContent !== '') print('');
       sync();
     } else if (e.key === 'ArrowUp') {
       e.preventDefault(); if (hpos > 0) { input.value = hist[--hpos]; sync(); }
@@ -276,7 +435,7 @@ function open(arg) {
     h('button', { type: 'button', class: 'wt-new', title: 'New Tab', 'aria-label': 'New Tab', onclick: () => launch('dos') }, '+'));
   const win = createWindow({
     app: 'dos', title: 'MS-DOS Prompt', icon: 'i-dos', body: h('div', { class: 'dos' }, !V.nt && toolbar, screen), className: tabs ? 'terminal' : '',
-    width: 640, height: 400, minW: 240, minH: 160, route: 'dos', autofocus: '.dos-input',
+    width: 640, height: 400, minW: 240, minH: 160, route: 'dos', autofocus: '.de-text, .dos-input',
     maximized: arg === 'dosmode',
   });
   if (tabs) win.bar.insertBefore(tabs, win.bar.querySelector('.tbtns'));
