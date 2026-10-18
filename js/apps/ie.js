@@ -309,9 +309,11 @@ function open(arg) {
       } else if (/^(https?:|mailto:)/i.test(href) || /\.(png|jpe?g|gif)$/i.test(href)) {
         a.target = '_blank';
         a.rel = 'noopener';
-      } else if (href.startsWith('ie:')) {
+      } else if (href.startsWith('ie:') || href.startsWith('../#')) {
+        // ../#cons/demo opens the desktop with the demo when the page is read on its own; here it's the same route
         e.preventDefault();
-        launch(href.slice(3));
+        const [id, arg] = href.replace(/^ie:|^\.\.\/#/, '').split('/');
+        launch(id, arg);
       }
     });
     doc.addEventListener('mouseover', e => {

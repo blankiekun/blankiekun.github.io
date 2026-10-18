@@ -32,6 +32,9 @@ let runDialog = () => {};
 export function onRun(fn) { runDialog = fn; }
 let lockScreen = () => {};
 export function onLock(fn) { lockScreen = fn; }
+// Win+A: 10's Action Center, 11's Quick Settings; nothing before 10.
+let actionCenter = null;
+export function onActionCenter(fn) { actionCenter = fn; }
 // What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
 let taskMenu = (win, at) => systemMenu(win, at);
 export function onTaskMenu(fn) { taskMenu = fn; }
@@ -768,6 +771,7 @@ function winKey(code) {
   else if (code === 'KeyE') launch('explorer', { path: 'C:\\', explore: true });
   else if (code === 'KeyR') runDialog();
   else if (code === 'KeyL') lockScreen();
+  else if (code === 'KeyA' && actionCenter) actionCenter();
   else if (win && code === 'ArrowUp') maximize(win);
   else if (win && SIDES && (code === 'ArrowLeft' || code === 'ArrowRight')) {
     const A = area();
