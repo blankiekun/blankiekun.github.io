@@ -13,10 +13,10 @@ const OLD = { 'Windows Explorer': 'File Manager', Explorer: 'File Manager', Pain
 const ANCIENT = { ...OLD, 'Windows Explorer': 'MS-DOS Executive', Explorer: 'MS-DOS Executive', Paint: 'Paint', 'Clipboard Viewer': 'Clipboard' };
 // Each era's mail program; the window title keeps its folder ("Inbox - Outlook Express").
 const mail = n => ({ Inbox: n, 'blankiekun Exchange': n, 'Inbox - blankiekun Exchange': 'Inbox - ' + n });
-const ME = { ...mail('Outlook Express'), 'Media Player': 'Windows Media Player', 'Network Neighborhood': 'My Network Places' };
-const NT = { ...ME, 'MS-DOS Prompt': 'Command Prompt', 'Close Program': 'Windows Task Manager', 'System Monitor': 'Performance', ScanDisk: 'Check Disk' };
-const AERO = { ...NT, ...mail('Windows Mail'), 'My Computer': 'Computer', 'Network Neighborhood': 'Network', 'Display Properties': 'Personalization', 'System Monitor': 'Resource Monitor' };
-const METRO = { ...AERO, ...mail('Mail'), 'Windows Explorer': 'File Explorer', Explorer: 'File Explorer', 'Disk Defragmenter': 'Optimize Drives', 'Windows Task Manager': 'Task Manager', 'Close Program': 'Task Manager' };
+const ME = { ...mail('Outlook Express'), 'Picture Viewer': 'Imaging', 'Media Player': 'Windows Media Player', 'Network Neighborhood': 'My Network Places' };
+const NT = { ...ME, 'Picture Viewer': 'Picture and Fax Viewer', 'MS-DOS Prompt': 'Command Prompt', 'Close Program': 'Windows Task Manager', 'System Monitor': 'Performance', ScanDisk: 'Check Disk' };
+const AERO = { ...NT, 'Picture Viewer': 'Photo Viewer', ...mail('Windows Mail'), 'My Computer': 'Computer', 'Network Neighborhood': 'Network', 'Display Properties': 'Personalization', 'System Monitor': 'Resource Monitor' };
+const METRO = { ...AERO, 'Picture Viewer': 'Photos', ...mail('Mail'), 'Windows Explorer': 'File Explorer', Explorer: 'File Explorer', 'Disk Defragmenter': 'Optimize Drives', 'Windows Task Manager': 'Task Manager', 'Close Program': 'Task Manager' };
 const EDGE = { ...METRO, 'My Computer': 'This PC', 'Internet Explorer': 'Microsoft Edge', 'Microsoft Internet Explorer': 'Microsoft Edge' };
 
 // Programs each era didn't ship. They still open; their icons just say so.
@@ -44,11 +44,11 @@ export const VERSIONS = [
   { id: '95', short: '95', number: '4.00.950', sys: '4.00.950 B', date: [1995, 7, 24], copy: '1981-1995', ramKB: 16384, ie: '4.70.1155',
     ver: 'blankiekun 95. [Version 4.00.1111]', dosCopy: '(C)Copyright blankiekun 1981-1995.', start: 'Start', names: {}, absent: [], desktop: '#008080', shutTitle: 'Shut Down blankiekun 95', ...NINE },
   { id: '98', short: '98', number: '4.10.2222', sys: '4.10.2222 A', date: [1998, 5, 25], copy: '1981-1999', ramKB: 32768, ie: '5.00.2614.3500',
-    ver: 'blankiekun 98 [Version 4.10.2222]', dosCopy: '(C)Copyright blankiekun 1981-1998.', start: 'Start', ...NINE },
+    ver: 'blankiekun 98 [Version 4.10.2222]', dosCopy: '(C)Copyright blankiekun 1981-1998.', start: 'Start', names: { 'Picture Viewer': 'Imaging' }, ...NINE },
   { id: 'me', short: 'Me', number: '4.90.3000', date: [2000, 8, 14], copy: '1981-2000', ramKB: 65536, ie: '5.50.4134.0100', desktop: '#3a6ea5',
     ver: 'blankiekun Millennium [Version 4.90.3000]', dosCopy: '(C)Copyright blankiekun 1981-2000.', start: 'Start', names: ME, ...NINE, ...NEW_OFF },
   { id: '2000', short: '2000', number: '5.00.2195', sys: '5.00.2195\nService Pack 4', date: [2000, 1, 17], copy: '1985-2000', ramKB: 131072, ie: '5.00.3700.1000', nt: true, scheme: 'Windows Classic',
-    ver: 'blankiekun 2000 [Version 5.00.2195]', dosCopy: '(C) Copyright 1985-2000 blankiekun.', start: 'Start', names: NT, absent: NOT_NT, ...NINE, ...NEW_OFF,
+    ver: 'blankiekun 2000 [Version 5.00.2195]', dosCopy: '(C) Copyright 1985-2000 blankiekun.', start: 'Start', names: { ...NT, 'Picture Viewer': 'Imaging' }, absent: NOT_NT, ...NINE, ...NEW_OFF,
     waitText: 'Saving your settings...', offText: 'It is now safe to turn off\nyour computer.' },
   { id: 'xp', short: 'XP', number: '5.1.2600', sys: 'Version 2002\nService Pack 2', date: [2001, 9, 25], copy: '1985-2001', ramKB: 262144, ie: '6.0.2900.2180', nt: true, desktop: '#004e98', wallpaper: 'Bliss',
     ver: 'blankiekun XP [Version 5.1.2600]', dosCopy: '(C) Copyright 1985-2001 blankiekun.', start: 'start', names: NT, absent: NOT_XP, ...NINE,
@@ -71,7 +71,7 @@ export const VERSIONS = [
 export const V = VERSIONS.find(r => r.id === store.get(KEY, '95')) || VERSIONS[3];
 export const OS = 'blankiekun ' + V.short;
 // Programs only some eras had. Elsewhere they're left out of the Start menu and the desktop.
-const ONLY = { reversi: ['1.0', '2.0'], clock: ['1.0', '2.0', '3.1', 'vista', '7'], spider: ['xp', 'vista', '7'], stickynotes: ['7', '8', '10', '11'], restore: ['me', 'xp'], settings: ['10', '11'] };
+const ONLY = { reversi: ['1.0', '2.0'], clock: ['1.0', '2.0', '3.1', 'vista', '7'], spider: ['xp', 'vista', '7'], stickynotes: ['7', '8', '10', '11'], restore: ['me', 'xp'], settings: ['10', '11'], viewer: ['98', 'me', '2000', 'xp', 'vista', '7', '8', '10', '11'] };
 export const absent = app => V.absent.includes(app) || (ONLY[app] ? !ONLY[app].includes(V.id) : false);
 
 // The names the 95 code uses, swapped for this era's. Every era's keys are in the pattern so a
