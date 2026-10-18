@@ -31,7 +31,7 @@ const LAZY = {
   stickynotes: [['stickynotes', 'Sticky Notes', 'i-stickynotes']], restore: [['restore', 'System Restore', 'i-clock', 1]], snip: [['snip', 'Snipping Tool', 'i-snip']], gadgets: [['gadgets', 'Gadgets', 'i-programs']],
 };
 // Modules only the lazy programs import, so the service worker can keep them for offline too.
-const HELPERS = ['filedlg', 'send', 'config', 'helptopics', 'charms', 'apps/cards', 'apps/consfmt', 'apps/conssave', 'apps/consdrive', 'apps/consanki', 'apps/filemgr'];
+const HELPERS = ['filedlg', 'send', 'config', 'helptopics', 'charms', 'apps/cards', 'apps/consfmt', 'apps/conssave', 'apps/consdrive', 'apps/consanki', 'apps/filemgr', 'apps/dosedit'];
 
 const registerAll = mod => { for (const v of Object.values(mod)) if (v && v.id && v.open) register(v); };
 const loading = {};
