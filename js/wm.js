@@ -30,6 +30,8 @@ let placeTask = w => tasks.append(w.task);
 export function onPlaceTask(fn) { placeTask = fn; }
 let runDialog = () => {};
 export function onRun(fn) { runDialog = fn; }
+let lockScreen = () => {};
+export function onLock(fn) { lockScreen = fn; }
 // What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
 let taskMenu = (win, at) => systemMenu(win, at);
 export function onTaskMenu(fn) { taskMenu = fn; }
@@ -685,7 +687,7 @@ function endSwitch(ok) {
   sw.el.remove(); sw = null;
   if (ok) focus(w);
 }
-// Windows key shortcuts, from 95 on. Win+L is left for a Lock item.
+// Windows key shortcuts, from 95 on. Win+L locks (XP on).
 // shortcut: the OS often keeps the Windows key, so Ctrl+Alt+the same key does the same.
 const WINKEY = !['1.0', '2.0', '3.1'].includes(V.id);
 function winKey(code) {
@@ -693,6 +695,7 @@ function winKey(code) {
   if (code === 'KeyD' || code === 'KeyM') minimizeAll();
   else if (code === 'KeyE') launch('explorer', { path: 'C:\\', explore: true });
   else if (code === 'KeyR') runDialog();
+  else if (code === 'KeyL') lockScreen();
   else if (win && code === 'ArrowUp') maximize(win);
   else if (win && SIDES && (code === 'ArrowLeft' || code === 'ArrowRight')) {
     const A = area();
@@ -718,7 +721,7 @@ document.addEventListener('keydown', e => {
   } else if (e.altKey && e.key === 'F4' && active) {
     // shortcut: the browser usually takes Alt+F4 first, so it only arrives in some browsers and full-screen PWAs.
     e.preventDefault(); close(active);
-  } else if (WINKEY && (e.metaKey || e.ctrlKey && e.altKey && !e.getModifierState('AltGraph')) && winKey(e.code)) {
+  } else if (WINKEY && !document.querySelector('.screen.logon') && (e.metaKey || e.ctrlKey && e.altKey && !e.getModifierState('AltGraph')) && winKey(e.code)) {
     e.preventDefault();
   } else if (e.altKey && e.code === 'Space' && active) {
     e.preventDefault();
