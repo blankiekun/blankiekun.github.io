@@ -703,6 +703,104 @@
     <path d="M1.5 17.5h8l2 3h9l2-3h8v10h-29z" fill="url(#g-blue)" stroke="url(#g-edge)" stroke-linejoin="round"/>
   </symbol>
 
+  <!-- 10 and 11: flat icons drawn for the site, one style: rounded 32×32 shapes, lit from the top
+       (lighter faces up, darker backs), no outlines except on white paper. Later symbols win, so these replace the set above.
+       shortcut: only the icons most seen in 10/11 are redrawn; the rest (CONscripter, GitHub, Sticky Notes, ribbon
+       buttons...) keep the 2000-11 or pixel drawings, draw more when they stand out. -->
+  <symbol data-id="i-folder" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M2 8a2 2 0 0 1 2-2h7l3 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#e3a21a"/>
+    <rect x="2" y="11" width="28" height="16" rx="2" fill="#ffc83d"/><rect x="2" y="11" width="28" height="1.5" rx=".75" fill="#ffe08a"/>
+  </symbol>
+  <symbol data-id="i-folder-open" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M2 8a2 2 0 0 1 2-2h7l3 3h12a2 2 0 0 1 2 2v3H2z" fill="#e3a21a"/><path d="M2 12h3v13H2z" fill="#e3a21a"/>
+    <rect x="6.5" y="8.5" width="18" height="12" rx="1" fill="#fff" stroke="#c8c8c8"/>
+    <path d="M7.4 13H29.6a1 1 0 0 1 1 1.3l-3.5 11.3A2 2 0 0 1 25.2 27H2.8a1 1 0 0 1-1-1.3l3.7-11.3A2 2 0 0 1 7.4 13z" fill="#ffc83d"/>
+  </symbol>
+  <symbol data-id="i-docs" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M2 8a2 2 0 0 1 2-2h7l3 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" fill="#e3a21a"/>
+    <rect x="8.5" y="3.5" width="15" height="15" rx="1" fill="#fff" stroke="#c8c8c8"/><path d="M11.5 8h9M11.5 11h9M11.5 14h6" stroke="#2b88d8" stroke-width="1.5" stroke-linecap="round"/>
+    <rect x="2" y="15" width="28" height="12" rx="2" fill="#ffc83d"/><rect x="2" y="15" width="28" height="1.5" rx=".75" fill="#ffe08a"/>
+  </symbol>
+  <symbol data-id="i-computer" data-win="10 11" viewBox="0 0 32 32">
+    <rect x="2" y="4" width="28" height="19" rx="2" fill="#3b3b3b"/><rect x="4" y="6" width="24" height="15" rx=".5" fill="#1b7fd1"/>
+    <path d="M4 6h24v4.5L4 17z" fill="#4aa3ea"/>
+    <path d="M13 23h6l1.2 4h-8.4z" fill="#8a8a8a"/><rect x="8" y="27" width="16" height="2.5" rx="1.25" fill="#5f5f5f"/>
+  </symbol>
+  <symbol data-id="i-network" data-win="10 11" viewBox="0 0 32 32">
+    <circle cx="19" cy="13" r="11" fill="#1b7fd1"/><path d="M8.2 11A11 11 0 0 1 29.8 11z" fill="#4aa3ea"/>
+    <path d="M8 13h22M19 2c-4 5-4 17 0 22M19 2c4 5 4 17 0 22" stroke="#cfe6fa" stroke-width="1.2" fill="none"/>
+    <use href="#i-computer" x="0" y="13" width="18" height="18"/>
+  </symbol>
+  <symbol data-id="i-trash" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M8 10h16l-1.5 17.2a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8z" fill="#c9cfd6"/><path d="M8 10h16l-.3 3H8.3z" fill="#aab2bc"/>
+    <path d="M13 15l.4 10M16 15v10M19 15l-.4 10" stroke="#8d97a3" stroke-width="1.5" stroke-linecap="round"/>
+    <rect x="6" y="7" width="20" height="3.5" rx="1.75" fill="#7d8896"/>
+  </symbol>
+  <symbol data-id="i-trash-full" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M9 7.5l2.5-5 5.5 1.5L16 7.5z" fill="#fff" stroke="#b8c0ca" stroke-linejoin="round"/><path d="M15.5 7.5l3-4.5 4.5 2.5-1 2z" fill="#cfe4f7" stroke="#9fbfdc" stroke-linejoin="round"/>
+    <use href="#i-trash"/>
+  </symbol>
+  <symbol data-id="i-txt" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M7.5 2.5h12l7 7v18a2 2 0 0 1-2 2h-17a2 2 0 0 1-2-2v-23a2 2 0 0 1 2-2z" fill="#fff" stroke="#a6a6a6" stroke-linejoin="round"/>
+    <path d="M19.5 2.5v5a2 2 0 0 0 2 2h5" fill="#e8e8e8" stroke="#a6a6a6" stroke-linejoin="round"/>
+    <path d="M10 15h12M10 19h12M10 23h8" stroke="#6b6b6b" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-notepad" data-win="10 11" viewBox="0 0 32 32">
+    <rect x="5.5" y="5.5" width="21" height="24" rx="2" fill="#fff" stroke="#a6a6a6"/><path d="M5 11V7.5a2.5 2.5 0 0 1 2.5-2.5h17A2.5 2.5 0 0 1 27 7.5V11z" fill="#1b7fd1"/>
+    <path d="M10.5 3v5M16 3v5M21.5 3v5" stroke="#3b3b3b" stroke-width="2" stroke-linecap="round"/>
+    <path d="M9.5 16h13M9.5 20h13M9.5 24h8" stroke="#8a8a8a" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-paint" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M16 4C8.5 4 3 9 3 15.5S8 26 13 26c3 0 3-3 1.2-4.2-1.6-1 0-3.8 2.8-3.8h6c4 0 6-2 6-5C29 8 23 4 16 4z" fill="#f3dcb2"/>
+    <path d="M3.1 14.5C4 20.5 8.5 26 13 26c3 0 3-3 1.2-4.2C9 22 5 19 3.1 14.5z" fill="#ddbd85"/>
+    <circle cx="8.5" cy="13.5" r="2.2" fill="#e5484d"/><circle cx="12.5" cy="8.5" r="2.2" fill="#ffb900"/><circle cx="19" cy="8" r="2.2" fill="#3aa935"/><circle cx="24.5" cy="11.5" r="2.2" fill="#1b7fd1"/>
+    <path d="M30 18.5L20 28" stroke="#8a5a2b" stroke-width="2.6" stroke-linecap="round"/><path d="M20.5 27.5l-4.5 3 1.6-4.7z" fill="#3b3b3b"/>
+  </symbol>
+  <symbol data-id="i-calc" data-win="10 11" viewBox="0 0 32 32">
+    <rect x="6" y="2" width="20" height="28" rx="3" fill="#3b3b3b"/><rect x="9" y="5" width="14" height="6" rx="1" fill="#cfe4f7"/>
+    <path fill="#9a9a9a" d="M9 14h4v3H9zM14 14h4v3h-4zM9 18.5h4v3H9zM14 18.5h4v3h-4zM9 23h4v3H9zM14 23h4v3h-4z"/>
+    <rect x="19" y="14" width="4" height="12" rx=".8" fill="#2b88d8"/>
+  </symbol>
+  <!-- Settings and Control Panel share i-ctrl; 10/11 draw it as Settings' gear -->
+  <symbol data-id="i-ctrl" data-win="10 11" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="12" fill="none" stroke="#5f6b7a" stroke-width="5" stroke-dasharray="4.7 4.7"/>
+    <circle cx="16" cy="16" r="7.5" fill="none" stroke="#7d8896" stroke-width="5.5"/>
+    <path d="M10.6 11.2A7.5 7.5 0 0 1 21.4 11.2" stroke="#a3adb9" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </symbol>
+  <!-- blankiekun Edge: the site's own browser, a globe with a b on it -->
+  <symbol data-id="i-ie" data-win="10 11" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="14" fill="#1b7fd1"/><path d="M2.3 13.5a14 14 0 0 1 27.4 0z" fill="#4aa3ea"/>
+    <path d="M2 16h28M16 2c-5 6-5 22 0 28M16 2c5 6 5 22 0 28" stroke="#9ccdf3" stroke-width="1" fill="none" opacity=".7"/>
+    <path d="M12 7v16M12 17.5a5 5 0 1 1 0 3" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol data-id="i-mail" data-win="10 11" viewBox="0 0 32 32">
+    <rect x="3" y="7" width="26" height="19" rx="2" fill="#1b7fd1"/><path d="M3 9a2 2 0 0 1 2-2h22a2 2 0 0 1 2 2l-13 9.5z" fill="#4aa3ea"/>
+    <path d="M4 9l12 9 12-9" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol data-id="i-inbox" data-win="10 11" viewBox="0 0 32 32"><use href="#i-mail"/></symbol>
+  <symbol data-id="i-dos" data-win="10 11" viewBox="0 0 32 32">
+    <rect x="2" y="5" width="28" height="22" rx="3" fill="#2b2b2b"/><path d="M2 8a3 3 0 0 1 3-3h22a3 3 0 0 1 3 3v1.5H2z" fill="#555"/>
+    <path d="M7 14l4 3-4 3M13.5 21h6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol data-id="i-user" data-win="10 11" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="14" fill="#1b7fd1"/><circle cx="16" cy="12.5" r="5.5" fill="#fff"/>
+    <path d="M6.6 26A11 8 0 0 1 25.4 26 14 14 0 0 1 6.6 26z" fill="#fff"/>
+  </symbol>
+  <!-- Lock / sign out: a padlock instead of 95's yellow key -->
+  <symbol data-id="i-logoff" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M10.5 14V10a5.5 5.5 0 0 1 11 0v4" stroke="#7d8896" stroke-width="3" fill="none"/>
+    <rect x="6" y="13" width="20" height="16" rx="3" fill="#e3a21a"/><path d="M6 16a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v2H6z" fill="#ffc83d"/>
+    <circle cx="16" cy="20.5" r="2.2" fill="#6b4a0a"/><path d="M16 21.5v3.5" stroke="#6b4a0a" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-shutdown" data-win="10 11" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="14" fill="#d83b3b"/><path d="M2.3 13.5a14 14 0 0 1 27.4 0z" fill="#e85d5d"/>
+    <path d="M11.2 10.5a7.5 7.5 0 1 0 9.6 0" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M16 7v8" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+  </symbol>
+  <symbol data-id="i-find" data-win="10 11" viewBox="0 0 32 32">
+    <path d="M19.5 19.5l8 8" stroke="#3b3b3b" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="13" cy="13" r="9" fill="#cfe4f7" stroke="#1b7fd1" stroke-width="3"/><path d="M8.5 11.5a5 5 0 0 1 4-4" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </symbol>
+
   <!-- 1.0 to 3.1: Program Manager's group window and File Manager's cabinet, 16-colour pixels -->
   <symbol data-id="i-computer" data-win="1.0 2.0 3.1" viewBox="0 0 16 16" shape-rendering="crispEdges">
     <path fill="#000" d="M1 2h14v12H1z"/><path fill="#fff" d="M2 4h12v9H2z"/><path fill="#000080" d="M2 3h12v1H2z"/>
@@ -727,7 +825,7 @@
   </symbol>
 </svg>
 <script>
-  // Swap in this version's icons (and gradients) before any code draws one.
+  // Swap in this version's icons (and gradients) before any code draws one; a later match replaces an earlier one.
   for (const el of document.querySelectorAll(`#era-icons [data-win~="${document.documentElement.dataset.win}"]`)) {
     document.getElementById(el.dataset.id)?.remove();
     el.id = el.dataset.id;
