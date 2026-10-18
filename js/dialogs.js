@@ -111,6 +111,20 @@ export function inputbox({ title, label, value = '', parent, ok = 'OK' }) {
   });
 }
 
+// The About box's hidden credits: the projects, the borrowed art in THIRD-PARTY.txt, and who made it.
+const CREDITS = ['blankiekun', '', 'chimimouryou', 'CONscripter', 'conscripter-convert', '', 'Borrowed art, with thanks:', '98.css by Jordan Scales',
+  'XP.css by Adam Hammad and Jordan Scales', '7.css by Khang Nguyen Duy', 'Pixel sans font by lou, on FontStruction', 'Shippori Mincho by The Shippori Mincho Project Authors',
+  'Botchan by Natsume Soseki, from Aozora Bunko', '', 'Made with love by blank'];
+const BEAR = `<svg viewBox="0 0 32 32" width="40" height="40" aria-hidden="true"><g fill="#8b5a2b" stroke="#000"><circle cx="7" cy="8" r="5"/><circle cx="25" cy="8" r="5"/>
+<circle cx="16" cy="18" r="12"/></g><g fill="#e8c9a0" stroke="#000"><circle cx="7" cy="8" r="2"/><circle cx="25" cy="8" r="2"/><ellipse cx="16" cy="23" rx="6" ry="4.5"/></g>
+<circle cx="11" cy="15" r="1.6"/><circle cx="21" cy="15" r="1.6"/><path d="M13.5 20.5h5L16 23z"/><path d="M16 23v2" stroke="#000" fill="none"/></svg>`;
+// clouds: 95 to Me's sky; otherwise 3.1's bear beside the roll of names.
+function credits(row, clouds) {
+  row.replaceChildren(h('div', { class: 'about-credits' + (clouds ? ' clouds' : ''), role: 'region', 'aria-label': 'Credits' },
+    clouds ? null : h('span', { class: 'about-bear', html: BEAR }),
+    h('div', { class: 'about-roll' }, CREDITS.map(t => h('p', null, t || '\u00a0')))));
+}
+
 // Help > About for every app: the classic shell About box.
 // extra: more lines under the app's name, such as its version.
 export function about(appName, appIcon, parent, extra) {
@@ -126,6 +140,11 @@ export function about(appName, appIcon, parent, extra) {
         h('p', null, `Physical Memory Available to Windows:  ${V.ramKB.toLocaleString('en-US')} KB`, h('br'), 'System Resources:  87% Free'))),
     h('div', { class: 'btns right' }, h('button', { class: 'btn default', type: 'button', onclick: () => win.close() }, 'OK')));
   body.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); win.close(); } });
+  // The secrets: 1.0 to 3.1, Ctrl+Shift double-click the logo three times; 95 to Me, type "blankiekun".
+  const row = body.querySelector('.row');
+  let n = 0, typed = '';
+  if (['1.0', '2.0', '3.1'].includes(V.id)) row.querySelector('.about-logo').addEventListener('dblclick', e => { if (e.ctrlKey && e.shiftKey && ++n === 3) credits(row); });
+  if (['95', '98', 'me'].includes(V.id)) body.addEventListener('keydown', e => { typed = (typed + e.key.toLowerCase()).slice(-10); if (typed === 'blankiekun') credits(row, true); });
   const win = createWindow({ title: 'About ' + appName, body, dialog: true, resizable: false, width: 'auto', parent, taskbar: !parent });
   body.querySelector('.btn').focus();
   return win;
