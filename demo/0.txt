@@ -1,4 +1,8 @@
 ; CONscripter's demo game, written for this site. demo/make.py draws the pictures and cuts the font.
+; Try changing the text of any line below, save, then choose Game > Run My Script in CONscripter.
+; If the script has a mistake, the engine says what and where when it stops.
+; Engine bugs to dodge: `end` leaves a black screen here (use reset), and setwindow
+; inside *define is ignored (set the window under *start, as below).
 *define
 caption "CONscripter Demo"
 effect 9,10,500
