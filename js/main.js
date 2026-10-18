@@ -29,7 +29,7 @@ const LAZY = {
   regedit: [['regedit', 'Registry Editor', 'i-regedit']], dialer: [['dialer', 'Phone Dialer', 'i-dialer']], winpopup: [['winpopup', 'WinPopup', 'i-winpopup']],
   sysmon: [['sysmon', 'System Monitor', 'i-sysmon'], ['resmeter', 'Resource Meter', 'i-resmeter']], reversi: [['reversi', 'Reversi', 'i-reversi']], clock: [['clock', 'Clock', 'i-clock']],
   stickynotes: [['stickynotes', 'Sticky Notes', 'i-stickynotes']], restore: [['restore', 'System Restore', 'i-clock', 1]], snip: [['snip', 'Snipping Tool', 'i-snip']], gadgets: [['gadgets', 'Gadgets', 'i-programs']],
-  reader: [['reader', 'chimimouryou Reader (demo)', 'i-reader', 1]],
+  crashme: [['crashme', 'CRASHME', 'i-exe', 1]], reader: [['reader', 'chimimouryou Reader (demo)', 'i-reader', 1]],
 };
 // Modules only the lazy programs import, so the service worker can keep them for offline too.
 const HELPERS = ['filedlg', 'send', 'config', 'helptopics', 'charms', 'apps/cards', 'apps/consfmt', 'apps/conssave', 'apps/consdrive', 'apps/consanki', 'apps/filemgr', 'apps/dosedit'];
