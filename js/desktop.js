@@ -819,53 +819,101 @@ for (const t of ['keydown', 'keyup', 'click']) addEventListener(t, e => { shiftH
 // While the sign-in is up nothing behind it can take focus, so Tab can't walk into the windows.
 const trap = on => { for (const id of ['desktop', 'taskbar']) document.getElementById(id).inert = on; };
 
-// The Welcome dialog. The account is the GitHub one.
+// The sign-in, in the era's own look; the account is the GitHub one. Any password works.
 function logOn(locked) {
   if (!locked) closeAll();
-  const scr = h('div', { class: 'screen logon' });
-  const pw = h('input', { class: 'field', type: 'password', id: 'logon-pw', autocomplete: 'off' });
-  const form = h('form', { class: 'win active logon-win', 'aria-label': 'Welcome to ' + OS },
-    h('div', { class: 'titlebar' }, h('span', { class: 't' }, 'Welcome to ' + OS)),
-    h('div', { class: 'dlg' },
-      h('div', { class: 'row' },
-        h('img', { src: GITHUB + '.png?size=96', alt: '', width: 48, height: 48, class: 'logon-avatar' }),
-        h('div', { class: 'logon-fields' },
-          h('p', null, 'Type a user name and password to log on to ' + OS + '.'),
-          h('label', null, h('span', { html: '<u>U</u>ser name:' }), h('input', { class: 'field', value: 'blankiekun', readonly: true })),
-          h('label', null, h('span', { html: '<u>P</u>assword:' }), pw),
-          h('p', { class: 'logon-hint' }, 'Any password works. This account is ', h('a', { href: GITHUB, target: '_blank', rel: 'noopener' }, 'github.com/blankiekun'), '.')),
-        h('div', { class: 'btns', style: { flexDirection: 'column' } },
-          h('button', { class: 'btn default', type: 'submit' }, 'OK'),
-          h('button', { class: 'btn', type: 'button', onclick: () => form.requestSubmit() }, 'Cancel')))));
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
+  const look = PANEL || (V.id === '2000' ? 'nt' : '9x');
+  const scr = h('div', { class: 'screen logon logon-' + look });
+  const signIn = () => {
     scr.remove();
     trap(false);
     if (locked) return;
     launch('ie', 'home');
     runStartup();
     import('./apps/gadgets.js').then(m => m.reopen());
-  });
-  scr.append(form);
+  };
+  // Every screen is a labelled form, so Enter signs in and screen readers name it.
+  const form = (label, cls, kids, next = signIn) => {
+    const f = h('form', { class: cls, 'aria-label': label }, ...kids);
+    f.addEventListener('submit', e => { e.preventDefault(); next(); });
+    return f;
+  };
+  const off = () => { scr.remove(); trap(false); powerOff(); };
+  scr.append(...LOGON[look](form, off, scr));
   document.body.append(scr);
   trap(true);
-  pw.focus();
+  scr.querySelector('input:not([readonly]), button').focus();
 }
 
-// Lock keeps every window open and only draws the sign-in over them; 10 and 11 put a clock screen first.
+const pwField = (placeholder) => h('input', { class: 'field', type: 'password', autocomplete: 'off', 'aria-label': 'Password', placeholder });
+const avatar = (cls, size = 48) => h('img', { src: GITHUB + '.png?size=' + size * 2, alt: '', width: size, height: size, class: cls });
+const glyph = (id, label, onclick) => h('button', { class: 'logon-glyph', type: 'button', title: label, 'aria-label': label, onclick }, icon(id));
+const win9x = (form, label, kids, buttons, next) => form(label, 'win active logon-win', [
+  h('div', { class: 'titlebar' }, h('span', { class: 't' }, label)),
+  h('div', { class: 'dlg' }, h('div', { class: 'row' }, ...kids, h('div', { class: 'btns', style: { flexDirection: 'column' } }, ...buttons)))], next);
+const okBtn = () => h('button', { class: 'btn default', type: 'submit' }, 'OK');
+const userRow = () => h('label', null, h('span', { html: '<u>U</u>ser name:' }), h('input', { class: 'field', value: 'blankiekun', readonly: true }));
+const pwRow = () => h('label', null, h('span', { html: '<u>P</u>assword:' }), pwField());
+
+const LOGON = {
+  // 95, 98 and Me: the Welcome dialog. Cancel logs on too, as it did.
+  '9x': form => [win9x(form, 'Welcome to ' + OS, [avatar('logon-avatar'),
+    h('div', { class: 'logon-fields' },
+      h('p', null, 'Type a user name and password to log on to ' + OS + '.'), userRow(), pwRow(),
+      h('p', { class: 'logon-hint' }, 'Any password works. This account is ', h('a', { href: GITHUB, target: '_blank', rel: 'noopener' }, 'github.com/blankiekun'), '.'))],
+    [okBtn(), h('button', { class: 'btn', type: 'button', onclick: e => e.target.form.requestSubmit() }, 'Cancel')])],
+  // 2000: Ctrl+Alt+Delete first, then Log On to blankiekun.
+  nt(form, off, scr) {
+    const band = () => h('div', { class: 'logon-band', 'aria-hidden': 'true' }, h('b', null, 'blankiekun', h('sup', null, '2000')), h('span', null, 'Professional'), h('small', null, 'Built on NT Technology'));
+    const opts = h('label', { hidden: true }, h('span', { html: '<u>L</u>og on to:' }), h('input', { class: 'field', value: 'blankiekun (this computer)', readonly: true }));
+    const logon = () => win9x(form, 'Log On to blankiekun', [band(), h('div', { class: 'logon-fields' }, userRow(), pwRow(), opts)],
+      [okBtn(), h('button', { class: 'btn', type: 'button', onclick: e => e.target.form.requestSubmit() }, 'Cancel'),
+        h('button', { class: 'btn', type: 'button', onclick: off }, 'Shutdown...'),
+        h('button', { class: 'btn', type: 'button', onclick: e => { opts.hidden = !opts.hidden; e.target.textContent = opts.hidden ? 'Options >>' : 'Options <<'; } }, 'Options >>')]);
+    const next = () => { const f = logon(); welcome.replaceWith(f); f.querySelector('input:not([readonly])').focus(); };
+    // shortcut: the browser or OS takes Ctrl+Alt+Delete before the page sees it, so Ctrl+Alt+End, Enter and OK work too.
+    const welcome = win9x(form, 'Welcome to ' + OS, [band(), h('div', { class: 'logon-fields' },
+      h('p', null, h('b', null, 'Press Ctrl-Alt-Delete to begin.')),
+      h('p', null, 'Requiring this key combination at startup helps keep your password secure. In this browser, Ctrl-Alt-End, Enter or OK will do.'))], [okBtn()], next);
+    welcome.addEventListener('keydown', e => { if (e.ctrlKey && e.altKey && (e.key === 'Delete' || e.key === 'End')) { e.preventDefault(); e.stopPropagation(); next(); } });
+    return [welcome];
+  },
+  // XP: the Welcome screen. One account and no password, so the tile logs on.
+  xp: (form, off) => [h('div', { class: 'xpw-top' }),
+    h('div', { class: 'xpw-mid' },
+      h('div', { class: 'xpw-left' }, h('b', { class: 'xpw-logo' }, 'blankiekun', h('sup', null, 'xp')), h('p', null, 'To begin, click your user name')),
+      form('Welcome to ' + OS, 'xpw-right', [h('button', { class: 'xpw-tile', type: 'submit' }, avatar(''), h('span', null, 'blankiekun'))])),
+    h('div', { class: 'xpw-bot' }, h('button', { class: 'xpw-off', type: 'button', onclick: off }, icon('i-shutdown'), 'Turn off computer'))],
+  // Vista and 7: the tile in the middle, ease of access and power along the bottom.
+  aero: (form, off) => [form('Welcome to ' + OS, 'aero-in', [avatar('aero-pic', 128), h('b', null, 'blankiekun'),
+      h('div', { class: 'aero-pw' }, pwField('Password'), h('button', { type: 'submit', 'aria-label': 'Log on' }, '→')),
+      // shortcut: there is one account, so Switch User has no one else to show; it just puts you back in the box.
+      h('button', { class: 'btn', type: 'button', onclick: e => e.target.form.querySelector('input').focus() }, 'Switch User')]),
+    h('div', { class: 'aero-bar' }, h('span', { class: 'logon-glyph', 'aria-hidden': 'true' }, icon('i-qs-access')),
+      h('span', null, 'blankiekun', h('sup', null, V.short)), glyph('i-charm-power', 'Shut down', off))],
+  // 8, 10 and 11: the round picture, the name and the box.
+  metro: (form, off) => [form('Sign in to ' + OS, 'metro-in', [avatar('metro-pic', 96), h('b', null, 'blankiekun'),
+      h('div', { class: 'metro-pw' }, pwField(V.id === '11' ? 'PIN' : 'Password'), V.id === '8' && h('button', { type: 'submit', 'aria-label': 'Sign in' }, '→')),
+      V.id === '10' && h('button', { class: 'btn metro-go', type: 'submit' }, 'Sign in')]),
+    h('div', { class: 'metro-bar' }, h('span', { class: 'logon-glyph', 'aria-hidden': 'true' }, icon('i-tb-wifi')), glyph('i-charm-power', 'Shut down', off))],
+};
+LOGON.screen = LOGON.ten = LOGON.eleven = LOGON.metro;
+
+// Lock keeps every window open and only draws the sign-in over them; 8, 10 and 11 put a clock screen first.
 function lock() {
   if (!PANEL || document.querySelector('.screen.logon')) return;
   closeMenus('replaced');
   closePanel();
   closeTaskView();
-  if (PANEL !== 'ten' && PANEL !== 'eleven') { logOn(true); return; }
+  if (!['screen', 'ten', 'eleven'].includes(PANEL)) { logOn(true); return; }
   const now = new Date();
   const scr = h('div', { class: 'screen logon lockscreen', tabindex: '0', role: 'button', 'aria-label': 'Locked. Press any key or click to sign in.' },
     h('b', null, now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     h('span', null, now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })));
   const open = () => { scr.remove(); logOn(true); };
   scr.addEventListener('click', open);
-  scr.addEventListener('keydown', e => { if (!e.metaKey && !(e.ctrlKey && e.altKey)) open(); });
+  // The key that opens it mustn't also reach the password box, or Enter would sign straight in.
+  scr.addEventListener('keydown', e => { if (!e.metaKey && !(e.ctrlKey && e.altKey)) { e.preventDefault(); open(); } });
   document.body.append(scr);
   trap(true);
   scr.focus();
@@ -1315,10 +1363,10 @@ document.addEventListener('pointerout', e => { if (!e.relatedTarget) hideTip(); 
 document.addEventListener('pointerdown', hideTip, true);
 document.addEventListener('keydown', hideTip, true);
 
-// Until Start has been clicked once, a hint slides out beside it, as on a new Windows 95 PC.
+// Until Start has been clicked once, a hint slides out beside it, as on a new 95 to 2000 PC; XP on never had it.
 const BEGUN = 'w95.begun';
 function beginHint() {
-  if (store.get(BEGUN, false) || !V.start) return;
+  if (store.get(BEGUN, false) || !V.start || PANEL) return;
   const hint = h('div', { class: 'tooltip begin-hint', 'aria-hidden': 'true' }, '\u25c4 Click here to begin');
   hint.style.left = startBtn.getBoundingClientRect().right + 4 + 'px';
   document.body.append(hint);
