@@ -3,7 +3,7 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, altTab, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
@@ -565,7 +565,8 @@ const subOf = it => typeof it.submenu === 'function' ? it.submenu() : it.submenu
 const leaves = list => list.flatMap(it => !it || it === '-' || it.disabled ? [] : it.submenu ? leaves(subOf(it)) : [it]);
 const uniq = list => list.filter((it, i) => list.findIndex(o => strip(o.label) === strip(it.label)) === i);
 
-function openPanel() {
+// q: what was typed in 10's taskbar search box, carried on into the panel's own.
+function openPanel(q) {
   const items = startItems();
   const programs = items.find(it => it.label === '&Programs').submenu;
   const go = fn => () => { closePanel(); closeMenus('chosen'); fn(); };
@@ -675,11 +676,14 @@ function openPanel() {
     // Clicking the background goes back to the desktop, like Escape.
     el.addEventListener('click', e => { if (e.target === el) closePanel(); });
   } else if (PANEL === 'ten') {
+    const apps = h('div', null, ...az());
+    const s = search(apps, 'Type here to search');
     el = h('div', { class: 'startpanel sp-ten' },
       h('div', { class: 'sp-rail' }, user(), item('Documents', 'i-docs', () => launch('explorer', 'C:\\My Documents')),
         item('Settings', 'i-ctrl', () => launch('settings')), lockItem(), logoff(), power('Power')),
-      h('div', { class: 'sp-apps' }, ...az()),
+      h('div', { class: 'sp-apps' }, s.box, apps, s.found),
       h('div', { class: 'sp-tiles' }, ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label))))));
+    focus = s.box;
   } else {
     const grid = h('div', { class: 'sp-grid' }, ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label)))));
     const recent = h('div', { class: 'sp-recent' }, ...recentDocs().slice(0, 6).map(it => item(it.label, it.icon, it.action)));
@@ -704,6 +708,7 @@ function openPanel() {
   sound('Menu popup');
   el.tabIndex = -1;
   (focus || el).focus({ preventScroll: true });
+  if (q && focus) { focus.value = q; focus.dispatchEvent(new Event('input')); }
 }
 
 // ---------- Run ----------
@@ -1030,15 +1035,18 @@ function volumeControl() {
 
 // ---------- clock ----------
 
-let formatTime = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+let formatTime = (d, sec) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: sec ? '2-digit' : undefined });
 let formatDate = d => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+let formatShort = d => d.toLocaleDateString('en-US');
+// 10 and 11 show the date under the time.
+const MODERN = V.id === '10' || V.id === '11';
 
 function clock() {
   const t = document.getElementById('clock');
   const tray = t.parentElement;
   const tick = () => {
     const d = new Date();
-    t.textContent = formatTime(d);
+    t.textContent = formatTime(d) + (MODERN ? '\n' + formatShort(d) : '');
     t.dateTime = d.toISOString();
     tray.dataset.tip = formatDate(d);
   };
@@ -1046,12 +1054,14 @@ function clock() {
   setInterval(tick, 10000);
   // Regional Settings decides how the time looks, when that applet loaded.
   import('./apps/control.js').then(m => {
-    if (m.formatTime) formatTime = d => m.formatTime(d);
-    if (m.formatDate) formatDate = d => m.formatDate(d, true);
+    if (m.formatTime) formatTime = (d, sec) => m.formatTime(d, sec);
+    if (m.formatDate) { formatDate = d => m.formatDate(d, true); formatShort = d => m.formatDate(d); }
     tick();
   }).catch(() => {});
   window.addEventListener('w95-regional', tick);
-  t.addEventListener('dblclick', () => launch('datetime'));
+  t.addEventListener('dblclick', () => { closeFlyout(); launch('datetime'); });
+  // 7 on, a single click shows the month above the clock.
+  if (SUPERBAR) t.addEventListener('click', () => calendarFlyout(t));
   const spk = tray.querySelector('svg');
   spk.classList.add('spk');
   spk.classList.toggle('muted', volume().mute);
@@ -1060,6 +1070,102 @@ function clock() {
   spk.setAttribute('aria-label', 'Volume');
   spk.addEventListener('click', () => volumePopup(false));
   spk.addEventListener('dblclick', () => { if (volEl) { volEl.remove(); volEl = null; } volumeControl(); });
+}
+
+// ---------- 7 on: tray flyouts ----------
+// One flyout at a time above the taskbar; clicking its button again, Escape or a click elsewhere shuts it.
+let fly = null;
+function closeFlyout() { fly?.el.remove(); fly = null; }
+function flyout(el, owner) {
+  const again = fly?.owner === owner;
+  closeFlyout();
+  if (again) return;
+  fly = { el, owner };
+  el.classList.add('flyout');
+  el.tabIndex = -1;
+  el.addEventListener('keydown', e => { if (e.key === 'Escape') { closeFlyout(); owner.focus?.(); } });
+  document.body.append(el);
+  el.focus({ preventScroll: true });
+}
+document.addEventListener('pointerdown', e => { if (fly && !fly.el.contains(e.target) && !fly.owner.contains(e.target)) closeFlyout(); }, true);
+// A click in a program's frame only shows as the page losing focus.
+window.addEventListener('blur', closeFlyout);
+
+// The month, today marked, with a ticking time on top in 10 and 11.
+function calendarFlyout(owner) {
+  const now = new Date();
+  let y = now.getFullYear(), m = now.getMonth();
+  const title = h('b'), grid = h('div', { class: 'cal-grid', role: 'grid' });
+  const time = MODERN ? h('div', { class: 'cal-time' }) : null, date = MODERN ? h('div', { class: 'cal-date' }) : null;
+  const flip = d => { m += d; if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; } draw(); };
+  let cells = null;
+  function draw() {
+    if (!cells) return;
+    title.textContent = new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const today = y === now.getFullYear() && m === now.getMonth() ? now.getDate() : 0;
+    grid.replaceChildren(...['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => h('span', { class: 'cal-wd' }, d)),
+      ...cells(y, m).map(d => h('span', { class: d === today ? 'today' : null }, d)));
+  }
+  const tick = () => { const d = new Date(); time.textContent = formatTime(d, true); date.textContent = formatDate(d); };
+  if (time) { tick(); const timer = setInterval(() => el.isConnected ? tick() : clearInterval(timer), 1000); }
+  const el = h('div', { class: 'cal-fly', role: 'dialog', 'aria-label': 'Calendar' }, time, date,
+    h('div', { class: 'cal-head' }, title,
+      h('button', { type: 'button', 'aria-label': 'Previous month', onclick: () => flip(-1) }, '\u25b2'),
+      h('button', { type: 'button', 'aria-label': 'Next month', onclick: () => flip(1) }, '\u25bc')),
+    grid);
+  import('./apps/gadgets.js').then(g => { cells = g.monthCells; draw(); });
+  flyout(el, owner);
+}
+
+// ---------- 10 and 11: search, Task View, Widgets and the tray's network and notification icons ----------
+
+// shortcut: Task View is the Alt+Tab switcher for now, E3 builds the real one with its timeline.
+function taskView() { altTab(); }
+
+function startSearch(q) {
+  openPanel(q);
+  startBtn.setAttribute('aria-expanded', 'true');
+}
+
+function modernTaskbar() {
+  if (!MODERN) return;
+  const btn = (label, ic, onclick, cls = '') => h('button', { type: 'button', class: 'tb-btn ' + cls, title: label, 'aria-label': label, onclick }, icon(ic));
+  const view = btn('Task View', 'i-tb-taskview', taskView);
+  if (V.id === '10') {
+    // The box hands over to the Start panel's search: clicked, or typed in after tabbing to it.
+    const box = h('input', { class: 'tb-search-box', type: 'search', placeholder: 'Type here to search', 'aria-label': 'Type here to search' });
+    box.addEventListener('input', () => { const q = box.value; box.value = ''; startSearch(q); });
+    const wrap = h('label', { class: 'tb-search' }, icon('i-tb-search'), box);
+    wrap.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); startSearch(''); });
+    startBtn.after(wrap, view);
+  } else {
+    startBtn.after(btn('Search', 'i-tb-search', () => startSearch('')), view);
+    const widgets = h('button', { type: 'button', class: 'tb-btn tb-widgets', 'aria-label': 'Widgets', onclick: () => widgetsFlyout(widgets) }, icon('i-tb-weather'), h('span', null, '18\u00b0C'));
+    taskbarEl.prepend(widgets);
+  }
+  const t = document.getElementById('clock');
+  const net = icon('i-tb-wifi', 'net');
+  net.setAttribute('aria-hidden', 'false');
+  net.setAttribute('role', 'img');
+  net.setAttribute('aria-label', 'Connected');
+  net.dataset.tip = 'Connected';
+  t.parentElement.querySelector('.spk').before(net);
+  // shortcut: inert until E2's Action Center opens from it.
+  t.after(btn('Notifications', 'i-tb-note', null, 'tb-note'));
+}
+
+// A few cards: the date, the projects' news and some invented weather.
+function widgetsFlyout(owner) {
+  const d = new Date();
+  const news = [['chimimouryou', 'chimimouryou', 'A self-hosted reader for Calibre libraries'],
+    ['CONscripter', 'conscripter', 'Visual novels, in the browser'], ['conscripter-convert', 'convert', 'Brings games from other engines to CONscripter']];
+  const el = h('div', { class: 'wg-fly', role: 'dialog', 'aria-label': 'Widgets' },
+    h('h2', null, formatTime(d)),
+    h('section', { class: 'wg-card' }, h('b', null, d.toLocaleDateString('en-US', { weekday: 'long' })), h('span', null, formatDate(d))),
+    h('section', { class: 'wg-card wg-weather' }, icon('i-tb-weather'), h('div', null, h('b', null, '18\u00b0C'), h('span', null, 'Mostly sunny, blankietown'), h('small', null, 'High 21\u00b0  Low 12\u00b0'))),
+    h('section', { class: 'wg-card' }, h('b', null, 'blankiekun news'),
+      ...news.map(([name, page, line]) => h('button', { type: 'button', class: 'wg-news', onclick: () => { closeFlyout(); launch('ie', page); } }, h('b', null, name), h('span', null, line)))));
+  flyout(el, owner);
 }
 
 // ---------- tooltips ----------
@@ -1265,5 +1371,6 @@ export function initDesktop() {
   startBtn.querySelector('span').textContent = V.start;
   startBtn.setAttribute('aria-label', 'Start');
   clock();
+  modernTaskbar();
   beginHint();
 }
