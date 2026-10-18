@@ -235,8 +235,20 @@ function blurAll() {
 }
 
 // Like Windows 95, a title bar flies between the window and its taskbar button.
+// Vista on, the window itself fades and scales to or from its button; 1.0-3.1 had no animation.
+const FADE = ['vista', '7', '8', '10', '11'].includes(V.id);
 function zoom(win, down) {
-  if (reducedMotion.matches || !win.task) return;
+  if (reducedMotion.matches || !win.task || ['1.0', '2.0', '3.1'].includes(V.id)) return;
+  if (FADE) {
+    const a = win.el.getBoundingClientRect(), b = win.task.getBoundingClientRect();
+    const away = `translate(${b.left + b.width / 2 - a.left - a.width / 2}px, ${b.top + b.height / 2 - a.top - a.height / 2}px) scale(.2)`;
+    // shortcut: the minimize ghost is a clone, so it won't show later changes to the window, fine for 200ms
+    const el = down ? win.el.cloneNode(true) : win.el;
+    if (down) win.el.after(el);
+    const frames = [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: away }];
+    el.animate(down ? frames : frames.reverse(), { duration: 200, easing: 'ease-out' }).onfinish = () => { if (down) el.remove(); };
+    return;
+  }
   const at = q => ({ left: q.left + 'px', top: q.top + 'px', width: q.width + 'px', height: q.height + 'px' });
   const frames = [at(win.bar.getBoundingClientRect()), at(win.task.getBoundingClientRect())];
   if (!down) { frames.reverse(); win.el.classList.add('zooming'); }
