@@ -51,6 +51,8 @@ export function activeWindow() { return active; }
 export function launch(id, arg) {
   const app = apps.get(id);
   if (!app) return null;
+  // Programs from main.js's table fetch their module first, so the window comes as a promise.
+  if (app.load) return app.load().then(() => apps.get(id).load ? null : launch(id, arg));
   if (app.single) {
     const w = wins.find(w => w.app === id);
     if (w) { if (app.reopen) app.reopen(w, arg); focus(w); return w; }

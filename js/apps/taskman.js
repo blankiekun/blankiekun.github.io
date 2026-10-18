@@ -298,13 +298,4 @@ function restart() {
   location.reload();
 }
 
-// Most systems keep Ctrl+Alt+Del for themselves; Ctrl+Alt+End and Ctrl+Shift+Esc get through.
-document.addEventListener('keydown', e => {
-  const cad = e.ctrlKey && e.altKey && (e.key === 'Delete' || e.key === 'End');
-  const cse = e.ctrlKey && e.shiftKey && e.key === 'Escape';
-  if (!cad && !cse) return;
-  e.preventDefault();
-  open();
-});
-
 export default { id: 'taskman', title: 'Close Program', icon: 'i-exe', open };
