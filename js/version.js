@@ -17,7 +17,7 @@ const ME = { ...mail('Outlook Express'), 'Picture Viewer': 'Imaging', 'Media Pla
 const NT = { ...ME, 'Picture Viewer': 'Picture and Fax Viewer', 'MS-DOS Prompt': 'Command Prompt', 'Close Program': 'Windows Task Manager', 'System Monitor': 'Performance', ScanDisk: 'Check Disk' };
 const AERO = { ...NT, 'Picture Viewer': 'Photo Viewer', ...mail('Windows Mail'), 'My Computer': 'Computer', 'Network Neighborhood': 'Network', 'Display Properties': 'Personalization', 'System Monitor': 'Resource Monitor' };
 const METRO = { ...AERO, 'Picture Viewer': 'Photos', ...mail('Mail'), 'Windows Explorer': 'File Explorer', Explorer: 'File Explorer', 'Disk Defragmenter': 'Optimize Drives', 'Windows Task Manager': 'Task Manager', 'Close Program': 'Task Manager' };
-const EDGE = { ...METRO, 'My Computer': 'This PC', 'Internet Explorer': 'Microsoft Edge', 'Microsoft Internet Explorer': 'Microsoft Edge' };
+const EDGE = { ...METRO, 'My Computer': 'This PC', 'Internet Explorer': 'blankiekun Edge', 'Microsoft Internet Explorer': 'blankiekun Edge' };
 
 // Programs each era didn't ship. They still open; their icons just say so.
 const NOT_31 = ['ie', 'cdplayer', 'defrag', 'scandisk', 'resmeter', 'sysmon', 'winpopup', 'freecell', 'hearts', 'dialer', 'recycle', 'network', 'inbox'];
