@@ -3,7 +3,7 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, altTab, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, altTab, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, onActionCenter, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
@@ -1068,6 +1068,8 @@ function clock() {
   spk.setAttribute('aria-hidden', 'false');
   spk.setAttribute('role', 'button');
   spk.setAttribute('aria-label', 'Volume');
+  // 11's speaker is part of the Quick Settings button instead (modernTaskbar).
+  if (V.id === '11') return;
   spk.addEventListener('click', () => volumePopup(false));
   spk.addEventListener('dblclick', () => { if (volEl) { volEl.remove(); volEl = null; } volumeControl(); });
 }
@@ -1081,6 +1083,7 @@ function flyout(el, owner) {
   closeFlyout();
   if (again) return;
   fly = { el, owner };
+  document.querySelector('.toast')?.remove();
   el.classList.add('flyout');
   el.tabIndex = -1;
   el.addEventListener('keydown', e => { if (e.key === 'Escape') { closeFlyout(); owner.focus?.(); } });
@@ -1108,7 +1111,11 @@ function calendarFlyout(owner) {
   }
   const tick = () => { const d = new Date(); time.textContent = formatTime(d, true); date.textContent = formatDate(d); };
   if (time) { tick(); const timer = setInterval(() => el.isConnected ? tick() : clearInterval(timer), 1000); }
-  const el = h('div', { class: 'cal-fly', role: 'dialog', 'aria-label': 'Calendar' }, time, date,
+  // 11 lists the notifications above the month.
+  const notesEl = V.id === '11' ? h('div', { class: 'cal-notes' }) : null;
+  const drawNotes = () => notesEl.replaceChildren(h('h2', null, 'Notifications'), ...noteList(drawNotes));
+  if (notesEl) drawNotes();
+  const el = h('div', { class: 'cal-fly', role: 'dialog', 'aria-label': 'Calendar' }, notesEl, time, date,
     h('div', { class: 'cal-head' }, title,
       h('button', { type: 'button', 'aria-label': 'Previous month', onclick: () => flip(-1) }, '\u25b2'),
       h('button', { type: 'button', 'aria-label': 'Next month', onclick: () => flip(1) }, '\u25bc')),
@@ -1149,9 +1156,110 @@ function modernTaskbar() {
   net.setAttribute('role', 'img');
   net.setAttribute('aria-label', 'Connected');
   net.dataset.tip = 'Connected';
-  t.parentElement.querySelector('.spk').before(net);
-  // shortcut: inert until E2's Action Center opens from it.
-  t.after(btn('Notifications', 'i-tb-note', null, 'tb-note'));
+  netIcon = net;
+  const spk = t.parentElement.querySelector('.spk');
+  spk.before(net);
+  // 10's notification icon opens the Action Center; 11's opens the notifications over the calendar,
+  // and the network and speaker together are the Quick Settings button.
+  noteBtn = btn('Notifications', 'i-tb-note', () => V.id === '10' ? actionCenter() : calendarFlyout(noteBtn), 'tb-note');
+  t.after(noteBtn);
+  if (V.id === '11') {
+    qsBtn = h('button', { type: 'button', class: 'tb-qs', 'aria-label': 'Quick settings', onclick: quickSettings });
+    spk.before(qsBtn);
+    qsBtn.append(net, spk);
+  }
+  onActionCenter(() => V.id === '10' ? actionCenter() : quickSettings());
+  import('./apps/settings.js').then(m => { if (m.net) radio = m.net; }).catch(() => {});
+  setTimeout(welcome, 1500);
+}
+
+// ---------- 10 and 11: notifications, the Action Center and Quick Settings ----------
+
+// What notify() said this visit, newest first; 10's Action Center and 11's calendar flyout list them.
+const notes = [];
+let noteBtn = null, qsBtn = null, netIcon = null;
+const markNew = () => noteBtn?.classList.toggle('new', notes.length > 0);
+
+// A toast at the bottom right that also stays in the list until it's clicked or dismissed there.
+export function notify(title, text, onclick) {
+  if (!MODERN) return;
+  const n = { title, text, onclick };
+  notes.unshift(n);
+  markNew();
+  document.querySelector('.toast')?.remove();
+  const t = h('div', { class: 'toast', role: 'status' }, noteCard(n, () => t.remove(), false));
+  document.body.append(t);
+  setTimeout(() => t.remove(), 7000);
+}
+// drop: the x takes it out of the list too (in the list), or only hides the toast.
+function noteCard(n, done, drop) {
+  const gone = () => { const i = notes.indexOf(n); if (i >= 0) notes.splice(i, 1); markNew(); };
+  return h('div', { class: 'note' },
+    h('button', { type: 'button', class: 'note-body', onclick: () => { gone(); closeFlyout(); done(); n.onclick?.(); } }, h('b', null, n.title), h('span', null, n.text)),
+    h('button', { type: 'button', class: 'note-x', 'aria-label': 'Dismiss', onclick: () => { if (drop) gone(); done(); } }, '\u00d7'));
+}
+const noteList = redraw => notes.length ? notes.map(n => noteCard(n, redraw, true)) : [h('p', { class: 'note-none' }, 'No new notifications')];
+
+// Once per visitor, after the boot and sign-in screens: the thing most worth a look.
+const WELCOMED = 'w95.welcomed';
+function welcome() {
+  if (store.get(WELCOMED, false)) return;
+  if (document.querySelector('.screen')) { setTimeout(welcome, 1000); return; }
+  store.set(WELCOMED, true);
+  notify('Welcome to ' + OS, 'Try CONscripter: visual novels, in the browser.', () => launch('ie', 'conscripter'));
+}
+
+// The toggles only change how they look, except Night light and brightness, which tint and dim the desktop.
+// shortcut: forgotten on reload; store them like w95.volume if anyone minds.
+const qs = { tablet: false, location: true, focus: false, project: false, bluetooth: true, saver: false, access: false, night: false, bright: 100 };
+// Wi-Fi and airplane mode are Settings' own (settings.js net), once it loads.
+let radio = { wifi: true, airplane: false };
+function applyQS() {
+  desktopEl.style.filter = [qs.night && 'sepia(.35) saturate(1.4) hue-rotate(-10deg)', qs.bright < 100 && `brightness(${.3 + qs.bright * .007})`].filter(Boolean).join(' ');
+  const up = radio.wifi && !radio.airplane;
+  netIcon.dataset.tip = up ? 'Connected' : 'Not connected';
+  netIcon.setAttribute('aria-label', netIcon.dataset.tip);
+  netIcon.classList.toggle('off', !up);
+}
+function qsToggle(label, ic, obj, key) {
+  const b = h('button', { type: 'button', class: 'qs-tile', 'aria-pressed': String(obj[key]) }, icon(ic), h('span', null, label));
+  b.addEventListener('click', () => { obj[key] = !obj[key]; b.setAttribute('aria-pressed', String(obj[key])); applyQS(); });
+  return b;
+}
+const qsAction = (label, ic, fn) => h('button', { type: 'button', class: 'qs-tile', onclick: () => { closeFlyout(); fn(); } }, icon(ic), h('span', null, label));
+
+// 10: notifications down the right, the quick actions under them, one row of them until Expand.
+function actionCenter() {
+  const list = h('div', { class: 'ac-list' });
+  const clear = h('button', { type: 'button', class: 'ac-link', onclick: () => { notes.length = 0; markNew(); draw(); } }, 'Clear all notifications');
+  const draw = () => { list.replaceChildren(...noteList(draw)); clear.hidden = !notes.length; };
+  draw();
+  const tiles = h('div', { class: 'ac-tiles' },
+    qsToggle('Tablet mode', 'i-qs-tablet', qs, 'tablet'), qsAction('Network', 'i-tb-wifi', () => launch('settings', 'Status')),
+    qsToggle('Night light', 'i-qs-night', qs, 'night'), qsAction('All settings', 'i-qs-gear', () => launch('settings')),
+    qsToggle('Location', 'i-qs-location', qs, 'location'), qsToggle('Airplane mode', 'i-qs-airplane', radio, 'airplane'),
+    qsToggle('Focus assist', 'i-qs-focus', qs, 'focus'), qsToggle('Project', 'i-qs-project', qs, 'project'));
+  const more = h('button', { type: 'button', class: 'ac-link', onclick: () => { more.textContent = tiles.classList.toggle('open') ? 'Collapse' : 'Expand'; } }, 'Expand');
+  flyout(h('div', { class: 'ac', role: 'dialog', 'aria-label': 'Action center' },
+    h('div', { class: 'ac-head' }, h('h2', null, 'Notifications'), clear), list, h('div', { class: 'ac-foot' }, more), tiles), noteBtn);
+}
+
+// 11: toggle buttons, brightness and volume, and the way to Settings.
+function quickSettings() {
+  const slider = (label, ic, value, set) => {
+    const s = h('input', { type: 'range', min: 0, max: 100, value, 'aria-label': label });
+    s.addEventListener('input', () => set(+s.value));
+    return h('label', { class: 'qs-slider' }, icon(ic), s);
+  };
+  const v = volume();
+  flyout(h('div', { class: 'qs', role: 'dialog', 'aria-label': 'Quick settings' },
+    h('div', { class: 'qs-grid' },
+      qsToggle('Wi-Fi', 'i-tb-wifi', radio, 'wifi'), qsToggle('Bluetooth', 'i-qs-bluetooth', qs, 'bluetooth'), qsToggle('Airplane mode', 'i-qs-airplane', radio, 'airplane'),
+      qsToggle('Battery saver', 'i-qs-battery', qs, 'saver'), qsToggle('Focus', 'i-qs-focus', qs, 'focus'), qsToggle('Accessibility', 'i-qs-access', qs, 'access'),
+      qsToggle('Night light', 'i-qs-night', qs, 'night')),
+    slider('Brightness', 'i-qs-sun', qs.bright, n => { qs.bright = n; applyQS(); }),
+    slider('Volume', 'i-qs-volume', v.mute ? 0 : Math.round(v.level * 100), n => setVolume({ level: n / 100, mute: !n })),
+    h('div', { class: 'qs-foot' }, h('button', { type: 'button', class: 'tb-btn', 'aria-label': 'All settings', title: 'All settings', onclick: () => { closeFlyout(); launch('settings'); } }, icon('i-qs-gear')))), qsBtn);
 }
 
 // A few cards: the date, the projects' news and some invented weather.
