@@ -68,6 +68,14 @@ export const VERSIONS = [
 // Each row only says what changed since the one before it.
 ].reduce((rows, r) => [...rows, { nt: false, ...rows.at(-1), sys: r.number, ...r }], []);
 
+// A ?v=xp link switches the visitor to that version for good; the param is then dropped so a later
+// switch from Windows Setup isn't undone by a reload. Unknown ids are ignored.
+const url = new URL(location.href), want = url.searchParams.get('v');
+if (want !== null) {
+  if (VERSIONS.some(r => r.id === want)) store.set(KEY, want);
+  url.searchParams.delete('v');
+  history.replaceState(null, '', url);
+}
 export const V = VERSIONS.find(r => r.id === store.get(KEY, '95')) || VERSIONS[3];
 export const OS = 'blankiekun ' + V.short;
 // Programs only some eras had. Elsewhere they're left out of the Start menu and the desktop.
