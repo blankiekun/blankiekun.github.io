@@ -595,7 +595,7 @@ function openPanel() {
   // Named by title and aria-label too, for the panels that show only the icon.
   const named = (b, label) => Object.assign(b, { title: label, ariaLabel: label });
   const power = (label = V.id === 'xp' ? 'Turn Off Computer' : 'Shut down') => named(item(label, 'i-shutdown', shutDown, 'sp-power'), label);
-  const lockItem = () => PANEL === 'xp' ? null : named(item('Lock', 'i-logoff', lock, 'sp-logoff'), 'Lock');
+  const lockItem = () => PANEL === 'xp' ? null : named(item('Lock', 'i-logoff', lock, 'sp-logoff sp-lock'), 'Lock');
   const logoff = () => V.logoff ? named(item(V.logoff, 'i-logoff', logOff, 'sp-logoff'), V.logoff) : null;
 
   // A folder tree that opens in place, for Vista on.
@@ -805,6 +805,9 @@ let shiftHeld = false;
 const runStartup = () => { if (!shiftHeld) startupFolder().children.forEach(n => shellOpen(n)); };
 for (const t of ['keydown', 'keyup', 'click']) addEventListener(t, e => { shiftHeld = e.shiftKey; }, true);
 
+// While the sign-in is up nothing behind it can take focus, so Tab can't walk into the windows.
+const trap = on => { for (const id of ['desktop', 'taskbar']) document.getElementById(id).inert = on; };
+
 // The Welcome dialog. The account is the GitHub one.
 function logOn(locked) {
   if (!locked) closeAll();
@@ -826,6 +829,7 @@ function logOn(locked) {
   form.addEventListener('submit', async e => {
     e.preventDefault();
     scr.remove();
+    trap(false);
     if (locked) return;
     launch('ie', 'home');
     runStartup();
@@ -833,6 +837,7 @@ function logOn(locked) {
   });
   scr.append(form);
   document.body.append(scr);
+  trap(true);
   pw.focus();
 }
 
@@ -850,6 +855,7 @@ function lock() {
   scr.addEventListener('click', open);
   scr.addEventListener('keydown', e => { if (!e.metaKey && !(e.ctrlKey && e.altKey)) open(); });
   document.body.append(scr);
+  trap(true);
   scr.focus();
 }
 
