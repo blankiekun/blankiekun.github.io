@@ -30,6 +30,11 @@ function sevenSeg(n) {
   return `<svg viewBox="0 0 39 23" width="39" height="23" shape-rendering="crispEdges" aria-hidden="true">${out}</svg>`;
 }
 
+// xyzzy, then Shift+Enter: feeds the typed keys through and says when the cheat word was just completed.
+const CHEAT = 'xyzzy';
+export function cheatKeys(typed, key) { return (typed + key).slice(-CHEAT.length); }
+console.assert(['x', 'y', 'z', 'z', 'y'].reduce(cheatKeys, '') === CHEAT && cheatKeys('xyzzy', 'q') !== CHEAT, 'xyzzy matcher');
+
 function open() {
   const prefs = { level: 'beginner', marks: true, color: true, custom: { w: 20, h: 12, m: 30 }, ...store.get(PREFS, {}) };
   let cfg, cells, state, opened, flags, timer, seconds, pressed = [], chording = false;
@@ -46,6 +51,7 @@ function open() {
   function newGame() {
     cfg = levelCfg();
     clearInterval(timer);
+    peek(null);
     timer = null; seconds = 0; opened = 0; flags = 0; state = 'ready';
     cells = Array.from({ length: cfg.w * cfg.h }, (_, i) => ({ i, x: i % cfg.w, y: Math.floor(i / cfg.w), mine: false, n: 0, open: false, mark: 0 }));
     board.style.gridTemplateColumns = `repeat(${cfg.w}, 16px)`;
@@ -107,6 +113,17 @@ function open() {
     counter.dataset.n = cfg.m - flags;
     clock.dataset.n = seconds;
   }
+  // The cheat: a 2x2 dot in the page's top-left corner, white over a safe square and black over a mine.
+  // shortcut: before the first click no mines are laid yet, so every square reads safe; the original laid them at once.
+  let cheat = false, typed = '';
+  const dot = h('div', { style: { position: 'fixed', left: 0, top: 0, width: '2px', height: '2px', zIndex: 2147483647, pointerEvents: 'none', display: 'none' } });
+  document.body.append(dot);
+  function peek(c) {
+    dot.style.display = cheat && c ? '' : 'none';
+    if (c) dot.style.background = c.mine ? '#000' : '#fff';
+  }
+  board.addEventListener('pointermove', e => { if (cheat) peek(cellAt(e.clientX, e.clientY)); });
+  board.addEventListener('pointerleave', () => peek(null));
   function setFace(f) { face.className = 'ms-face ' + f; }
 
   function reveal(c) {
@@ -309,6 +326,8 @@ function open() {
   face.addEventListener('click', newGame);
   root.addEventListener('keydown', e => {
     if (e.key === 'F2') { e.preventDefault(); newGame(); }
+    if (e.key === 'Enter' && e.shiftKey && typed === CHEAT) { cheat = !cheat; typed = ''; peek(null); }
+    else if (e.key.length === 1) typed = cheatKeys(typed, e.key.toLowerCase());
   });
 
   let win = null;
@@ -317,7 +336,7 @@ function open() {
     app: 'minesweeper', title: 'Minesweeper', icon: 'i-mine', body: h('div', { class: 'ms-wrap' }, bar, root),
     width: 'auto', route: 'minesweeper',
     onResize: scale,
-    onClosed: () => clearInterval(timer),
+    onClosed: () => { clearInterval(timer); dot.remove(); },
   });
   return win;
 }
