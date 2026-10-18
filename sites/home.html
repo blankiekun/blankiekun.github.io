@@ -45,6 +45,8 @@ p { margin: 0; }
 .proj { border: 2px outset #c0c0c0; background: #e8e8e8; padding: 8px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
 .proj a { font-weight: bold; font-size: 16px; }
 .proj span { color: #404040; font-size: 13px; }
+.proj .go { display: flex; gap: 14px; }
+.proj .go a { font-size: 14px; }
 .me { border: 2px solid #000; background: #ffffe0; font-size: 15px; }
 .me th, .me td { border: 1px solid #808080; padding: 4px 8px; text-align: left; vertical-align: top; }
 .me th { background: #000080; color: #ffff00; font: bold 13px Arial, sans-serif; white-space: nowrap; }
@@ -54,6 +56,11 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   .layout { grid-template-columns: minmax(0, 1fr); }
   .nav ul { flex-direction: row; flex-wrap: wrap; gap: 6px 14px; }
   .projects { grid-template-columns: minmax(0, 1fr); }
+  /* Phones see the projects first: the cards jump ahead of the ad and the nav. */
+  .main, .layout { display: contents; }
+  .page > *, .nav, .main > * { order: 5; }
+  .page > h1, .page > .sub { order: 0; }
+  .main > h2:nth-of-type(2), .projects { order: 1; }
   .pipe, .pipe tbody, .pipe tr, .pipe td { display: block; width: 100%; }
   .pipe td.arr { width: 100%; padding: 2px 0; text-align: center; transform: rotate(90deg); }
 }
@@ -141,9 +148,9 @@ body { transition: rotate 1s, scale 2s; }
 
         <h2>My Projects</h2>
         <div class="projects">
-          <div class="proj"><a href="chimimouryou.html">chimimouryou</a><span>魑魅魍魎</span>A Japanese e-book reader for the whole household.</div>
-          <div class="proj"><a href="convert.html">conscripter-convert</a><span>Rust · GPL-3.0</span>Brings more visual novels to CONscripter.</div>
-          <div class="proj"><a href="conscripter.html">CONscripter</a><span>C++ · GPL-2.0</span>Plays NScripter games on the web and everywhere else.</div>
+          <div class="proj"><a href="chimimouryou.html">chimimouryou</a><span>魑魅魍魎</span>A Japanese e-book reader for the whole household.<span class="go"><a href="https://github.com/blankiekun/chimimouryou">GitHub</a> <a href="chimimouryou.html">Try it</a></span></div>
+          <div class="proj"><a href="convert.html">conscripter-convert</a><span>Rust · GPL-3.0</span>Brings more visual novels to CONscripter.<span class="go"><a href="https://github.com/blankiekun/conscripter-convert">GitHub</a> <a href="convert.html">Try it</a></span></div>
+          <div class="proj"><a href="conscripter.html">CONscripter</a><span>C++ · GPL-2.0</span>Plays NScripter games on the web and everywhere else.<span class="go"><a href="https://github.com/blankiekun/CONscripter">GitHub</a> <a href="../#cons/demo">Try it</a></span></div>
         </div>
 
         <h2>How a game reaches your browser</h2>
