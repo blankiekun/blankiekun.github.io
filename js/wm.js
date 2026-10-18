@@ -28,6 +28,8 @@ export function onRouteChange(fn) { routeListener = fn; }
 // Where a new window's taskbar button goes; the desktop moves it next to its pin from 7 on.
 let placeTask = w => tasks.append(w.task);
 export function onPlaceTask(fn) { placeTask = fn; }
+let runDialog = () => {};
+export function onRun(fn) { runDialog = fn; }
 // What right-clicking a taskbar button shows; the desktop swaps in a jump list from 7 on.
 let taskMenu = (win, at) => systemMenu(win, at);
 export function onTaskMenu(fn) { taskMenu = fn; }
@@ -671,6 +673,25 @@ function endSwitch(ok) {
   sw.el.remove(); sw = null;
   if (ok) focus(w);
 }
+// Windows key shortcuts, from 95 on. Win+L is left for a Lock item.
+// shortcut: the OS often keeps the Windows key, so Ctrl+Alt+the same key does the same.
+const WINKEY = !['1.0', '2.0', '3.1'].includes(V.id);
+function winKey(code) {
+  const win = active && !active.opts.dialog && !active.maxBtn.disabled ? active : null;
+  if (code === 'KeyD' || code === 'KeyM') minimizeAll();
+  else if (code === 'KeyE') launch('explorer', { path: 'C:\\', explore: true });
+  else if (code === 'KeyR') runDialog();
+  else if (win && code === 'ArrowUp') maximize(win);
+  else if (win && SIDES && (code === 'ArrowLeft' || code === 'ArrowRight')) {
+    const A = area();
+    if (win.state === 'max') restore(win);
+    win.snapBox ||= { width: win.el.offsetWidth + 'px', height: win.el.offsetHeight + 'px' };
+    win.el.classList.remove('autosize');
+    Object.assign(win.el.style, { left: (code === 'ArrowRight' ? A.width / 2 : 0) + 'px', top: '0px', width: A.width / 2 + 'px', height: A.height + 'px' });
+    if (win.opts.onResize) win.opts.onResize();
+  } else return false;
+  return true;
+}
 document.addEventListener('keydown', e => {
   if (e.altKey && (e.key === 'Tab' || e.code === 'Backquote')) {
     const list = wins.filter(w => w.task).reverse();
@@ -682,6 +703,11 @@ document.addEventListener('keydown', e => {
     drawSwitch();
   } else if (sw && e.key === 'Escape') {
     e.preventDefault(); endSwitch(false);
+  } else if (e.altKey && e.key === 'F4' && active) {
+    // shortcut: the browser usually takes Alt+F4 first, so it only arrives in some browsers and full-screen PWAs.
+    e.preventDefault(); close(active);
+  } else if (WINKEY && (e.metaKey || e.ctrlKey && e.altKey && !e.getModifierState('AltGraph')) && winKey(e.code)) {
+    e.preventDefault();
   } else if (e.altKey && e.code === 'Space' && active) {
     e.preventDefault();
     systemMenu(active, { rect: active.el.querySelector('.titlebar').getBoundingClientRect(), left: true });
