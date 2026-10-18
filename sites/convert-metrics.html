@@ -38,6 +38,14 @@ table.kinds { width: 100%; border: 1px solid #000; font: 13px/1.35 Arial, Helvet
 .kinds td:last-child { min-width: 18em; }
 .kinds ul { margin: 0; padding: 0; list-style: none; }
 
+/* Before and after: two monospace panes, side by side, stacked on phones. */
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.ba figure { margin: 0; min-width: 0; }
+.ba figcaption { font: bold 13px/1.35 Arial, Helvetica, sans-serif; margin-bottom: 2px; }
+.ba pre { margin: 0; padding: 6px 8px; background: #fff; border: 2px inset #e0e0e0; font: 13px/1.4 "Courier New", Courier, monospace; overflow-x: auto; }
+.ba .gap { background: #ffd0d0; color: #a00000; font-weight: bold; }
+@media (max-width: 640px) { .ba { grid-template-columns: 1fr; } }
+
 footer { text-align: center; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { .games .b { transition: none; } }
 </style>
@@ -54,6 +62,38 @@ footer { text-align: center; font-size: 14px; display: flex; flex-direction: col
       <tbody id="games"></tbody>
     </table>
   </div>
+
+  <section class="example">
+    <h2>One call that doesn't convert</h2>
+    <p class="small">A made-up scene in the syntax of Nitroplus NSS (the engine of Muramasa and Django, <a href="https://github.com/blankiekun/conscripter-convert/blob/main/docs/games/muramasa.md">described in the repo's docs</a>) beside the CONscripter lines the converter writes for it. The right side is the converter's own output for the matching operations.</p>
+    <div class="ba">
+      <figure>
+        <figcaption lang="en">Before: Nitroplus NSS</figcaption>
+<pre>scene a.nss
+{
+  MusicStart("bgm/track01", 1000);
+&lt;PRE @box0&gt;
+&lt;voice name="名前"&gt;「こんにちは」
+&lt;/PRE&gt;
+  Zoom("bg", 800, 1500, 1500);
+  SoundPlay("se/k001");
+  Wait(500);
+}</pre>
+      </figure>
+      <figure>
+        <figcaption>After: CONscripter 0.txt</figcaption>
+<pre>*scene_1
+bgmfadein 1000
+bgm "bgm\track01.ogg"
+【名前】「こんにちは」\
+<span class="gap">; unsupported: Zoom (a.nss #7)</span>
+dwave 1,"se\k001.ogg"
+delay 500
+end</pre>
+      </figure>
+    </div>
+    <p class="small">The highlighted <code>;</code> line is a gap: <code>Zoom</code> has no equivalent in this converter, so it leaves a comment where the call stood and the scene plays on without it. Here 3 of the 4 calls converted, so this scene would read 75%; the same count, weighted by arguments read, over a whole game gives the percentages above.</p>
+  </section>
 
   <hr class="groove">
   <section class="where">
