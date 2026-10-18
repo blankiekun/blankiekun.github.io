@@ -25,6 +25,8 @@ a { color: #66ffff; } a:visited { color: #ff99ff; }
 h2 { margin: 0 0 8px; font: bold 22px Arial, sans-serif; color: #00ffff; text-shadow: 0 0 8px #00ffff; text-transform: uppercase; letter-spacing: .04em; }
 p { margin: 0 0 8px; } p:last-child { margin: 0; }
 .dl { text-align: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.dl .gh { flex-basis: 100%; color: #ffff66; text-shadow: 1px 1px 0 #000; font-size: 13px; }
+.gh[hidden] { display: none; }
 .btn3d { background: #ff0066; color: #ffff00; border-color: #ff66a3 #99003d #99003d #ff66a3; font-size: 18px; text-shadow: 2px 2px 0 #000; }
 .btn3d.alt { background: #6600cc; border-color: #9933ff #330066 #330066 #9933ff; color: #fff; }
 .shots { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; align-items: start; }
@@ -60,8 +62,9 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   </div>
 
   <div class="dl">
-    <a class="btn3d" href="https://github.com/blankiekun/CONscripter/releases/tag/v0.31.0">&#9660; DOWNLOAD v0.31.0! &#9660;</a>
+    <a class="btn3d" data-gh="CONscripter" data-gh-release href="https://github.com/blankiekun/CONscripter/releases/tag/v0.31.0">&#9660; DOWNLOAD <span data-gh="CONscripter" data-gh-field="tag">v0.31.0</span>! &#9660;</a>
     <a class="btn3d alt" href="https://github.com/blankiekun/CONscripter">Repository</a>
+    <div class="gh" data-gh="CONscripter" data-gh-field="line" hidden></div>
   </div>
 
   <div class="panel">
@@ -136,5 +139,6 @@ effect 20,99,800,"cons_slide.dll/0,-1,0"
     </div>
   </footer>
 </div>
+<script src="live.js"></script>
 </body>
 </html>
