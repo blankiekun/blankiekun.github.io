@@ -987,3 +987,12 @@ html[data-theme="dark"][data-win="11"] .sp-eleven :is(.sp-tile, .sp-item:hover, 
 html[data-theme="dark"][data-win="11"] .sp-eleven :is(.sp-item:hover, .sp-tile:hover) { background: rgba(255, 255, 255, .06); }
 html[data-theme="dark"][data-win="11"] .sp-eleven :is(.sp-search, .sp-all) { color: #fff; background: #2d2d2d; border-color: #444; box-shadow: none; }
 html[data-theme="dark"][data-win="11"] .sp-eleven footer { border-top-color: #3a3a3a; background: rgba(0, 0, 0, .15); }
+
+/* Flip 3D (Vista and 7, Win+Tab): the windows hide while their copies stand in a stack */
+body.flipping #windows > .win:not(.gadget, .ck-gadget) { visibility: hidden; }
+.flip3d { position: fixed; inset: 0; z-index: 100000; background: rgba(0, 0, 0, .55); perspective: 1000px; }
+.flip-card { position: absolute; left: 45%; top: 55%; cursor: pointer; }
+.flip-card > .win { position: absolute; pointer-events: none; animation: none; box-shadow: 0 0 24px rgba(0, 0, 0, .6); }
+.flip-blank { display: grid; place-items: center; background: #fff; }
+.flip-blank svg { width: 48px; height: 48px; }
+@media (prefers-reduced-motion: no-preference) { .flip-card { transition: transform .25s ease-out; } }
