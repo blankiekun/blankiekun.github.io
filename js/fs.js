@@ -6,6 +6,7 @@
 // (folders, notes, drawings, copies) is marked `user` and kept in localStorage.
 
 import { OS, V, absent } from './version.js';
+import { text as whatsnew } from './whatsnew.js';
 
 const README = `${OS} - README.TXT
 ==========================
@@ -108,6 +109,8 @@ export const root = {
           name: 'My Documents', kind: 'folder', children: [
             txt('README.TXT', README),
             txt('TODO.TXT', TODO),
+            // Built when read: the releases arrive from GitHub a moment after boot.
+            { name: 'WHATSNEW.TXT', kind: 'file', icon: 'i-txt', get text() { return whatsnew(); }, get size() { return whatsnew().length; } },
           ],
         },
         {
