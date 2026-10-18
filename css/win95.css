@@ -495,6 +495,9 @@ body.shutting .taskbar::after { content: ""; position: absolute; inset: 0; backg
 @media (prefers-reduced-motion: no-preference) {
   .win.opening { animation: open .16s steps(4) both; }
   @keyframes open { from { clip-path: inset(0 100% 100% 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes fade-open { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+  :is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .win.opening { animation: none; }
+  :is([data-win="vista"], [data-win="7"], [data-win="8"], [data-win="10"], [data-win="11"]) .win.opening { animation: fade-open .2s ease-out both; }
 }
 .menu .mi.bold .lbl { font-weight: bold; }
 
