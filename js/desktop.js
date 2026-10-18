@@ -829,6 +829,7 @@ function logOn(locked) {
     if (locked) return;
     launch('ie', 'home');
     runStartup();
+    import('./apps/gadgets.js').then(m => m.reopen());
   });
   scr.append(form);
   document.body.append(scr);
