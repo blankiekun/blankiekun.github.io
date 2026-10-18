@@ -150,9 +150,13 @@ function open(arg) {
     view,
     status);
 
+  // The first window on a wide desktop opens right of the icon columns, so it hides none of them.
+  const icons = [...document.querySelectorAll('button.icon')];
+  const clear = !document.querySelector('.win') && innerWidth >= 1100 && icons.length;
   const win = createWindow({
     app: 'ie', title: 'Internet Explorer', icon: 'i-ie', body,
-    width: 820, height: 600, minW: 300, minH: 240, center: true,
+    width: 820, height: 600, minW: 300, minH: 240,
+    ...(clear ? { x: Math.max(...icons.map(i => i.getBoundingClientRect().right)) + 16, y: 24 } : { center: true }),
   });
 
   function setStatus(t) { statusText.textContent = t; }
@@ -169,6 +173,7 @@ function open(arg) {
   function newTab(input) {
     const t = { hist: [], pos: -1, current: null, token: 0, title: 'Internet Explorer' };
     t.iframe = h('iframe', { title: 'Web page', name: 'ie-view' });
+    t.firstLoad = true;
     t.iframe.addEventListener('load', () => loaded(t));
     view.append(t.iframe);
     if (TABS) {
@@ -275,6 +280,9 @@ function open(arg) {
     try { doc = t.iframe.contentDocument; } catch { doc = null; }
     if (!doc || !doc.body) return;
     t.title = doc.title || (t.current && t.current.url) || 'Internet Explorer';
+    t.iframe.title = t.title;
+    // A window opened by the boot or a link puts the keyboard in the page, past the dozen buttons above it.
+    if (t.firstLoad && on) { t.firstLoad = false; t.iframe.contentWindow.focus(); }
     if (t.label) { t.label.textContent = t.title; t.el.title = t.title; }
     if (on) { win.setTitle(t.title + ' - Internet Explorer'); setStatus('Done'); }
     // A link inside a page that leads to another project page stays in this window.
