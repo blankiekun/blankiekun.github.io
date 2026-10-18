@@ -947,3 +947,10 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 .vw-tools { flex: none; display: flex; flex-wrap: wrap; gap: 2px; padding: 2px; }
 .vw-stage { flex: 1; min-height: 0; overflow: auto; background: #808080; box-shadow: var(--thin-in); }
 .vw-img { display: block; image-rendering: auto; }
+
+/* The 10/11 lock screen: the desktop colour under a soft glow, with the clock low on the left. */
+.screen.lockscreen { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; padding: 0 48px 12vh; color: #fff; outline: 0; cursor: default; text-shadow: 0 1px 8px rgba(0, 0, 0, .4);
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .35), transparent 60%), var(--desktop); animation: lock-in .25s ease-out; }
+.lockscreen b { font: 300 min(14vw, 120px)/1 "Segoe UI", system-ui, sans-serif; }
+.lockscreen span { font: min(5vw, 32px) "Segoe UI", system-ui, sans-serif; }
+@keyframes lock-in { from { transform: translateY(24px); opacity: 0; } }

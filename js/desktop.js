@@ -3,7 +3,7 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onRun, onTaskMenu, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
 import { menubar } from './menu.js';
 import { run, open as shellOpen, RECENT } from './shell.js';
@@ -593,6 +593,7 @@ function openPanel() {
   // Named by title and aria-label too, for the panels that show only the icon.
   const named = (b, label) => Object.assign(b, { title: label, ariaLabel: label });
   const power = (label = V.id === 'xp' ? 'Turn Off Computer' : 'Shut down') => named(item(label, 'i-shutdown', shutDown, 'sp-power'), label);
+  const lockItem = () => PANEL === 'xp' ? null : named(item('Lock', 'i-logoff', lock, 'sp-logoff'), 'Lock');
   const logoff = () => V.logoff ? named(item(V.logoff, 'i-logoff', logOff, 'sp-logoff'), V.logoff) : null;
 
   // A folder tree that opens in place, for Vista on.
@@ -658,7 +659,7 @@ function openPanel() {
     const s = search(box, V.id === 'vista' ? 'Start Search' : 'Search programs and files');
     el = h('div', { class: 'startpanel sp-aero' },
       h('div', { class: 'sp-left' }, box, s.found, h('hr'), all, s.box),
-      h('div', { class: 'sp-right' }, user(), ...places, h('div', { class: 'sp-grow' }), h('div', { class: 'sp-foot' }, power(), logoff())));
+      h('div', { class: 'sp-right' }, user(), ...places, h('div', { class: 'sp-grow' }), h('div', { class: 'sp-foot' }, power(), lockItem(), logoff())));
     focus = s.box;
   } else if (PANEL === 'screen') {
     const tiles = h('div', { class: 'sp-tiles' },
@@ -667,14 +668,14 @@ function openPanel() {
     const apps = h('div', { class: 'sp-folders', hidden: true }, ...az());
     const all = h('button', { type: 'button', class: 'sp-arrow', 'aria-label': 'All apps', onclick: () => { apps.hidden = !apps.hidden; tiles.hidden = !apps.hidden; all.classList.toggle('up', !apps.hidden); } });
     el = h('div', { class: 'startpanel sp-screen' },
-      h('header', null, h('h1', null, 'Start'), user(), power('Power')),
+      h('header', null, h('h1', null, 'Start'), user(), lockItem(), power('Power')),
       tiles, apps, all);
     // Clicking the background goes back to the desktop, like Escape.
     el.addEventListener('click', e => { if (e.target === el) closePanel(); });
   } else if (PANEL === 'ten') {
     el = h('div', { class: 'startpanel sp-ten' },
       h('div', { class: 'sp-rail' }, user(), item('Documents', 'i-docs', () => launch('explorer', 'C:\\My Documents')),
-        item('Settings', 'i-ctrl', () => launch('settings')), logoff(), power('Power')),
+        item('Settings', 'i-ctrl', () => launch('settings')), lockItem(), logoff(), power('Power')),
       h('div', { class: 'sp-apps' }, ...az()),
       h('div', { class: 'sp-tiles' }, ...fav.map(it => h('button', { type: 'button', class: 'sp-tile', onclick: go(it.action) }, icon(it.icon), h('span', null, strip(it.label))))));
   } else {
@@ -689,7 +690,7 @@ function openPanel() {
     });
     const body = h('div', { class: 'sp-body' }, h('div', { class: 'sp-head' }, title, toggle), home, apps);
     const s = search(body, 'Type here to search');
-    el = h('div', { class: 'startpanel sp-eleven' }, s.box, body, s.found, h('footer', null, user(), power('Power')));
+    el = h('div', { class: 'startpanel sp-eleven' }, s.box, body, s.found, h('footer', null, user(), lockItem(), power('Power')));
     focus = s.box;
   }
   el.addEventListener('pointerdown', e => e.stopPropagation());
@@ -792,8 +793,9 @@ async function powerOff() {
 }
 
 async function logOff() {
-  const b = await msgbox({ title: V.logoff.replace('...', ''), icon: 'i-logoff', text: `Are you sure you want to ${V.logoff.replace('...', '').toLowerCase()}?`, buttons: ['&Yes', '&No'] });
+  const b = await msgbox({ title: V.logoff.replace('...', ''), icon: 'i-logoff', text: `Are you sure you want to ${V.logoff.replace('...', '').toLowerCase()}?`, buttons: V.id === 'xp' ? ['&Yes', 'Switch &User', '&No'] : ['&Yes', '&No'] });
   if (b === 'Yes') logOn();
+  else if (b === 'Switch User') lock();
 }
 
 // Shortcuts in StartUp open after boot and logon; Shift skips them, so a bad one can't trap the visitor.
@@ -802,8 +804,8 @@ const runStartup = () => { if (!shiftHeld) startupFolder().children.forEach(n =>
 for (const t of ['keydown', 'keyup', 'click']) addEventListener(t, e => { shiftHeld = e.shiftKey; }, true);
 
 // The Welcome dialog. The account is the GitHub one.
-function logOn() {
-  closeAll();
+function logOn(locked) {
+  if (!locked) closeAll();
   const scr = h('div', { class: 'screen logon' });
   const pw = h('input', { class: 'field', type: 'password', id: 'logon-pw', autocomplete: 'off' });
   const form = h('form', { class: 'win active logon-win', 'aria-label': 'Welcome to ' + OS },
@@ -822,6 +824,7 @@ function logOn() {
   form.addEventListener('submit', async e => {
     e.preventDefault();
     scr.remove();
+    if (locked) return;
     launch('ie', 'home');
     runStartup();
   });
@@ -829,6 +832,25 @@ function logOn() {
   document.body.append(scr);
   pw.focus();
 }
+
+// Lock keeps every window open and only draws the sign-in over them; 10 and 11 put a clock screen first.
+function lock() {
+  if (!PANEL || document.querySelector('.screen.logon')) return;
+  closeMenus('replaced');
+  closePanel();
+  if (PANEL !== 'ten' && PANEL !== 'eleven') { logOn(true); return; }
+  const now = new Date();
+  const scr = h('div', { class: 'screen logon lockscreen', tabindex: '0', role: 'button', 'aria-label': 'Locked. Press any key or click to sign in.' },
+    h('b', null, now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
+    h('span', null, now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })));
+  const open = () => { scr.remove(); logOn(true); };
+  scr.addEventListener('click', open);
+  scr.addEventListener('keydown', e => { if (!e.metaKey && !(e.ctrlKey && e.altKey)) open(); });
+  document.body.append(scr);
+  scr.focus();
+}
+
+onLock(lock);
 
 // ---------- boot ----------
 
