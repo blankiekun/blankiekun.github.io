@@ -430,6 +430,7 @@ function startItems() {
     prog('Notepad', 'notepad', 'i-notepad'),
     prog('Paint', 'paint', 'i-paint'),
     prog('Phone Dialer', 'dialer', 'i-dialer'),
+    era('Snipping Tool', 'snip', 'i-snip'),
     era('Sticky Notes', 'stickynotes', 'i-stickynotes'),
     prog('WinPopup', 'winpopup', 'i-winpopup'),
     prog('WordPad', 'wordpad', 'i-wordpad'),

@@ -115,6 +115,7 @@ export const root = {
             { name: 'Internet Explorer', kind: 'folder', dos: 'INTERN~1', children: [app('IEXPLORE.EXE', 'ie', 'i-ie', 1012736)] },
             { name: 'Accessories', kind: 'folder', dos: 'ACCESS~1', children: [
               app('MSPAINT.EXE', 'paint', 'i-paint', 344064), app('WORDPAD.EXE', 'wordpad', 'i-wordpad', 183296), app('IMGVIEW.EXE', 'viewer', 'i-viewer', 97280),
+              app('SNIPPINGTOOL.EXE', 'snip', 'i-snip', 2915840),
               { name: 'HyperTerminal', kind: 'folder', dos: 'HYPERT~1', children: [app('HYPERTRM.EXE', 'hyperterm', 'i-hyperterm', 26112)] },
             ] },
             { name: 'blankiekun Exchange', kind: 'folder', dos: 'BLANKI~1', children: [app('EXCHNG32.EXE', 'inbox', 'i-inbox', 427520)] },
