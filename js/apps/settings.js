@@ -127,8 +127,8 @@ function colors() {
     h('div', { class: 'st-card' }, h('h3', null, 'Choose your accent color'), grid)];
 }
 
-// Wi-Fi and airplane mode only change what this page says; the site is online either way.
-const net = { wifi: true, airplane: false };
+// Wi-Fi and airplane mode only change what this page says (and the taskbar's Quick Settings); the site is online either way.
+export const net = { wifi: true, airplane: false };
 function network() {
   const status = h('p', { class: 'st-big' });
   const note = h('p');
