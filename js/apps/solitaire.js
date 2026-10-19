@@ -4,6 +4,7 @@ import { h, store, reducedMotion } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
+import { CHEATS } from '../version.js';
 import { SUITS, RANKS, red, cardFace } from './cards.js';
 
 const BACKS = { weave: 'Blue weave', bricks: 'Red bricks', fish: 'Ocean' };
@@ -267,6 +268,14 @@ function open() {
   board.addEventListener('contextmenu', e => { e.preventDefault(); if (!celebrating) autoPlay(); });
   board.addEventListener('keydown', e => {
     if (e.key === 'F2') { e.preventDefault(); deal(); }
+    // Alt+Shift+2 plays the game out: every card home, then the cascade.
+    if (CHEATS && e.altKey && e.shiftKey && e.code === 'Digit2' && !celebrating && found.some(p => p.length < 13)) {
+      e.preventDefault();
+      cards.forEach(c => { c.up = true; });
+      stock = []; waste = []; tab = tab.map(() => []);
+      found = [0, 1, 2, 3].map(s => cards.filter(c => c.s === s).sort((a, b) => a.r - b.r));
+      render(); checkWin();
+    }
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
   });
 

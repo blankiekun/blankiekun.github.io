@@ -4,6 +4,7 @@ import { h, store, clamp, reducedMotion, wait } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar } from '../menu.js';
 import { msgbox, inputbox, about } from '../dialogs.js';
+import { CHEATS } from '../version.js';
 import { red, cardEl, cardName } from './cards.js';
 
 const PREFS = 'w95.freecell.prefs';
@@ -16,6 +17,9 @@ const session = { won: 0, lost: 0 };
 // from a deck ordered AC AD AH AS 2C ... and dealing across the eight columns.
 // Returns 52 card ids (suit * 13 + rank - 1) in deal order.
 export function msDeal(n) {
+  // Deals -1 and -2 stand in for the secret unwinnable ones: the deck in rank order, and backwards.
+  // shortcut: not checked with a solver, so they may be winnable; run one if anyone reports a win.
+  if (n < 0) return Array.from({ length: 52 }, (_, i) => n === -1 ? i : 51 - i).map(i => (i % 4) * 13 + (i >> 2));
   let seed = n;
   const rnd = () => (seed = (seed * 214013 + 2531011) % 2147483648) >>> 16;
   const t = Array.from({ length: 52 }, (_, i) => 51 - i);
@@ -101,11 +105,20 @@ function open(arg) {
     const v = await inputbox({ title: 'Game Number', label: `Select a game number from 1 to ${MAX_GAME}:`, value: String(randomGame()), parent: win });
     if (v == null) return;
     const n = Math.floor(+v.trim());
-    if (!(n >= 1 && n <= MAX_GAME)) {
+    if (!(n >= 1 && n <= MAX_GAME || CHEATS && (n === -1 || n === -2))) {
       await msgbox({ title: 'FreeCell', icon: 'warn', parent: win, text: `Please enter a number from 1 to ${MAX_GAME}.` });
       return selectGame();
     }
     deal(n);
+  }
+  // Ctrl+Shift+F10: the error box whose Abort button wins the game.
+  async function cheat() {
+    if (busy || over) return;
+    const b = await msgbox({ title: 'FreeCell', icon: 'error', parent: win, buttons: ['&Abort', '&Retry', '&Ignore'], text: 'An error has occurred in blankiekun FreeCell.' });
+    if (b !== 'Abort') return;
+    free = [null, null, null, null]; cols.forEach(p => { p.length = 0; });
+    home = [0, 1, 2, 3].map(s => cards.slice(s * 13, s * 13 + 13));
+    sel = null; render(); afterMove();
   }
   function restart() { if (!busy) deal(gameNo); }
 
@@ -415,7 +428,8 @@ function open(arg) {
   const keys = { F2: newGame, F3: selectGame, F4: statistics, F5: options, F10: undo };
   const root = h('div', { class: 'fc' });
   root.addEventListener('keydown', e => {
-    if (keys[e.key] && !e.altKey) { e.preventDefault(); keys[e.key](); }
+    if (CHEATS && e.ctrlKey && e.shiftKey && e.key === 'F10') { e.preventDefault(); cheat(); }
+    else if (keys[e.key] && !e.altKey) { e.preventDefault(); keys[e.key](); }
   });
 
   // ---------- menus ----------
@@ -454,3 +468,6 @@ function open(arg) {
 }
 
 export default { id: 'freecell', title: 'FreeCell', icon: 'i-freecell', single: true, open };
+
+for (const n of [1, -1, -2]) console.assert(new Set(msDeal(n)).size === 52, 'msDeal: ' + n + ' is a full deck');
+console.assert(msDeal(-1)[0] !== msDeal(-2)[0], 'msDeal: -1 and -2 differ');
