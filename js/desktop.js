@@ -3,7 +3,7 @@
 
 import { h, icon, clamp, wait, reducedMotion, store, marquee, overlaps, sound, small } from './util.js';
 import { openMenu, closeMenus, isOpen } from './menu.js';
-import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, focus, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, onActionCenter, onTaskView, systemMenu } from './wm.js';
+import { launch, register, createWindow, all, close, deactivate, appInfo, cascadeAll, tile, minimizeAll, showDesktop, focus, undo, undoLabel, onPlaceTask, onRun, onLock, onTaskMenu, onActionCenter, onTaskView, systemMenu } from './wm.js';
 import { msgbox, about } from './dialogs.js';
 import { taskView, closeTaskView } from './taskview.js';
 import { menubar } from './menu.js';
@@ -1447,7 +1447,7 @@ function renderQuick() {
   const running = all().filter(w => w.task && (quickEl.contains(w.task) || isPinned(w.app)));
   quickEl.replaceChildren(...pins.filter(p => p.id === 'showdesktop' ? !SUPERBAR : appInfo(p.id)).map(p => {
     const b = h('button', { type: 'button', class: SUPERBAR ? 'task pin' : null, 'data-app': p.id, title: rename(p.label), 'aria-label': rename(p.label) }, icon(p.icon));
-    b.addEventListener('click', () => { if (!b.dragged) p.id === 'showdesktop' ? minimizeAll() : launch(p.id, p.arg); });
+    b.addEventListener('click', () => { if (!b.dragged) p.id === 'showdesktop' ? showDesktop() : launch(p.id, p.arg); });
     b.addEventListener('contextmenu', e => {
       e.preventDefault(); e.stopPropagation();
       openMenu([{ label: '&Open', action: () => b.click() }, '-', { label: 'Unpin from &Taskbar', action: () => unpin(p.id) }], { x: e.clientX, y: e.clientY });
@@ -1546,7 +1546,7 @@ function thumbnails() {
   document.addEventListener('pointerdown', e => { if (!thumb?.contains(e.target)) hide(); }, true);
   // 7 on: the strip at the right end peeks at the desktop and, clicked, minimizes everything.
   if (!SUPERBAR) return;
-  taskbarEl.append(h('button', { type: 'button', class: 'showdesk', title: 'Show desktop', 'aria-label': 'Show desktop', onclick: () => { hide(); minimizeAll(); },
+  taskbarEl.append(h('button', { type: 'button', class: 'showdesk', title: 'Show desktop', 'aria-label': 'Show desktop', onclick: () => { hide(); showDesktop(); },
     onpointerenter: e => { if (e.pointerType === 'mouse') { hide(); timer = setTimeout(() => peek(true), 400); } }, onpointerleave: hide }));
 }
 
