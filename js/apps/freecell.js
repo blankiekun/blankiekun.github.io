@@ -17,7 +17,8 @@ const session = { won: 0, lost: 0 };
 // from a deck ordered AC AD AH AS 2C ... and dealing across the eight columns.
 // Returns 52 card ids (suit * 13 + rank - 1) in deal order.
 export function msDeal(n) {
-  // Deals -1 and -2 are the secret ones nobody can win: the deck in rank order, and backwards.
+  // Deals -1 and -2 stand in for the secret unwinnable ones: the deck in rank order, and backwards.
+  // shortcut: not checked with a solver, so they may be winnable; run one if anyone reports a win.
   if (n < 0) return Array.from({ length: 52 }, (_, i) => n === -1 ? i : 51 - i).map(i => (i % 4) * 13 + (i >> 2));
   let seed = n;
   const rnd = () => (seed = (seed * 214013 + 2531011) % 2147483648) >>> 16;
