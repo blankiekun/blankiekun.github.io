@@ -35,7 +35,8 @@ table.kinds { width: 100%; border: 1px solid #000; font: 13px/1.35 Arial, Helvet
 .kinds th, .kinds td { border: 1px solid #808080; padding: 3px 6px; text-align: left; vertical-align: top; }
 .kinds th { background: #e0e0e0; }
 .kinds td.n { text-align: right; white-space: nowrap; }
-.kinds td:last-child { min-width: 18em; }
+.kinds td:last-child, .kinds td.what { min-width: 18em; }
+.kinds .unknown { color: #606060; font-style: italic; }
 .kinds ul { margin: 0; padding: 0; list-style: none; }
 
 /* Before and after: two monospace panes, side by side, stacked on phones. */
@@ -123,6 +124,18 @@ const GAMES = [
 ];
 // Every game with a metrics file on main shows up; GAMES only gives names and order.
 const LIST = "https://api.github.com/repos/blankiekun/conscripter-convert/contents/tests/snapshots?ref=main";
+// What each command does, from the converter's command reference (docs/engines/<engine_doc>.md, one table per engine).
+const DOCS = "https://raw.githubusercontent.com/blankiekun/conscripter-convert/main/docs/engines/";
+const docs = {};
+function whatIs(engine) {
+  if (!engine) return Promise.resolve({});
+  return docs[engine] ??= fetch(DOCS + engine + ".md")
+    .then(r => r.ok ? r.text() : "")
+    .then(md => Object.fromEntries(md.split("\n").filter(l => l.startsWith("| `"))
+      .map(l => l.split(/(?<!\\)\|/).map(c => c.trim().replace(/`/g, "").replace(/\\\|/g, "|")))
+      .map(c => [c[1], c[2]])))
+    .catch(() => ({})); // no explanations is better than no numbers
+}
 
 function el(tag, text, cls) {
   const e = document.createElement(tag);
@@ -147,7 +160,7 @@ function row(name, engine) {
   return { tr, bar, pct, gaps, when };
 }
 
-function render(t, det, name, m) {
+function render(t, det, name, m, what) {
   const tot = m.totals;
   // Weighted by the settings read (metrics.json's "weighted", since #326), else whole commands.
   const done = tot.weighted !== undefined ? tot.weighted : tot.full;
@@ -178,7 +191,7 @@ function render(t, det, name, m) {
   if (kinds.length) {
     const table = el("table", null, "kinds");
     const head = table.createTHead().insertRow();
-    for (const h of ["Command", "Used", "Missing", "Why"]) {
+    for (const h of ["Command", "What it does", "Used", "Missing", "Why"]) {
       const th = el("th", h);
       th.scope = "col";
       head.append(th);
@@ -186,7 +199,8 @@ function render(t, det, name, m) {
     const body = table.createTBody();
     for (const [cmd, k] of kinds) {
       const row = body.insertRow();
-      row.append(el("td", cmd), el("td", fmt(k.calls), "n"), el("td", k.gaps ? fmt(k.gaps) : "none", "n"));
+      const w = what[cmd];
+      row.append(el("td", cmd), el("td", w === "unknown" ? "Not known yet" : w, w === "unknown" ? "what unknown" : "what"), el("td", fmt(k.calls), "n"), el("td", k.gaps ? fmt(k.gaps) : "none", "n"));
       const ul = el("ul");
       for (const [why, n] of k.reasons) ul.append(el("li", why + " (" + fmt(n) + "×)"));
       const td = el("td");
@@ -197,7 +211,13 @@ function render(t, det, name, m) {
     scroll.append(table);
     det.append(scroll);
   }
-  det.append(el("p", fmt(all.length - kinds.length) + " other kinds of command convert in full.", "small"));
+  const rest = el("p", fmt(all.length - kinds.length) + " other kinds of command convert in full.", "small");
+  if (m.engine_doc) {
+    const ref = el("a", "every command, explained");
+    ref.href = REPO + "/blob/main/docs/engines/" + m.engine_doc + ".md";
+    rest.append(" The converter's reference has ", ref, ".");
+  }
+  det.append(rest);
   det.hidden = false;
 }
 
@@ -211,7 +231,7 @@ function show([id, name, engine]) {
   details.append(det);
   fetch(BASE + id + ".metrics.json", { cache: "no-store" })
     .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-    .then(m => render(t, det, name, m))
+    .then(m => whatIs(m.engine_doc).then(what => render(t, det, name, m, what)))
     .catch(e => {
       t.pct.textContent = "?";
       t.when.className = "err";
