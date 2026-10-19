@@ -558,3 +558,9 @@ body.solo .begin-hint { display: none; }
 .screen.bsod p:first-child, .screen.bsod p:last-child { text-align: center; }
 .screen.bsod span { background: #aaa; color: #0000aa; }
 .screen.bsod i { font-style: normal; animation: blink 1s steps(1) infinite; }
+.screen.bsod.sad { background: #0a5ca8; font: clamp(14px, 2vw, 20px)/1.4 var(--font-ui, sans-serif); padding: 10vh max(16px, 10vw) 0; }
+.screen.bsod.sad .face { font-size: clamp(64px, 14vw, 160px); line-height: 1; margin-bottom: .2em; }
+.screen.bsod.sad p { text-align: left; max-width: 34em; }
+.screen.bsod.sad .qr { display: flex; gap: 16px; align-items: flex-start; max-width: 34em; }
+.screen.bsod.sad canvas { width: 100px; height: 100px; image-rendering: pixelated; background: #fff; padding: 4px; flex: none; }
+.screen.bsod.sad .qr p { font-size: .7em; margin: 0; }

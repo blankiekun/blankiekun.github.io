@@ -4,18 +4,40 @@ import { launch, appInfo } from './wm.js';
 import { h, store } from './util.js';
 import { msgbox } from './dialogs.js';
 import { resolve, pathOf, recycle, openerFor, follow } from './fs.js';
-import { OS } from './version.js';
+import { OS, V } from './version.js';
 
-// Starting Windows from inside Windows: the famous blue screen. Any key or click
-// goes back to the desktop and nothing is lost; it's only a joke.
+// Starting Windows from inside Windows: the famous blue screen, in each era's own style. Any key or
+// click goes back to the desktop and nothing is lost; it's only a joke.
+// shortcut: the QR-like square is random cells with three corner marks, it doesn't encode anything.
 export function bsod() {
-  const scr = h('div', { class: 'screen bsod', tabindex: '-1', role: 'alert' },
-    h('p', null, h('span', null, ' ' + OS + ' ')),
-    h('p', null, 'A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36. The current application will be terminated.'),
-    h('p', null, '*  Press any key to terminate the current application.', h('br'),
-      '*  Press CTRL+ALT+DEL again to restart your computer. You will lose any unsaved information in all applications.'),
-    h('p', null, 'Press any key to continue ', h('i', null, '_')));
-  const done = e => { e.preventDefault(); e.stopPropagation(); scr.remove(); removeEventListener('keydown', done, true); };
+  let tick = 0;
+  const modern = ['8', '10', '11'].includes(V.id);
+  const scr = h('div', { class: 'screen bsod' + (modern ? ' sad' : ''), tabindex: '-1', role: 'alert' });
+  if (modern) {
+    const pct = h('b', null, '0'), qr = h('canvas', { width: 25, height: 25 }), g = qr.getContext('2d');
+    for (let y = 0; y < 25; y++) for (let x = 0; x < 25; x++) {
+      const d = Math.min(...[[3, 3], [21, 3], [3, 21]].map(([cx, cy]) => Math.max(Math.abs(x - cx), Math.abs(y - cy))));
+      if (d < 4 ? d !== 2 : Math.random() < .5) g.fillRect(x, y, 1, 1);
+    }
+    tick = setInterval(() => { if (pct.textContent < 100) pct.textContent = +pct.textContent + 1; }, 120);
+    scr.append(h('div', { class: 'face' }, ':('),
+      h('p', null, 'Your PC ran into a problem and needs to restart. We\'re just collecting some error info, and then we\'ll restart for you.'),
+      h('p', null, pct, '% complete'),
+      h('div', { class: 'qr' }, qr, h('p', null, 'This is only a joke. Press any key or click to go back.', h('br'), h('br'), 'Stop code: BLANKIEKUN_JOKE_EXCEPTION')));
+  } else if (V.nt) {
+    scr.append(h('p', null, '*** STOP: 0x0000001E (0xC0000005, 0x80123456, 0x00000000, 0x00000000)'),
+      h('p', null, 'KMODE_EXCEPTION_NOT_HANDLED'),
+      h('p', null, '*** Address 80123456 base at 80100000, DateStamp 3844d96e - blankiekun.sys'),
+      h('p', null, 'If this is the first time you have seen this screen, restart your computer. If this screen appears again, follow these steps:\n\nCheck for viruses, and make sure any new hardware or software is properly installed. This is only a joke, nothing was harmed.'),
+      h('p', null, 'Press any key to return to the desktop ', h('i', null, '_')));
+  } else {
+    scr.append(h('p', null, h('span', null, ' ' + OS + ' ')),
+      h('p', null, 'A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36. The current application will be terminated.'),
+      h('p', null, '*  Press any key to terminate the current application.', h('br'),
+        '*  Press CTRL+ALT+DEL again to restart your computer. You will lose any unsaved information in all applications.'),
+      h('p', null, 'Press any key to continue ', h('i', null, '_')));
+  }
+  const done = e => { e.preventDefault(); e.stopPropagation(); scr.remove(); clearInterval(tick); removeEventListener('keydown', done, true); };
   addEventListener('keydown', done, true);
   scr.addEventListener('pointerdown', done);
   document.body.append(scr);
