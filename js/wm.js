@@ -685,6 +685,12 @@ export function minimizeAll() {
   blurAll();
 }
 
+// Show desktop twice brings the windows back, while nothing new has opened since.
+export function showDesktop() {
+  if (undoArrange?.label === '&Undo Minimize All' && !wins.some(w => w.state !== 'min' && w.task && here(w))) undo();
+  else minimizeAll();
+}
+
 // Clicking empty desktop deactivates windows, like Windows does.
 export function deactivate() { blurAll(); }
 
@@ -800,7 +806,8 @@ const WINKEY = !['1.0', '2.0', '3.1'].includes(V.id);
 // Ctrl+Win+Left/Right (Ctrl+Alt+Shift without the key, as Ctrl+Alt+arrows snap) switches desktops.
 function winKey(code, deskMod) {
   const win = active && !active.opts.dialog && !active.maxBtn.disabled ? active : null;
-  if (code === 'KeyD' || code === 'KeyM') minimizeAll();
+  if (code === 'KeyD') showDesktop();
+  else if (code === 'KeyM') minimizeAll();
   else if (code === 'KeyE') launch('explorer', { path: 'C:\\', explore: true });
   else if (code === 'KeyR') runDialog();
   else if (code === 'KeyL') lockScreen();
