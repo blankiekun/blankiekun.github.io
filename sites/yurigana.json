@@ -8,7 +8,7 @@
     "examples: real sentences from the sets where yurigana is right and others are wrong. text is the plain sentence; word is the kanji word as it appears in text (first occurrence is the one scored); gold is the right reading; readings maps a row name to what that system read (omit a system that wasn't run). why: one short sentence on what decides the reading. Set placeholder: true on made-up entries; the page marks them and the agent deletes them."
   ],
   "updated": "2026-10-20",
-  "commit": "f035a06783498aa10e57086c393e24125ae12c13",
+  "commit": "817671e0e6779513d6e41f3c1c51cccd8e4bec47",
   "columns": [
     { "id": "modern", "name": "Modern books", "words": 1811, "note": "The books' own furigana over post-war novels and light novels by authors yurigana never trained on. A private library, so the set isn't published." },
     { "id": "modern_hard", "name": "Modern, hard words", "words": 442, "note": "The same books, only words that can be read two or more ways." },
@@ -30,9 +30,9 @@
     {"name": "Claude Opus", "kind": "ceiling", "note": "Annotating the same sentences blind, as a ceiling.", "scores": {"modern": 97.7, "modern_hard": 95.2, "older": 95.4, "older_hard": 93.3, "tatoeba": null, "jkyb": null, "per_book": null}}
   ],
   "facts": [
-    {"label": "Furigana it marks as sure", "value": "99.3% right", "note": "They cover 67% of a book's kanji words; the rest are left for the reader to look up. In a typical book that is about 25 wrong out of about 12,700. Measured on the modern books."},
+    {"label": "Furigana it marks as sure", "value": "99.2% right", "note": "They cover 77% of a book's kanji words; the rest are left for the reader to look up. In a typical book that is about 35 wrong out of about 14,600. Measured on the modern books."},
     {"label": "Speed", "value": "about 0.2 ms a sentence", "note": "One CPU core, no GPU: a 114,000-character novel in about a second, after about 2 seconds of loading. Measured on 2,996 plain sentences of 30 characters on average."},
-    {"label": "Install", "value": "pip install \"yurigana @ https://github.com/blankiekun/yurigana/archive/refs/tags/v0.3.0.tar.gz\"", "code": true, "note": "Python 3.10 or newer. Sudachi's core dictionary takes about 210 MB of disk (pip install \"yurigana[full]\" for the full one, 315 MB, the same scores); about 650 MB of memory with Jiten's frequency list loaded. A small JavaScript package does the \"Known\" furigana in the browser."}
+    {"label": "Install", "value": "pip install \"yurigana @ https://github.com/blankiekun/yurigana/archive/refs/tags/v0.4.0.tar.gz\"", "code": true, "note": "Python 3.10 or newer. Sudachi's core dictionary takes about 210 MB of disk (pip install \"yurigana[full]\" for the full one, 315 MB, the same scores); about 650 MB of memory with Jiten's frequency list loaded. A small JavaScript package does the \"Known\" furigana in the browser."}
   ],
   "examples": [
     {
