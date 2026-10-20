@@ -7,102 +7,123 @@
 <meta name="description" content="How well yurigana reads Japanese kanji words in context, next to Sudachi, MeCab and others, with sentences it reads right and they read wrong.">
 <link rel="stylesheet" href="retro.css">
 <style>
-/* A 1998 Japanese study homepage: manuscript paper (原稿用紙) ruled in green, marked in a teacher's red pen. */
-:root { --page: #e6ecf5; --paper: #fff; --rule: #5f9a6a; --red: #d0102a; --navy: #102a6a; --marker: #fff27a; }
-body { background: var(--page); color: #000; font: 15px/1.6 "MS PGothic", "MS Pゴシック", Osaka, Arial, sans-serif; }
+/* A 1998 project page built from Windows 98 parts: each section a window, the sentences in sunken white fields,
+   the test sets as property-sheet tabs. Red only ever means a wrong reading. */
+@font-face { font-family: "Pixelated MS Sans Serif"; src: url(../fonts/ms_sans_serif.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Pixelated MS Sans Serif"; src: url(../fonts/ms_sans_serif_bold.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+:root {
+  --face: #c0c0c0; --hi: #fff; --light: #dfdfdf; --shadow: #808080; --dark: #0a0a0a;
+  --navy: #000080; --title2: #1084d0; --red: #c00018; --ok: #006400;
+  --raised: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shadow), inset 2px 2px var(--hi);
+  --sunken: inset -1px -1px var(--hi), inset 1px 1px var(--shadow), inset -2px -2px var(--light), inset 2px 2px var(--dark);
+  --ui: "Pixelated MS Sans Serif", Tahoma, Arial, sans-serif;
+}
+body { background: #ece9d8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23e2dfcc'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23e2dfcc'/%3E%3C/svg%3E"); color: #000; font: 14px/1.55 Tahoma, Verdana, Arial, sans-serif; }
 :lang(ja) { font-family: "MS PMincho", "MS P明朝", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; }
 a { color: #0000ee; } a:visited { color: #551a8b; }
-h1 { margin: 0; text-align: center; color: var(--navy); font: bold clamp(26px, 6vw, 36px)/1.15 Georgia, "Times New Roman", serif; }
-h1 small { display: block; font: 15px/1.4 "MS PGothic", Osaka, Arial, sans-serif; color: #000; margin-top: 4px; }
-h2 { margin: 0 0 6px; color: var(--navy); font: bold 20px/1.25 Georgia, "Times New Roman", serif; border-bottom: 2px solid var(--navy); }
 p { margin: 0; }
-.small { font-size: 13px; }
-.box { background: var(--paper); border: 2px outset #c0c0c0; padding: 10px 12px; }
+.small { font-size: 12px; }
 
-/* Manuscript paper: one square per character, a narrow strip above each line for the furigana. */
-.genko { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: clamp(17px, 5.2vw, 30px); padding: 6px 0; }
-.line { display: flex; border-left: 1px solid var(--rule); }
-.cell { display: flex; flex-direction: column; border-right: 1px solid var(--rule); }
-.cell rt, .cell .rt { height: .9em; font-size: .45em; line-height: 2em; text-align: center; color: var(--red); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
-.cell .k { display: flex; width: 1.5em; height: 1.5em; align-items: center; justify-content: center; border-bottom: 1px solid var(--rule); }
-.cell .ks { display: flex; }
-.cell .ks .k + .k { border-left: 1px dotted var(--rule); }
-.genko .gloss { font: 13px/1.4 "MS PGothic", Osaka, Arial, sans-serif; margin-bottom: 8px; }
+.win { background: var(--face); box-shadow: var(--raised); padding: 3px; }
+.title { display: flex; align-items: center; gap: 6px; padding: 3px 4px; background: linear-gradient(90deg, var(--navy), var(--title2)); color: #fff; font: bold 11px/14px var(--ui); }
+.title h1, .title h2 { margin: 0; font: inherit; }
+.title .ico { width: 16px; height: 16px; flex: none; display: grid; place-items: center; background: #fff; color: var(--navy); font: bold 11px/1 "MS PMincho", serif; box-shadow: inset -1px -1px var(--shadow); }
+.body { padding: 10px 8px 8px; display: flex; flex-direction: column; gap: 8px; }
+.field { background: #fff; box-shadow: var(--sunken); padding: 8px 10px; }
+.status { display: flex; gap: 2px; font: 11px/16px var(--ui); }
+.status span { flex: 1; padding: 1px 4px; box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--shadow); }
 
-/* The scores: yurigana's row in highlighter, each set's best score circled in red pen. */
-table.scores { width: 100%; background: var(--paper); border: 2px inset #e0e0e0; font-size: 13px; line-height: 1.35; }
-.scores th, .scores td { border: 1px solid #808080; padding: 4px 6px; text-align: right; vertical-align: middle; white-space: nowrap; }
-.scores th[scope=row], .scores thead th:first-child { text-align: left; white-space: normal; }
-.scores thead th { background: #dfe6f2; vertical-align: bottom; white-space: normal; min-width: 5.5em; }
-.scores thead small { display: block; font-weight: normal; color: #404040; }
-.scores tr.ours { background: var(--marker); }
-.scores tr.ceiling { color: #505050; font-style: italic; }
-.scores .best { color: var(--red); font-weight: bold; }
-.scores .best span { border: 2px solid var(--red); border-radius: 50%; padding: 0 4px; }
-dl.sets { margin: 8px 0 0; font-size: 13px; }
+/* The opening pair: one word, two readings. */
+.pair { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: center; }
+.pair .s { font-size: clamp(28px, 8vw, 44px); line-height: 1.9; }
+.pair rt { font-size: .38em; color: var(--navy); }
+.pair .gloss { font-size: 13px; }
+@media (max-width: 480px) { .pair { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Property-sheet tabs: the pressed tab stands taller and joins the panel under it. */
+.tabs { display: flex; flex-wrap: wrap; gap: 0 2px; margin-bottom: -2px; position: relative; z-index: 1; padding-left: 2px; }
+.tabs button { font: 11px/14px var(--ui); color: #000; background: var(--face); border: 0; padding: 3px 8px 2px; margin-top: 2px; box-shadow: inset 1px 1px var(--hi), inset -1px 0 var(--dark), inset -2px 0 var(--shadow), inset 2px 2px var(--light); }
+.tabs button[aria-selected=true] { margin-top: 0; padding-bottom: 4px; }
+.tabs button:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
+.sheet { box-shadow: var(--raised); padding: 10px 8px 8px; display: flex; flex-direction: column; gap: 8px; }
+
+/* One graded sentence: the word marked with its right reading, then the tools grouped by what they read. */
+.ex .sent { font-size: clamp(19px, 5vw, 24px); line-height: 2.1; }
+.ex .sent ruby { background: #ffff80; }
+.ex .sent rt { color: var(--navy); font-size: .5em; }
+.reads { display: grid; grid-template-columns: auto auto 1fr; gap: 1px 8px; margin: 4px 0 6px; align-items: baseline; }
+.reads .m { font-weight: bold; text-align: center; }
+.reads .r { font-size: 17px; white-space: nowrap; }
+.reads .who { font-size: 13px; }
+.reads .bad { color: var(--red); }
+.reads .bad.r { text-decoration: line-through 2px; }
+.reads .good { color: var(--ok); }
+.ex .why { font-size: 13px; color: #404040; border-top: 1px dotted var(--shadow); padding-top: 4px; }
+.ex .why b { font-weight: normal; color: #000; }
+
+/* The scores, as a list view: yurigana's row selected, each set's best in bold. */
+.scroll { overflow-x: auto; }
+table.scores { width: 100%; background: #fff; font-size: 13px; line-height: 1.35; border-collapse: separate; border-spacing: 0; }
+.scores th, .scores td { padding: 3px 6px; text-align: right; white-space: nowrap; }
+.scores thead th { background: var(--face); box-shadow: var(--raised); font: 11px/13px var(--ui); vertical-align: bottom; white-space: normal; min-width: 5.5em; padding: 4px 6px; }
+.scores thead small { display: block; color: #404040; }
+.scores th[scope=row], .scores thead th:first-child { text-align: left; white-space: normal; font-weight: normal; }
+.scores tr.ours { background: var(--navy); color: #fff; }
+.scores tr.ceiling { color: #606060; font-style: italic; }
+.scores td.best { font-weight: bold; text-decoration: underline 2px; text-underline-offset: 3px; }
+dl.sets { margin: 0; font-size: 13px; }
 dl.sets dt { font-weight: bold; }
 dl.sets dd { margin: 0 0 4px 1.5em; }
-
-/* One graded sentence: the sentence with the right reading, then each tool's answer, marked. */
-.ex { background: var(--paper); border: 2px outset #c0c0c0; padding: 10px 12px; position: relative; }
-.ex + .ex { margin-top: 12px; }
-.ex .sent { font-size: clamp(20px, 5vw, 26px); line-height: 2.1; margin-bottom: 4px; }
-.ex .sent ruby { background: var(--marker); }
-.ex .sent rt { color: var(--red); font-size: .5em; }
-.ex .meta { font-size: 13px; color: #404040; margin-bottom: 6px; }
-.ex ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2px 14px; font-size: 14px; }
-.ex li { display: flex; gap: 6px; align-items: baseline; }
-.ex li .mark { width: 1.2em; flex: none; text-align: center; color: var(--red); font-weight: bold; }
-.ex li.wrong [lang] { text-decoration: line-through var(--red) 2px; }
-.ex li.ours { font-weight: bold; }
-.ex .stamp { position: absolute; top: 8px; right: 10px; color: var(--red); border: 2px solid var(--red); padding: 0 6px; font: bold 12px/1.6 Arial, sans-serif; transform: rotate(4deg); background: #fff; }
-.filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
-.filters button { font: 13px "MS PGothic", Osaka, Arial, sans-serif; padding: 3px 10px; background: #c0c0c0; border: 2px outset #e0e0e0; color: #000; }
-.filters button[aria-pressed=true] { border-style: inset; background: #d8d8d8; font-weight: bold; }
-.filters button:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
-.empty, .err { font-size: 14px; }
-.err { color: #a00000; }
-
+#facts dt span { color: var(--navy); }
 #facts code { font: 12px "Courier New", monospace; overflow-wrap: anywhere; }
-#facts dt span { color: var(--red); }
 
-footer { text-align: center; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+.err { color: var(--red); }
+footer { text-align: center; font-size: 13px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>yurigana<small>Which reading does this kanji word take, here?</small></h1>
-
-  <div class="box">
-    <div class="genko" id="genko" lang="ja" aria-hidden="true"></div>
-    <p>The same two kanji, 人気, read <span lang="ja">にんき</span> (popularity) in the first sentence and <span lang="ja">ひとけ</span> (people around) in the second. Furigana helpers that look a word up on its own get one of them wrong. <b>yurigana</b> reads each kanji word from the sentence around it, and keeps the furigana a book prints. It gives <a href="chimimouryou.html">chimimouryou</a> its readings and its "Known" furigana, which hides the ones you no longer need.</p>
+  <div class="win">
+    <div class="title"><span class="ico" lang="ja" aria-hidden="true">ゆ</span><h1>yurigana: which reading does a kanji word take, here?</h1></div>
+    <div class="body">
+      <div class="field pair" lang="ja">
+        <div><div class="s"><ruby>人気<rt>にんき</rt></ruby>の店</div><div class="gloss" lang="en">a popular shop</div></div>
+        <div><div class="s"><ruby>人気<rt>ひとけ</rt></ruby>のない道</div><div class="gloss" lang="en">a deserted road</div></div>
+      </div>
+      <p>The same two kanji, read two ways. Furigana helpers that look a word up on its own get one of them wrong. <b>yurigana</b> reads each kanji word from the sentence around it, and keeps the furigana a book prints. It gives <a href="chimimouryou.html">chimimouryou</a> its readings and its "Known" furigana, which hides the ones you no longer need. <a href="https://github.com/blankiekun/yurigana">Get it on GitHub</a>.</p>
+    </div>
   </div>
 
-  <section>
-    <h2>Scores</h2>
-    <p class="small" style="margin-bottom:6px">The share of kanji words each tool reads right, in percent. A <span style="color:var(--red);font-weight:bold">red circle</span> marks the best score of each set; the last column is lower-is-better.</p>
-    <div class="scroll"><table class="scores" id="scores"></table></div>
-    <dl class="sets" id="sets"></dl>
+  <section class="win" aria-labelledby="ex-h">
+    <div class="title"><span class="ico" aria-hidden="true">✓</span><h2 id="ex-h">Sentences yurigana reads right and others don't</h2></div>
+    <div class="body">
+      <p class="small">Real sentences from the test sets. The word is highlighted with its right reading above it; under it, each tool is listed by what it read.</p>
+      <div>
+        <div class="tabs" id="tabs" role="tablist" aria-label="Test set"></div>
+        <div class="sheet" id="examples" role="tabpanel"><p>Loading...</p></div>
+      </div>
+    </div>
+    <div class="status" id="ex-status" aria-live="polite"></div>
   </section>
 
-  <section id="glance" hidden>
-    <h2>At a glance</h2>
-    <dl class="sets" id="facts"></dl>
+  <section class="win" aria-labelledby="sc-h">
+    <div class="title"><span class="ico" aria-hidden="true">%</span><h2 id="sc-h">Scores</h2></div>
+    <div class="body">
+      <p class="small">The share of kanji words each tool reads right, in percent. Each set's best is <b>bold and underlined</b>; the last column is lower-is-better.</p>
+      <div class="field scroll" style="padding:2px"><table class="scores" id="scores"></table></div>
+      <dl class="sets" id="sets"></dl>
+    </div>
   </section>
 
-  <section>
-    <h2>Graded sentences</h2>
-    <p class="small">Real sentences from the test sets where yurigana reads a word right and other tools don't. The word is highlighted with its right reading above it; a <span style="color:var(--red)">✗</span> marks a tool that read it wrong.</p>
-    <div class="filters" id="filters" role="group" aria-label="Show sentences from"></div>
-    <div id="examples"><p class="empty">Loading...</p></div>
+  <section class="win" id="glance" aria-labelledby="gl-h" hidden>
+    <div class="title"><span class="ico" aria-hidden="true">i</span><h2 id="gl-h">At a glance</h2></div>
+    <div class="body"><dl class="sets" id="facts"></dl></div>
   </section>
 
-  <h2>Fine print</h2>
   <p class="small" id="fine">Words where the book's furigana covers only part of a word, or spells a reading only a kanji dictionary lists, aren't scored. Method, caveats and older numbers are in the repo's <a href="https://github.com/blankiekun/yurigana/blob/main/docs/evaluation.md">evaluation notes</a>.</p>
 
   <footer>
-    <hr class="groove">
-    <div><a href="https://github.com/blankiekun/yurigana">yurigana on GitHub</a> | <a href="chimimouryou.html">chimimouryou</a> | <a href="home.html">blankiekun's Homepage</a></div>
+    <a href="https://github.com/blankiekun/yurigana">yurigana on GitHub</a> | <a href="chimimouryou.html">chimimouryou</a> | <a href="home.html">blankiekun's Homepage</a>
   </footer>
 </div>
 <script>
@@ -115,22 +136,6 @@ function el(tag, text, cls) {
   return e;
 }
 const ja = e => (e.lang = "ja", e);
-
-// "この店は{人気|にんき}だ。": a square per character; a braced word shares one furigana strip.
-function genko(src) {
-  const line = el("div", null, "line");
-  for (const [, word, reading, ch] of src.matchAll(/\{(.+?)\|(.+?)\}|(.)/g)) {
-    const cell = el("div", null, "cell");
-    cell.append(el("span", reading || " ", "rt"));
-    const ks = el("div", null, "ks");
-    for (const c of word || ch) ks.append(el("span", c, "k"));
-    cell.append(ks);
-    line.append(cell);
-  }
-  return line;
-}
-const hero = document.getElementById("genko");
-hero.append(genko("この店は{人気|にんき}だ。"), el("div", "popular", "gloss"), genko("{人気|ひとけ}のない道。"), el("div", "deserted", "gloss"));
 
 const fmtScore = (v, col) => v == null ? "–" : col.fmt === "about" ? "about " + v.toLocaleString("en-US") : v.toFixed(1);
 
@@ -146,7 +151,7 @@ function scores(d) {
     if (c.words) th.append(el("small", c.words.toLocaleString("en-US") + " words"));
     head.append(th);
   }
-  // A ceiling row (an LLM reading blind) isn't a rival, so it never takes the circle.
+  // A ceiling row (an LLM reading blind) isn't a rival, so it never counts as best.
   const rivals = d.rows.filter(r => r.kind !== "ceiling");
   const best = Object.fromEntries(d.columns.map(c => {
     const vs = rivals.map(r => r.scores[c.id]).filter(v => v != null);
@@ -162,18 +167,12 @@ function scores(d) {
     tr.append(th);
     for (const c of d.columns) {
       const v = r.scores[c.id];
-      const td = el("td");
-      if (r.kind !== "ceiling" && v != null && v === best[c.id]) {
-        td.className = "best";
-        td.append(el("span", fmtScore(v, c)));
-      } else td.textContent = fmtScore(v, c);
-      tr.append(td);
+      tr.append(el("td", fmtScore(v, c), r.kind !== "ceiling" && v != null && v === best[c.id] ? "best" : null));
     }
   }
   const sets = document.getElementById("sets");
   for (const c of d.columns) if (c.note) sets.append(el("dt", c.name), el("dd", c.note));
-  const ceil = d.rows.find(r => r.kind === "ceiling" && r.note);
-  if (ceil) sets.append(el("dt", ceil.name), el("dd", ceil.note + " Not a rival, so it never gets the circle."));
+  for (const r of d.rows) if (r.note) sets.append(el("dt", r.name), el("dd", r.note + (r.kind === "ceiling" ? " Not a rival, so never marked best." : "")));
   if (d.updated) {
     const p = document.getElementById("fine");
     p.append(" Measured " + new Date(d.updated + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }));
@@ -197,9 +196,8 @@ function facts(d) {
   document.getElementById("glance").hidden = false;
 }
 
-function example(x, d) {
-  const box = el("div", null, "ex");
-  if (x.placeholder) box.append(el("span", "Sample", "stamp"));
+function example(x, d, showSet) {
+  const box = el("div", null, "field ex");
   // The sentence, with the right reading over the scored word.
   const sent = ja(el("div", null, "sent"));
   const at = x.text.indexOf(x.word);
@@ -207,47 +205,57 @@ function example(x, d) {
   ruby.append(el("rt", x.gold));
   sent.append(x.text.slice(0, at), ruby, x.text.slice(at + x.word.length));
   box.append(sent);
-  const set = d.columns.find(c => c.id === x.set);
-  box.append(el("p", (set ? set.name : x.set) + (x.why ? ". " + x.why : ""), "meta"));
-  const ul = el("ul");
-  for (const r of d.rows) {
-    if (!(r.name in x.readings)) continue;
-    const got = x.readings[r.name], ok = got === x.gold;
-    const li = el("li", null, (ok ? "right" : "wrong") + (r.kind === "ours" ? " ours" : ""));
-    const mark = el("span", ok ? "◯" : "✗", "mark");
-    mark.setAttribute("aria-label", ok ? "right:" : "wrong:");
-    li.append(mark, r.name + " ", ja(el("span", got)));
-    ul.append(li);
+  // Tools grouped by the reading they gave, the right one first.
+  const groups = new Map([[x.gold, []]]);
+  for (const r of d.rows) if (r.name in x.readings) {
+    const got = x.readings[r.name];
+    if (!groups.has(got)) groups.set(got, []);
+    groups.get(got).push(r.name);
   }
-  box.append(ul);
+  const reads = el("div", null, "reads");
+  for (const [reading, who] of groups) {
+    if (!who.length) continue;
+    const ok = reading === x.gold, c = ok ? "good" : "bad";
+    const m = el("span", ok ? "✓" : "✗", "m " + c);
+    m.setAttribute("aria-label", ok ? "right:" : "wrong:");
+    reads.append(m, ja(el("span", reading, "r " + c)), el("span", who.join(", "), "who"));
+  }
+  box.append(reads);
+  const set = d.columns.find(c => c.id === x.set);
+  const why = el("p", null, "why");
+  if (showSet) why.append(el("b", (set ? set.name : x.set) + ". "));
+  why.append(x.why || "");
+  if (showSet || x.why) box.append(why);
   return box;
 }
 
 function examples(d) {
-  const out = document.getElementById("examples"), bar = document.getElementById("filters");
+  const out = document.getElementById("examples"), tabs = document.getElementById("tabs"), status = document.getElementById("ex-status");
   const used = d.columns.filter(c => d.examples.some(x => x.set === c.id));
   const show = id => {
     const xs = d.examples.filter(x => !id || x.set === id);
-    out.replaceChildren(...(xs.length ? xs.map(x => example(x, d)) : [el("p", "No graded sentences yet.", "empty")]));
-    for (const b of bar.children) b.setAttribute("aria-pressed", b.dataset.set === (id || ""));
+    out.replaceChildren(...(xs.length ? xs.map(x => example(x, d, !id && used.length > 1)) : [el("p", "No graded sentences yet.")]));
+    for (const b of tabs.children) b.setAttribute("aria-selected", b.dataset.set === id);
+    const wrong = xs.reduce((n, x) => n + Object.values(x.readings).filter(v => v !== x.gold).length, 0);
+    status.replaceChildren(el("span", xs.length + " sentences"), el("span", wrong + " wrong readings from other tools"));
   };
-  if (used.length > 1) {
-    for (const [id, name] of [["", "All sets"], ...used.map(c => [c.id, c.name])]) {
-      const b = el("button", name);
-      b.type = "button";
-      b.dataset.set = id;
-      b.onclick = () => show(id);
-      bar.append(b);
-    }
+  const all = used.length > 1 ? [["", "All"]] : [];
+  for (const [id, name] of [...all, ...used.map(c => [c.id, c.name])]) {
+    const b = el("button", name + " (" + d.examples.filter(x => !id || x.set === id).length + ")");
+    b.type = "button";
+    b.role = "tab";
+    b.dataset.set = id;
+    b.onclick = () => show(id);
+    tabs.append(b);
   }
-  show("");
+  show(all.length ? "" : (used[0] || {}).id || "");
 }
 
 fetch("yurigana.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(d => { scores(d); facts(d); examples(d); })
+  .then(d => { examples(d); scores(d); facts(d); })
   .catch(e => {
-    document.getElementById("examples").replaceChildren(el("p", "Couldn't load the scores (" + e.message + "). Reload the page to try again.", "err"));
+    document.getElementById("examples").replaceChildren(el("p", "Couldn't load the sentences and scores (" + e.message + "). Reload the page to try again.", "err"));
   });
 </script>
 </body>
