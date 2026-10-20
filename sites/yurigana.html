@@ -53,7 +53,7 @@ p { margin: 0; }
 
 /* One graded sentence: the scored word inverted, its right reading above it. */
 .sent { font-size: clamp(19px, 5.4vw, 25px); line-height: 2; }
-.sent ruby { background: var(--ink); color: var(--lcd); text-shadow: none; padding: 0 2px; }
+.sent ruby span { display: inline-block; line-height: 1.15; background: var(--ink); color: var(--lcd); text-shadow: none; padding: 0 2px; }
 .sent rt { color: var(--ink); font-size: .52em; }
 .reads { display: grid; grid-template-columns: auto auto 1fr; gap: 2px 10px; align-items: baseline; }
 .reads .r { font-size: 18px; white-space: nowrap; }
@@ -143,7 +143,7 @@ function el(tag, text, cls) {
   return e;
 }
 const ja = e => (e.lang = "ja", e);
-const ruby = (base, rt) => { const r = el("ruby", base); r.append(el("rt", rt)); return r; };
+const ruby = (base, rt) => { const r = el("ruby"); r.append(el("span", base), el("rt", rt)); return r; };
 
 const fmtScore = (v, col) => v == null ? "–" : col.fmt === "about" ? "about " + v.toLocaleString("en-US") : v.toFixed(1) + "%";
 
