@@ -32,7 +32,7 @@
   "facts": [
     {"label": "Furigana it marks as sure", "value": "99.3% right", "note": "They cover 79% of a book's kanji words; the rest are left for the reader to look up. In a typical book that is about 33 wrong out of about 14,900. Measured on the modern books."},
     {"label": "Speed", "value": "about 0.2 ms a sentence", "note": "One CPU core, no GPU: a 114,000-character novel in about a second, after about 2 seconds of loading. Measured on 2,996 plain sentences of 30 characters on average."},
-    {"label": "Install", "value": "pip install \"yurigana @ https://github.com/blankiekun/yurigana/archive/refs/tags/v0.4.0.tar.gz\"", "code": true, "note": "Python 3.10 or newer. Sudachi's core dictionary takes about 210 MB of disk (pip install \"yurigana[full]\" for the full one, 315 MB, the same scores); about 650 MB of memory with Jiten's frequency list loaded. A small JavaScript package does the \"Known\" furigana in the browser."}
+    {"label": "Install", "value": "pip install \"yurigana @ https://github.com/blankiekun/yurigana/archive/refs/tags/v0.5.0.tar.gz\"", "code": true, "note": "Python 3.10 or newer. Sudachi's core dictionary takes about 210 MB of disk (pip install \"yurigana[full]\" for the full one, 315 MB, the same scores); about 650 MB of memory with Jiten's frequency list loaded. A small JavaScript package does the \"Known\" furigana in the browser."}
   ],
   "examples": [
     {
