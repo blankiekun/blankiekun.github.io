@@ -1013,6 +1013,7 @@ function open(arg) {
       return msgbox({ title: 'CONscripter', icon: 'error', parent: win,
         text: `${g.title} has no font.\n\nPut a default.ttf next to the game's script and open it again.` });
     }
+    if (!(await addArchives(g))) return idle();
     if (!(await confirmQuit())) { say('Playing ' + game.title); return; }
     if (g.named) remember(g.title, kept ? undefined : handle || null);
     boot(g);
@@ -1039,6 +1040,45 @@ function open(arg) {
     } finally {
       copying = null;
     }
+  }
+
+  // A game converted with --original-archives plays its pictures and sounds from the visitor's
+  // own copy of the original: cons_archives.txt names the archives (whole archives, or byte ranges of the game's files),
+  // which are picked here and read in place beside the script. Nothing is copied or uploaded.
+  // shortcut: asked for each time the game opens; keep the folder handle (as remember() does) if that annoys
+  async function addArchives(g) {
+    const map = g.files.find(f => f.path.toLowerCase() === 'cons_archives.txt');
+    if (!map) return true;
+    const have = new Set(g.files.map(f => f.path.toLowerCase()));
+    // npa <folder> <file> <key>; range<TAB><name><TAB><file>...; xor<TAB><file><TAB><key>
+    const named = (await map.file.text()).split('\n').map(l => l.includes('\t') ? l.split('\t') : l.trim().split(/\s+/))
+      .map(w => w[0] === 'xor' ? w[1] : w[2]);
+    const need = [...new Set(named)].filter(n => n && !have.has(n.toLowerCase()));
+    if (!need.length) return true;
+    const some = names => names.slice(0, 3).join(', ') + (names.length > 3 ? ` and ${names.length - 3} more` : '');
+    await msgbox({ title: 'CONscripter', icon: 'info', parent: win,
+      text: `${g.title} plays its pictures and sounds from your copy of the original game.\n\nPick the folder with ${some(need)} in it.` });
+    say('Reading files...');
+    let picked;
+    try {
+      picked = await pickFolder();
+      picked = picked.list || await walkHandle(picked.handle);
+    } catch (e) {
+      picked = [];
+    }
+    const byName = new Map(picked.map(f => [f.path.split('/').pop().toLowerCase(), f.file]));
+    const missing = need.filter(n => !byName.has(n.split('/').pop().toLowerCase()));
+    if (missing.length) {
+      await msgbox({ title: 'CONscripter', icon: 'error', parent: win,
+        text: `${g.title} can't start without ${some(missing)}.\n\nPick the folder of the original game that holds them.` });
+      return false;
+    }
+    for (const n of need) {
+      const file = byName.get(n.split('/').pop().toLowerCase());
+      g.files.push({ path: n, file });
+      g.size += file.size;
+    }
+    return true;
   }
 
   async function openPicked() { load(await pickFolder()); }
