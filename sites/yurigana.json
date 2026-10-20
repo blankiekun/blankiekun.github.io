@@ -82,6 +82,150 @@
         "pykakasi": "かん"
       },
       "why": "間を置く (to pause) reads 間 as ま, a context rule."
+    },
+    {
+      "set": "jkyb",
+      "text": "靴下に穴が開いた。",
+      "word": "開い",
+      "gold": "あい",
+      "readings": {
+        "yurigana": "あい",
+        "Sudachi": "ひらい",
+        "GiNZA": "ひらい",
+        "yomikata": "ひらい",
+        "MeCab + unidic-lite": "ひらい",
+        "MeCab + IPAdic": "ひらい",
+        "pykakasi": "ひらい"
+      },
+      "why": "A hole opening is 開く あく; ひらく is for doors, books and flowers opening out."
+    },
+    {
+      "set": "jkyb",
+      "text": "辛いものが苦手な人は、このソースは避けた方がいい。",
+      "word": "辛い",
+      "gold": "からい",
+      "readings": {
+        "yurigana": "からい",
+        "Sudachi": "つらい",
+        "GiNZA": "つらい",
+        "yomikata": "つらい",
+        "MeCab + unidic-lite": "つらい",
+        "MeCab + IPAdic": "つらい",
+        "pykakasi": "つらい"
+      },
+      "why": "Food and sauce make 辛い からい (spicy), not つらい (hard to bear)."
+    },
+    {
+      "set": "jkyb",
+      "text": "そんな悪いことをしていると、いつか罰が当たるよ。",
+      "word": "罰",
+      "gold": "ばち",
+      "readings": {
+        "yurigana": "ばち",
+        "Sudachi": "ばつ",
+        "GiNZA": "ばつ",
+        "yomikata": "ばつ",
+        "MeCab + unidic-lite": "ばつ",
+        "MeCab + IPAdic": "ばっ",
+        "pykakasi": "ばつ"
+      },
+      "why": "罰が当たる (divine punishment) is ばち; ばつ is a penalty someone gives."
+    },
+    {
+      "set": "jkyb",
+      "text": "カップの縁が欠けている。",
+      "word": "縁",
+      "gold": "ふち",
+      "readings": {
+        "yurigana": "ふち",
+        "Sudachi": "えん",
+        "GiNZA": "えん",
+        "yomikata": "えん",
+        "MeCab + unidic-lite": "えん",
+        "MeCab + IPAdic": "えん",
+        "pykakasi": "へり"
+      },
+      "why": "The rim of a thing is 縁 ふち; えん is a bond or fate."
+    },
+    {
+      "set": "jkyb",
+      "text": "夜空には無数の星が瞬いていた。",
+      "word": "瞬い",
+      "gold": "またたい",
+      "readings": {
+        "yurigana": "またたい",
+        "Sudachi": "しばたたい",
+        "GiNZA": "しばたたい",
+        "yomikata": "しばたたい",
+        "MeCab + unidic-lite": "しばたたい",
+        "MeCab + IPAdic": "まばたい",
+        "pykakasi": "しゅんい"
+      },
+      "why": "Stars twinkle: 瞬く またたく. しばたたく is blinking your eyes."
+    },
+    {
+      "set": "jkyb",
+      "text": "全ての国民は、法の下に平等だ。",
+      "word": "下",
+      "gold": "もと",
+      "readings": {
+        "yurigana": "もと",
+        "Sudachi": "した",
+        "GiNZA": "した",
+        "yomikata": "した",
+        "MeCab + unidic-lite": "した",
+        "MeCab + IPAdic": "した",
+        "pykakasi": "した"
+      },
+      "why": "Under a law or a rule, 下 is もと; した is physically below."
+    },
+    {
+      "set": "jkyb",
+      "text": "彼の打率は三割三分だ。",
+      "word": "三分",
+      "gold": "さんぶ",
+      "readings": {
+        "yurigana": "さんぶ",
+        "Sudachi": "さんふん",
+        "GiNZA": "さんふん",
+        "yomikata": "さんぷん",
+        "MeCab + unidic-lite": "さんふん",
+        "MeCab + IPAdic": "さんふん",
+        "pykakasi": "さんぷん"
+      },
+      "why": "After 割, 分 is a tenth of it (ぶ), not minutes."
+    },
+    {
+      "set": "jkyb",
+      "text": "この期に及んで、意見を変えるのは無理だ。",
+      "word": "期",
+      "gold": "ご",
+      "readings": {
+        "yurigana": "ご",
+        "Sudachi": "き",
+        "GiNZA": "き",
+        "yomikata": "き",
+        "MeCab + unidic-lite": "き",
+        "MeCab + IPAdic": "き",
+        "pykakasi": "き"
+      },
+      "why": "この期に及んで (at this late stage) is a set phrase that keeps the old reading ご."
+    },
+    {
+      "set": "jkyb",
+      "text": "彼は酒を飲むと、決まって怒り上戸になる。",
+      "word": "怒り",
+      "gold": "おこり",
+      "readings": {
+        "yurigana": "おこり",
+        "Sudachi": "いかり",
+        "GiNZA": "いかり",
+        "yomikata": "いかり",
+        "MeCab + unidic-lite": "いかり",
+        "MeCab + IPAdic": "いかり",
+        "pykakasi": "いかり"
+      },
+      "why": "怒り上戸 (an angry drunk) is おこりじょうご, from 怒る おこる."
     }
   ]
 }
