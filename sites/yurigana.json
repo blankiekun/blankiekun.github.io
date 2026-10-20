@@ -8,13 +8,13 @@
     "examples: real sentences from the sets where yurigana is right and others are wrong. text is the plain sentence; word is the kanji word as it appears in text (first occurrence is the one scored); gold is the right reading; readings maps a row name to what that system read (omit a system that wasn't run). why: one short sentence on what decides the reading. Set placeholder: true on made-up entries; the page marks them and the agent deletes them."
   ],
   "updated": "2026-10-20",
-  "commit": "8444ac54ca920462314b76cfd2b0e8febffe753e",
+  "commit": "f035a06783498aa10e57086c393e24125ae12c13",
   "columns": [
     { "id": "modern", "name": "Modern books", "words": 1811, "note": "The books' own furigana over post-war novels and light novels by authors yurigana never trained on. A private library, so the set isn't published." },
     { "id": "modern_hard", "name": "Modern, hard words", "words": 442, "note": "The same books, only words that can be read two or more ways." },
     { "id": "older", "name": "Older books", "words": 2306, "note": "300 sentences of NDL's huriganacorpus-aozora: human furigana, mostly pre-war Aozora Bunko texts. yurigana's table was trained on Aozora texts that include these authors, so it is slightly favoured here." },
     { "id": "older_hard", "name": "Older, hard words", "words": 912, "note": "The same sentences, only words that can be read two or more ways." },
-    { "id": "tatoeba", "name": "Tatoeba B2", "note": "27,000 sentences whose answers are MeCab + IPAdic's own furigana, so MeCab + IPAdic scores high here." },
+    { "id": "tatoeba", "name": "Tatoeba B2", "note": "27,000 sentences whose answers are MeCab + IPAdic's own furigana, so MeCab + IPAdic scores high here; a few of yurigana's rules were picked from its disagreements." },
     { "id": "jkyb", "name": "Joyo-Kanji-Yomi", "note": "Three checked sentences for every reading of every Jōyō kanji, rare ones included. Scored with the benchmark's own toolkit." },
     { "id": "per_book", "name": "Wrong words per book", "lower": true, "fmt": "about", "note": "Kanji words read wrong in a typical 19,000-word book, before its own furigana fixes any. Scored against Claude Opus reading held-out plain sentences, so it is rough." }
   ],
