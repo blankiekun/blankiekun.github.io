@@ -443,12 +443,12 @@ function startItems() {
     prog('WordPad', 'wordpad', 'i-wordpad'),
   ]);
   const projects = [
-    { label: "blankiekun's Homepage", icon: 'i-htm', action: () => launch('ie', 'home') },
+    { label: "blankiekun's Homepage", icon: 'i-pg-home', action: () => launch('ie', 'home') },
     '-',
-    { label: 'chimimouryou', icon: 'i-book', action: () => launch('ie', 'chimimouryou') },
+    { label: 'chimimouryou', icon: 'i-pg-chimi', action: () => launch('ie', 'chimimouryou') },
     prog('chimimouryou Reader (demo)', 'reader', 'i-reader'),
-    { label: 'conscripter-convert', icon: 'i-convert', action: () => launch('ie', 'convert') },
-    { label: 'CONscripter', icon: 'i-game', action: () => launch('ie', 'conscripter') },
+    { label: 'conscripter-convert', icon: 'i-pg-convert', action: () => launch('ie', 'convert') },
+    { label: 'CONscripter', icon: 'i-pg-cons', action: () => launch('ie', 'conscripter') },
   ];
   const docs = recentDocs();
   // 98 to 2000 put Windows Update at the top (here it's Windows Setup, which moves between versions);

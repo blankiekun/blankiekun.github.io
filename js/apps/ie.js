@@ -11,19 +11,21 @@ import { V } from '../version.js';
 const TABS = ['vista', '7', '8', '10', '11'].includes(V.id);
 
 export const PAGES = {
-  home: { file: 'sites/home.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/', label: "blankiekun's Homepage", icon: 'i-htm' },
-  chimimouryou: { file: 'sites/chimimouryou.html', url: 'http://www.geocities.com/Tokyo/Pagoda/1995/chimimouryou.html', label: 'chimimouryou', icon: 'i-book' },
-  convert: { file: 'sites/convert.html', url: 'http://www.angelfire.com/tech/blankiekun/convert.html', label: 'conscripter-convert', icon: 'i-convert' },
-  'convert-metrics': { file: 'sites/convert-metrics.html', url: 'http://www.angelfire.com/tech/blankiekun/convert-metrics.html', label: 'Convert completion', icon: 'i-convert' },
-  yurigana: { file: 'sites/yurigana.html', url: 'http://www.geocities.com/Tokyo/Pagoda/1998/yurigana.html', label: 'yurigana', icon: 'i-book' },
-  conscripter: { file: 'sites/conscripter.html', url: 'http://www.geocities.com/TimesSquare/Arcade/1995/conscripter.html', label: 'CONscripter', icon: 'i-game' },
-  games: { file: 'sites/games.html', url: 'http://www.angelfire.com/biz/blankiekun/games.html', label: 'Games', icon: 'i-game' },
-  guestbook: { file: 'sites/guestbook.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/guestbook.html', label: 'Guestbook', icon: 'i-htm' },
+  home: { file: 'sites/home.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/', label: "blankiekun's Homepage", icon: 'i-pg-home' },
+  chimimouryou: { file: 'sites/chimimouryou.html', url: 'http://www.geocities.com/Tokyo/Pagoda/1995/chimimouryou.html', label: 'chimimouryou', icon: 'i-pg-chimi' },
+  convert: { file: 'sites/convert.html', url: 'http://www.angelfire.com/tech/blankiekun/convert.html', label: 'conscripter-convert', icon: 'i-pg-convert' },
+  'convert-metrics': { file: 'sites/convert-metrics.html', url: 'http://www.angelfire.com/tech/blankiekun/convert-metrics.html', label: 'Convert completion', icon: 'i-pg-metrics' },
+  yurigana: { file: 'sites/yurigana.html', url: 'http://www.geocities.com/Tokyo/Pagoda/1998/yurigana.html', label: 'yurigana', icon: 'i-pg-yurigana' },
+  conscripter: { file: 'sites/conscripter.html', url: 'http://www.geocities.com/TimesSquare/Arcade/1995/conscripter.html', label: 'CONscripter', icon: 'i-pg-cons' },
+  games: { file: 'sites/games.html', url: 'http://www.angelfire.com/biz/blankiekun/games.html', label: 'Games', icon: 'i-pg-games' },
+  guestbook: { file: 'sites/guestbook.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/guestbook.html', label: 'Guestbook', icon: 'i-pg-guestbook' },
   // Help in 10 and 11 (js/apps/system.js); not a project page, so not in Links or Favorites.
   help: { file: 'sites/help.html', url: 'https://blankiekun.github.io/help', label: 'Get help', icon: 'i-helpbook', unlisted: true },
 };
 const LISTED = Object.entries(PAGES).filter(([, p]) => !p.unlisted);
 const GITHUB = 'https://github.com/blankiekun';
+// A page's icon, or a plain HTML page's for an address that isn't one of them.
+const pageIcon = e => (e && e.key ? PAGES[e.key].icon : 'i-htm');
 const FILES = Object.fromEntries(Object.entries(PAGES).map(([k, p]) => [p.file.split('/').pop(), k]));
 
 function keyFor(input) {
@@ -77,17 +79,18 @@ function open(arg) {
     toolBtn('i-printer', 'Print', () => { try { tab.iframe.contentWindow.print(); } catch {} }),
   );
   const links = h('div', { class: 'ie-links' }, h('span', { class: 'ie-label' }, 'Links'),
-    ...LISTED.map(([k, p]) => h('button', { type: 'button', class: 'ie-link', onclick: () => navigate(k) }, icon('i-htm'), h('span', null, p.label))),
+    ...LISTED.map(([k, p]) => h('button', { type: 'button', class: 'ie-link', onclick: () => navigate(k) }, icon(p.icon), h('span', null, p.label))),
     h('a', { class: 'ie-link', href: GITHUB, target: '_blank', rel: 'noopener' }, icon('i-github'), h('span', null, 'GitHub')));
+  const addrIcon = icon('i-htm');
   const addrForm = h('form', { class: 'ie-addr' }, h('label', { class: 'ie-label', for: 'ie-address', html: 'A<u>d</u>dress' }),
-    h('div', { class: 'ie-addr-field' }, icon('i-htm'), address));
+    h('div', { class: 'ie-addr-field' }, addrIcon, address));
   addrForm.addEventListener('submit', e => { e.preventDefault(); navigate(address.value); });
 
   const favItems = () => [
     { label: '&Add To Favorites...', action: () => msgbox({ title: 'Add to Favorites', icon: 'info', parent: win, text: 'This page is already in your Favorites.\n\nEverything here is a favorite.' }) },
     { label: '&Organize Favorites...', disabled: true },
     '-',
-    ...LISTED.map(([k, p]) => ({ label: p.label, icon: 'i-htm', action: () => navigate(k) })),
+    ...LISTED.map(([k, p]) => ({ label: p.label, icon: p.icon, action: () => navigate(k) })),
     '-',
     { label: 'blankiekun on GitHub', icon: 'i-github', action: () => window.open(GITHUB, '_blank', 'noopener') },
     { label: 'chimimouryou repository', icon: 'i-github', action: () => window.open(GITHUB + '/chimimouryou', '_blank', 'noopener') },
@@ -168,6 +171,7 @@ function open(arg) {
   function updateNav() {
     back.disabled = tab.pos <= 0;
     fwd.disabled = tab.pos >= tab.hist.length - 1;
+    addrIcon.firstChild.setAttribute('href', '#' + pageIcon(tab.current));
   }
 
   // Each tab keeps its own page and history; only the one on show is laid out.
@@ -179,7 +183,8 @@ function open(arg) {
     view.append(t.iframe);
     if (TABS) {
       t.label = h('span', null, 'Connecting...');
-      t.el = h('div', { class: 'ie-tab', role: 'tab', onclick: () => show(t) }, icon('i-htm'), t.label,
+      t.ico = icon('i-htm');
+      t.el = h('div', { class: 'ie-tab', role: 'tab', onclick: () => show(t) }, t.ico, t.label,
         h('button', { type: 'button', class: 'ie-tab-x', title: 'Close Tab', 'aria-label': 'Close Tab', onclick: e => { e.stopPropagation(); closeTab(t); } }));
       tabBar.insertBefore(t.el, newBtn);
     }
@@ -294,6 +299,7 @@ function open(arg) {
       t.current = entry;
       if (on) { address.value = entry.url; updateNav(); win.setRoute('ie/' + entry.key); }
     }
+    t.ico?.firstChild.setAttribute('href', '#' + pageIcon(t.current));
     wire(doc);
   }
 
