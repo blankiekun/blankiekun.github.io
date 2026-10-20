@@ -86,32 +86,32 @@
     {
       "set": "jkyb",
       "text": "靴下に穴が開いた。",
-      "word": "開い",
-      "gold": "あい",
+      "word": "開",
+      "gold": "あ",
       "readings": {
-        "yurigana": "あい",
-        "Sudachi": "ひらい",
-        "GiNZA": "ひらい",
-        "yomikata": "ひらい",
-        "MeCab + unidic-lite": "ひらい",
-        "MeCab + IPAdic": "ひらい",
-        "pykakasi": "ひらい"
+        "yurigana": "あ",
+        "Sudachi": "ひら",
+        "GiNZA": "ひら",
+        "yomikata": "ひら",
+        "MeCab + unidic-lite": "ひら",
+        "MeCab + IPAdic": "ひら",
+        "pykakasi": "ひら"
       },
       "why": "A hole opening is 開く あく; ひらく is for doors, books and flowers opening out."
     },
     {
       "set": "jkyb",
       "text": "辛いものが苦手な人は、このソースは避けた方がいい。",
-      "word": "辛い",
-      "gold": "からい",
+      "word": "辛",
+      "gold": "から",
       "readings": {
-        "yurigana": "からい",
-        "Sudachi": "つらい",
-        "GiNZA": "つらい",
-        "yomikata": "つらい",
-        "MeCab + unidic-lite": "つらい",
-        "MeCab + IPAdic": "つらい",
-        "pykakasi": "つらい"
+        "yurigana": "から",
+        "Sudachi": "つら",
+        "GiNZA": "つら",
+        "yomikata": "つら",
+        "MeCab + unidic-lite": "つら",
+        "MeCab + IPAdic": "つら",
+        "pykakasi": "つら"
       },
       "why": "Food and sauce make 辛い からい (spicy), not つらい (hard to bear)."
     },
@@ -150,16 +150,16 @@
     {
       "set": "jkyb",
       "text": "夜空には無数の星が瞬いていた。",
-      "word": "瞬い",
-      "gold": "またたい",
+      "word": "瞬",
+      "gold": "またた",
       "readings": {
-        "yurigana": "またたい",
-        "Sudachi": "しばたたい",
-        "GiNZA": "しばたたい",
-        "yomikata": "しばたたい",
-        "MeCab + unidic-lite": "しばたたい",
-        "MeCab + IPAdic": "まばたい",
-        "pykakasi": "しゅんい"
+        "yurigana": "またた",
+        "Sudachi": "しばたた",
+        "GiNZA": "しばたた",
+        "yomikata": "しばたた",
+        "MeCab + unidic-lite": "しばたた",
+        "MeCab + IPAdic": "まばた",
+        "pykakasi": "しゅん"
       },
       "why": "Stars twinkle: 瞬く またたく. しばたたく is blinking your eyes."
     },
@@ -214,16 +214,16 @@
     {
       "set": "jkyb",
       "text": "彼は酒を飲むと、決まって怒り上戸になる。",
-      "word": "怒り",
-      "gold": "おこり",
+      "word": "怒",
+      "gold": "おこ",
       "readings": {
-        "yurigana": "おこり",
-        "Sudachi": "いかり",
-        "GiNZA": "いかり",
-        "yomikata": "いかり",
-        "MeCab + unidic-lite": "いかり",
-        "MeCab + IPAdic": "いかり",
-        "pykakasi": "いかり"
+        "yurigana": "おこ",
+        "Sudachi": "いか",
+        "GiNZA": "いか",
+        "yomikata": "いか",
+        "MeCab + unidic-lite": "いか",
+        "MeCab + IPAdic": "いか",
+        "pykakasi": "いか"
       },
       "why": "怒り上戸 (an angry drunk) is おこりじょうご, from 怒る おこる."
     }
