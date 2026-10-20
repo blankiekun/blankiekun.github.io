@@ -1,0 +1,87 @@
+{
+  "_schema": [
+    "Filled in by an agent from the yurigana repo's eval runs; sites/yurigana.html renders all of it.",
+    "updated: date measured (YYYY-MM-DD). commit: yurigana commit the numbers are from.",
+    "columns: one per test set. id is the key into each row's scores; lower: true when smaller is better; fmt 'about' prints 'about N'; words: how many words the set scores; note: one plain sentence.",
+    "rows: kind is 'ours' (yurigana), 'other' (a tool it's compared with) or 'ceiling' (not a rival, e.g. an LLM; never marked best). A missing score is null.",
+    "facts: the At a glance list under the scores. label, value (code: true shows it as a command), note: one or two plain sentences.",
+    "examples: real sentences from the sets where yurigana is right and others are wrong. text is the plain sentence; word is the kanji word as it appears in text (first occurrence is the one scored); gold is the right reading; readings maps a row name to what that system read (omit a system that wasn't run). why: one short sentence on what decides the reading. Set placeholder: true on made-up entries; the page marks them and the agent deletes them."
+  ],
+  "updated": "2026-10-19",
+  "commit": "849656b4b5580d2382040c32b7566e9d1d1ec0d1",
+  "columns": [
+    { "id": "modern", "name": "Modern books", "words": 1811, "note": "The books' own furigana over post-war novels and light novels by authors yurigana never trained on. A private library, so the set isn't published." },
+    { "id": "modern_hard", "name": "Modern, hard words", "words": 437, "note": "The same books, only words that can be read two or more ways." },
+    { "id": "older", "name": "Older books", "words": 2306, "note": "300 sentences of NDL's huriganacorpus-aozora: human furigana, mostly pre-war Aozora Bunko texts. yurigana's table was trained on Aozora texts that include these authors, so it is slightly favoured here." },
+    { "id": "older_hard", "name": "Older, hard words", "words": 908, "note": "The same sentences, only words that can be read two or more ways." },
+    { "id": "tatoeba", "name": "Tatoeba B2", "note": "27,000 sentences whose answers are MeCab + IPAdic's own furigana, so MeCab + IPAdic scores high here." },
+    { "id": "jkyb", "name": "Joyo-Kanji-Yomi", "note": "Three checked sentences for every reading of every Jōyō kanji, rare ones included. Scored with the benchmark's own toolkit." },
+    { "id": "per_book", "name": "Wrong words per book", "lower": true, "fmt": "about", "note": "Kanji words read wrong in a typical 19,000-word book, before its own furigana fixes any. Scored against Claude Opus reading held-out plain sentences, so it is rough." }
+  ],
+  "rows": [
+    {"name": "yurigana", "kind": "ours", "scores": {"modern": 94.5, "modern_hard": 83.8, "older": 92.1, "older_hard": 89.0, "tatoeba": 99.0, "jkyb": 98.2, "per_book": 460}},
+    {"name": "Sudachi", "kind": "other", "scores": {"modern": 93.3, "modern_hard": 78.5, "older": 91.0, "older_hard": 86.6, "tatoeba": 94.3, "jkyb": 97.4, "per_book": 820}},
+    {"name": "GiNZA", "kind": "other", "scores": {"modern": 93.3, "modern_hard": 78.5, "older": 90.9, "older_hard": 86.5, "tatoeba": 94.2, "jkyb": 97.3, "per_book": 830}},
+    {"name": "yomikata", "kind": "other", "scores": {"modern": 92.2, "modern_hard": 79.4, "older": 91.1, "older_hard": 86.9, "tatoeba": 93.0, "jkyb": 96.7, "per_book": 990}},
+    {"name": "MeCab + unidic-lite", "kind": "other", "scores": {"modern": 91.9, "modern_hard": 77.1, "older": 90.7, "older_hard": 85.9, "tatoeba": 93.2, "jkyb": 96.9, "per_book": 960}},
+    {"name": "MeCab + IPAdic", "kind": "other", "scores": {"modern": 86.5, "modern_hard": 72.1, "older": 87.5, "older_hard": 83.3, "tatoeba": 97.0, "jkyb": 95.5, "per_book": 960}},
+    {"name": "pykakasi", "kind": "other", "scores": {"modern": 85.0, "modern_hard": 68.6, "older": 84.0, "older_hard": 77.8, "tatoeba": 93.7, "jkyb": 93.6, "per_book": 1360}},
+    {"name": "DeBERTa-CRF (Hu et al.)", "kind": "other", "scores": {"modern": null, "modern_hard": null, "older": null, "older_hard": null, "tatoeba": null, "jkyb": 99.6, "per_book": null}},
+    {"name": "Claude Opus", "kind": "ceiling", "note": "Annotating the same sentences blind, as a ceiling.", "scores": {"modern": 97.6, "modern_hard": 95.2, "older": 95.4, "older_hard": 93.3, "tatoeba": null, "jkyb": null, "per_book": null}}
+  ],
+  "facts": [
+    {"label": "Furigana it marks as sure", "value": "99.1% right", "note": "They cover 71% of a book's kanji words; the rest are left for the reader to look up. In a typical book that is about 65 wrong out of about 13,000. Measured on the modern books."},
+    {"label": "Speed", "value": "about 0.2 ms a sentence", "note": "One CPU core, no GPU: a 114,000-character novel in about a second, after about 2 seconds of loading. Measured on 2,996 plain sentences of 30 characters on average."},
+    {"label": "Install", "value": "pip install \"yurigana @ https://github.com/blankiekun/yurigana/archive/refs/tags/v0.2.0.tar.gz\"", "code": true, "note": "Python 3.10 or newer. Sudachi's core dictionary takes about 210 MB of disk (pip install \"yurigana[full]\" for the full one, 315 MB, the same scores); about 650 MB of memory with Jiten's frequency list loaded. A small JavaScript package does the \"Known\" furigana in the browser."}
+  ],
+  "examples": [
+    {
+      "set": "jkyb",
+      "text": "この隙に逃げ出すしかない。",
+      "word": "隙",
+      "gold": "すき",
+      "readings": {
+        "yurigana": "すき",
+        "Sudachi": "ひま",
+        "GiNZA": "ひま",
+        "yomikata": "ひま",
+        "MeCab + unidic-lite": "ひま",
+        "MeCab + IPAdic": "ひま",
+        "pykakasi": "げき"
+      },
+      "why": "As a gap or a chance, 隙 is すき; ひま (free time) is an old reading usually written 暇."
+    },
+    {
+      "set": "jkyb",
+      "text": "彼は寝ぼけ眼をこすりながら起きてきた。",
+      "word": "眼",
+      "gold": "まなこ",
+      "readings": {
+        "yurigana": "まなこ",
+        "Sudachi": "がん",
+        "GiNZA": "がん",
+        "yomikata": "がん",
+        "MeCab + unidic-lite": "がん",
+        "MeCab + IPAdic": "め",
+        "pykakasi": "め"
+      },
+      "why": "寝ぼけ眼 is one word, ねぼけまなこ; read alone, 眼 is がん or め."
+    },
+    {
+      "set": "older",
+      "text": "と一呼吸間を置いて、湯どのの裡から聞こえたのは、もちろんわが心がわが耳に響いたのであろう。",
+      "word": "間",
+      "gold": "ま",
+      "readings": {
+        "yurigana": "ま",
+        "Sudachi": "かん",
+        "GiNZA": "かん",
+        "yomikata": "かん",
+        "MeCab + unidic-lite": "かん",
+        "MeCab + IPAdic": "かん",
+        "pykakasi": "かん"
+      },
+      "why": "間を置く (to pause) reads 間 as ま, a context rule."
+    }
+  ]
+}
