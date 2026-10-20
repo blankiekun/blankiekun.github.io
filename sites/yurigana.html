@@ -63,6 +63,9 @@ dl.sets dd { margin: 0 0 4px 1.5em; }
 .empty, .err { font-size: 14px; }
 .err { color: #a00000; }
 
+#facts code { font: 12px "Courier New", monospace; overflow-wrap: anywhere; }
+#facts dt span { color: var(--red); }
+
 footer { text-align: center; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
 </style>
 </head>
@@ -80,6 +83,11 @@ footer { text-align: center; font-size: 14px; display: flex; flex-direction: col
     <p class="small" style="margin-bottom:6px">The share of kanji words each tool reads right, in percent. A <span style="color:var(--red);font-weight:bold">red circle</span> marks the best score of each set; the last column is lower-is-better.</p>
     <div class="scroll"><table class="scores" id="scores"></table></div>
     <dl class="sets" id="sets"></dl>
+  </section>
+
+  <section id="glance" hidden>
+    <h2>At a glance</h2>
+    <dl class="sets" id="facts"></dl>
   </section>
 
   <section>
@@ -178,6 +186,17 @@ function scores(d) {
   }
 }
 
+function facts(d) {
+  if (!d.facts || !d.facts.length) return;
+  const dl = document.getElementById("facts");
+  for (const f of d.facts) {
+    const dt = el("dt", f.label + ": ");
+    dt.append(f.code ? el("code", f.value) : el("span", f.value));
+    dl.append(dt, el("dd", f.note));
+  }
+  document.getElementById("glance").hidden = false;
+}
+
 function example(x, d) {
   const box = el("div", null, "ex");
   if (x.placeholder) box.append(el("span", "Sample", "stamp"));
@@ -226,7 +245,7 @@ function examples(d) {
 
 fetch("yurigana.json", { cache: "no-store" })
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(d => { scores(d); examples(d); })
+  .then(d => { scores(d); facts(d); examples(d); })
   .catch(e => {
     document.getElementById("examples").replaceChildren(el("p", "Couldn't load the scores (" + e.message + "). Reload the page to try again.", "err"));
   });

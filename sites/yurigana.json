@@ -4,6 +4,7 @@
     "updated: date measured (YYYY-MM-DD). commit: yurigana commit the numbers are from.",
     "columns: one per test set. id is the key into each row's scores; lower: true when smaller is better; fmt 'about' prints 'about N'; words: how many words the set scores; note: one plain sentence.",
     "rows: kind is 'ours' (yurigana), 'other' (a tool it's compared with) or 'ceiling' (not a rival, e.g. an LLM; never marked best). A missing score is null.",
+    "facts: the At a glance list under the scores. label, value (code: true shows it as a command), note: one or two plain sentences.",
     "examples: real sentences from the sets where yurigana is right and others are wrong. text is the plain sentence; word is the kanji word as it appears in text (first occurrence is the one scored); gold is the right reading; readings maps a row name to what that system read (omit a system that wasn't run). why: one short sentence on what decides the reading. Set placeholder: true on made-up entries; the page marks them and the agent deletes them."
   ],
   "updated": "2026-10-19",
@@ -27,6 +28,11 @@
     {"name": "pykakasi", "kind": "other", "scores": {"modern": 85.0, "modern_hard": 68.6, "older": 84.0, "older_hard": 77.8, "tatoeba": 93.7, "jkyb": 93.6, "per_book": 1360}},
     {"name": "DeBERTa-CRF (Hu et al.)", "kind": "other", "scores": {"modern": null, "modern_hard": null, "older": null, "older_hard": null, "tatoeba": null, "jkyb": 99.6, "per_book": null}},
     {"name": "Claude Opus", "kind": "ceiling", "note": "Annotating the same sentences blind, as a ceiling.", "scores": {"modern": 97.6, "modern_hard": 95.2, "older": 95.4, "older_hard": 93.3, "tatoeba": null, "jkyb": null, "per_book": null}}
+  ],
+  "facts": [
+    {"label": "Furigana it marks as sure", "value": "99.1% right", "note": "They cover 71% of a book's kanji words; the rest are left for the reader to look up. In a typical book that is about 65 wrong out of about 13,000. Measured on the modern books."},
+    {"label": "Speed", "value": "about 0.2 ms a sentence", "note": "One CPU core, no GPU: a 114,000-character novel in about a second, after about 2 seconds of loading. Measured on 2,996 plain sentences of 30 characters on average."},
+    {"label": "Install", "value": "pip install \"yurigana @ https://github.com/blankiekun/yurigana/archive/refs/tags/v0.2.0.tar.gz\"", "code": true, "note": "Python 3.10 or newer. Sudachi's core dictionary takes about 210 MB of disk (pip install \"yurigana[full]\" for the full one, 315 MB, the same scores); about 650 MB of memory with Jiten's frequency list loaded. A small JavaScript package does the \"Known\" furigana in the browser."}
   ],
   "examples": [
     {
