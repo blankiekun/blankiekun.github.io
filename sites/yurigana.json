@@ -1,0 +1,50 @@
+{
+  "_schema": [
+    "Filled in by an agent from the yurigana repo's eval runs; sites/yurigana.html renders all of it.",
+    "updated: date measured (YYYY-MM-DD). commit: yurigana commit the numbers are from.",
+    "columns: one per test set. id is the key into each row's scores; lower: true when smaller is better; fmt 'about' prints 'about N'; words: how many words the set scores; note: one plain sentence.",
+    "rows: kind is 'ours' (yurigana), 'other' (a tool it's compared with) or 'ceiling' (not a rival, e.g. an LLM; never marked best). A missing score is null.",
+    "examples: real sentences from the sets where yurigana is right and others are wrong. text is the plain sentence; word is the kanji word as it appears in text (first occurrence is the one scored); gold is the right reading; readings maps a row name to what that system read (omit a system that wasn't run). why: one short sentence on what decides the reading. Set placeholder: true on made-up entries; the page marks them and the agent deletes them."
+  ],
+  "updated": null,
+  "commit": null,
+  "columns": [
+    { "id": "modern", "name": "Modern books", "words": 1811, "note": "The books' own furigana over post-war novels and light novels by authors yurigana never trained on. A private library, so the set isn't published." },
+    { "id": "modern_hard", "name": "Modern, hard words", "words": 437, "note": "The same books, only words that can be read two or more ways." },
+    { "id": "older", "name": "Older books", "words": 2306, "note": "300 sentences of NDL's huriganacorpus-aozora: human furigana, mostly pre-war Aozora Bunko texts." },
+    { "id": "older_hard", "name": "Older, hard words", "words": 908, "note": "The same sentences, only words that can be read two or more ways." },
+    { "id": "tatoeba", "name": "Tatoeba B2", "note": "27,000 sentences whose answers are MeCab + IPAdic's own furigana, so MeCab + IPAdic scores high here." },
+    { "id": "jkyb", "name": "Joyo-Kanji-Yomi", "note": "Three checked sentences for every reading of every Jōyō kanji, rare ones included." },
+    { "id": "per_book", "name": "Wrong words per book", "lower": true, "fmt": "about", "note": "Kanji words read wrong in a typical 19,000-word book, before its own furigana fixes any." }
+  ],
+  "rows": [
+    { "name": "yurigana", "kind": "ours", "scores": { "modern": 94.5, "modern_hard": 83.8, "older": 92.1, "older_hard": 89.0, "tatoeba": 99.0, "jkyb": 98.2, "per_book": 460 } },
+    { "name": "Sudachi", "kind": "other", "scores": { "modern": 93.3, "modern_hard": 78.5, "older": 91.0, "older_hard": 86.6, "tatoeba": 94.3, "jkyb": 97.4, "per_book": 820 } },
+    { "name": "GiNZA", "kind": "other", "scores": { "modern": 93.3, "modern_hard": 78.5, "older": 90.9, "older_hard": 86.5, "tatoeba": 94.2, "jkyb": 97.3, "per_book": 830 } },
+    { "name": "yomikata", "kind": "other", "scores": { "modern": 92.2, "modern_hard": 79.4, "older": 91.1, "older_hard": 86.9, "tatoeba": 93.0, "jkyb": 96.7, "per_book": 990 } },
+    { "name": "MeCab + unidic-lite", "kind": "other", "scores": { "modern": 91.9, "modern_hard": 77.1, "older": 90.7, "older_hard": 85.9, "tatoeba": 93.2, "jkyb": 96.9, "per_book": 960 } },
+    { "name": "MeCab + IPAdic", "kind": "other", "scores": { "modern": 86.5, "modern_hard": 72.1, "older": 87.5, "older_hard": 83.3, "tatoeba": 97.0, "jkyb": 95.5, "per_book": 960 } },
+    { "name": "pykakasi", "kind": "other", "scores": { "modern": 85.0, "modern_hard": 68.6, "older": 84.0, "older_hard": 77.8, "tatoeba": 93.7, "jkyb": 93.6, "per_book": 1360 } },
+    { "name": "Claude Opus", "kind": "ceiling", "note": "Annotating the same sentences blind, as a ceiling.", "scores": { "modern": 97.6, "modern_hard": 95.2, "older": 95.4, "older_hard": 93.3, "tatoeba": null, "jkyb": null, "per_book": null } }
+  ],
+  "examples": [
+    {
+      "placeholder": true,
+      "set": "older",
+      "text": "人気のない道を一人で歩いた。",
+      "word": "人気",
+      "gold": "ひとけ",
+      "readings": { "yurigana": "ひとけ", "Sudachi": "にんき", "GiNZA": "にんき", "yomikata": "ひとけ", "MeCab + unidic-lite": "にんき", "MeCab + IPAdic": "にんき", "pykakasi": "にんき" },
+      "why": "Followed by のない, 人気 means people around, not popularity."
+    },
+    {
+      "placeholder": true,
+      "set": "modern",
+      "text": "机の上に三本の鉛筆があった。",
+      "word": "三本",
+      "gold": "さんぼん",
+      "readings": { "yurigana": "さんぼん", "Sudachi": "さんほん", "GiNZA": "さんほん", "yomikata": "さんぼん", "MeCab + unidic-lite": "さんぼん", "MeCab + IPAdic": "さんほん", "pykakasi": "さんほん" },
+      "why": "本 after 三 voices to ぼん, a counter rule."
+    }
+  ]
+}
