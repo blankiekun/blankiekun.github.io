@@ -24,7 +24,7 @@ const MAX_RECENT = 6;
 const KEEP_GAMES = 'w95.cons.keepgames';
 const FOLD = 'w95.cons.fold';  // touch screens: Menu / Skip buttons folded away  // File > Settings: keep a copy of games in this browser
 // The engine release in cons/ (conscripter.js/.wasm); CONscripter's update_site workflow bumps it.
-const ENGINE_VERSION = 'v0.31.0';
+const ENGINE_VERSION = 'v0.32.0';
 
 // Debug > Engine Flags: engine options, used from the next start.
 const FLAG_LIST = [
