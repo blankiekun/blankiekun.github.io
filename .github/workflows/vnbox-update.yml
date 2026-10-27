@@ -1,0 +1,56 @@
+# Puts each new VNBox release on the site (tools/update-vnbox.sh), as a PR that merges itself
+# since main is protected. Checks hourly; run it by hand, or send a repository_dispatch of type
+# vnbox-release, to update at once.
+name: VNBox update
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'release tag to put on the site, i.e. v0.1.2 (default: the latest)'
+        required: false
+  repository_dispatch:
+    types: [vnbox-release]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: vnbox-update
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: find the release
+        env:
+          ASKED: ${{ inputs.version || github.event.client_payload.version }}
+        run: |
+          tag=${ASKED:-$(gh release view -R blankiekun/VNBox --json tagName -q .tagName)}
+          echo "$tag" | grep -Eq '^v[0-9]+(\.[0-9]+)*$' || { echo "not a release tag: $tag"; exit 1; }
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          if grep -q "^const ENGINE_VERSION = '$tag';" js/apps/vnbox.js; then
+            echo "the site already has $tag"
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: put it on the site
+        if: env.SKIP != '1'
+        run: |
+          tools/update-vnbox.sh "$TAG"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "vnbox-$TAG"
+          git add -A vnbox/engine js/apps/vnbox.js
+          git commit -m "VNBox: engine $TAG"
+          git push -f origin "vnbox-$TAG"
+          gh pr create --base main --head "vnbox-$TAG" --title "VNBox: engine $TAG" \
+            --body "VNBox $TAG on the site, from https://github.com/blankiekun/VNBox/releases/tag/$TAG (vnbox-update workflow)." \
+            || echo "the PR is already open"
+          gh pr merge "vnbox-$TAG" --merge --delete-branch

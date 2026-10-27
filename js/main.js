@@ -19,7 +19,7 @@ const LAZY = {
   ie: [['ie', 'Internet Explorer', 'i-ie', 1]],
   explorer: [['explorer', 'Explorer', 'i-folder-open'], ['mycomputer', 'My Computer', 'i-computer'], ['network', 'Network Neighborhood', 'i-network'], ['recycle', 'Recycle Bin', 'i-trash-full']],
   notepad: [['notepad', 'Notepad', 'i-notepad']], minesweeper: [['minesweeper', 'Minesweeper', 'i-mine', 1]], solitaire: [['solitaire', 'Solitaire', 'i-sol', 1]],
-  conscripter: [['cons', 'CONscripter', 'i-game', 1]], paint: [['paint', 'Paint', 'i-paint']], calc: [['calc', 'Calculator', 'i-calc']], dos: [['dos', 'MS-DOS Prompt', 'i-dos']],
+  conscripter: [['cons', 'CONscripter', 'i-game', 1]], vnbox: [['vnbox', 'VNBox', 'i-vnbox', 1]], paint: [['paint', 'Paint', 'i-paint']], calc: [['calc', 'Calculator', 'i-calc']], dos: [['dos', 'MS-DOS Prompt', 'i-dos']],
   system: [['about', 'About', 'i-flag'], ['datetime', 'Date/Time', 'i-ctrl', 1], ['find', 'Find', 'i-find', 1], ['help', 'Help', 'i-helpbook', 1], ['sysprops', 'System Properties', 'i-computer', 1], ['welcome', 'Welcome', 'i-flag', 1]],
   freecell: [['freecell', 'FreeCell', 'i-freecell', 1]], spider: [['spider', 'Spider Solitaire', 'i-spider', 1]], viewer: [['viewer', 'Picture Viewer', 'i-viewer']],
   hearts: [['hearts', 'Hearts', 'i-hearts', 1]], wordpad: [['wordpad', 'WordPad', 'i-wordpad']], charmap: [['charmap', 'Character Map', 'i-charmap', 1]],

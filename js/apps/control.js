@@ -615,7 +615,7 @@ function regional() {
 // ---------- Add/Remove Programs ----------
 
 const PROGRAMS = [
-  ['ie', 'Internet Explorer'], ['cons', 'CONscripter'], ['minesweeper', 'Minesweeper'], ['solitaire', 'Solitaire'],
+  ['ie', 'Internet Explorer'], ['cons', 'CONscripter'], ['vnbox', 'VNBox'], ['minesweeper', 'Minesweeper'], ['solitaire', 'Solitaire'],
   ['freecell', 'FreeCell'], ['hearts', 'Hearts'], ['paint', 'Paint'], ['notepad', 'Notepad'], ['wordpad', 'WordPad'],
   ['calc', 'Calculator'], ['charmap', 'Character Map'], ['sndrec', 'Sound Recorder'], ['cdplayer', 'CD Player'], ['dos', 'MS-DOS Prompt'],
 ];

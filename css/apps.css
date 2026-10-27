@@ -1184,3 +1184,17 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 .lockscreen b { font: 300 min(14vw, 120px)/1 "Segoe UI", system-ui, sans-serif; }
 .lockscreen span { font: min(5vw, 32px) "Segoe UI", system-ui, sans-serif; }
 @keyframes lock-in { from { transform: translateY(24px); opacity: 0; } }
+
+/* VNBox: the CONscripter window's classes, plus the text log beside the game (below it when narrow). */
+.vnb-play { flex: 1; min-width: 0; display: flex; }
+.vnb-log { flex: 0 0 min(32%, 320px); overflow: auto; background: var(--paper); color: var(--ink); padding: 4px 6px; font-size: 15px; line-height: 1.5; user-select: text; border-left: 2px solid var(--face); }
+.vnb-log[hidden] { display: none; }
+.vnb-log p { margin: 0 0 6px; }
+.vnb-log .vnb-log-empty { color: var(--shadow); font-size: 12px; }
+@container (max-width: 560px) {
+  .vnb-play { flex-direction: column; }
+  .vnb-log { flex-basis: 30%; border-left: 0; border-top: 2px solid var(--face); }
+}
+.vnb-dlg { width: 420px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
+.vnb-dlg p { margin: 0; }
+.vnb-list { width: 100%; }

@@ -26,6 +26,7 @@ self.addEventListener('message', e => {
 self.addEventListener('fetch', e => {
   const r = e.request;
   if (r.method !== 'GET' || new URL(r.url).origin !== location.origin || r.headers.has('range')) return;
+  if (/\/vnbox\/engine\/.*\.zip$/.test(new URL(r.url).pathname)) return; // VNBox keeps its own copy of Wine (120 MB)
   e.respondWith(fetch(r).then(res => { e.waitUntil(keep(r.url, res)); return res; }, async () =>
     (await caches.match(key(r.url))) || (r.mode === 'navigate' && await caches.match(key('./'))) || Response.error()));
 });
