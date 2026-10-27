@@ -110,7 +110,7 @@ function aboutCons(win) {
     h('p', null, 'Engine ' + ENGINE_VERSION, h('br'), 'Site ', site));
 }
 
-function fromDrop(dt) {
+export function fromDrop(dt) {
   const items = [...dt.items];
   const handle = items.length === 1 && items[0].getAsFileSystemHandle ? items[0].getAsFileSystemHandle().catch(() => null) : null;
   const entries = items.map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
@@ -137,7 +137,7 @@ function fromDrop(dt) {
 
 // Resolves to { handle } where the browser hands out folders it can keep (Chrome, Edge),
 // otherwise to { list }.
-async function pickFolder() {
+export async function pickFolder() {
   if (window.showDirectoryPicker) {
     try {
       return { handle: await showDirectoryPicker({ id: 'cons', mode: 'read' }) };
@@ -158,7 +158,7 @@ async function pickFolder() {
   });
 }
 
-async function walkHandle(dir) {
+export async function walkHandle(dir) {
   const out = [];
   async function walk(d, prefix) {
     for await (const e of d.values()) {
@@ -249,7 +249,7 @@ async function copyGame(g, progress) {
 
 const hhmm = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-function when(t) {
+export function when(t) {
   const d = new Date(t), now = new Date(), day = 864e5;
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   if (t >= midnight) return 'Today ' + hhmm(t);
@@ -312,7 +312,7 @@ async function isJapanese(top, encoding) {
   return wide > 50 && kana / wide > 0.2;
 }
 
-function bytes(n) {
+export function bytes(n) {
   if (n >= 1 << 30) return (n / (1 << 30)).toFixed(1) + ' GB';
   if (n >= 1 << 20) return (n / (1 << 20)).toFixed(1) + ' MB';
   return Math.max(1, Math.round(n / 1024)) + ' KB';
@@ -407,7 +407,7 @@ function withSaveStr(f) {
 }
 
 // A picked or dropped .zip becomes the files in it, under a folder named after the zip.
-async function unzipAll(list) {
+export async function unzipAll(list) {
   const out = [];
   for (const f of list) {
     if (!/\.zip$/i.test(f.path)) { out.push(f); continue; }

@@ -28,6 +28,7 @@ const ICONS = [
   { label: 'Recycle Bin', modern: true, app: 'recycle', icon: () => recycle.children.length ? 'i-trash-full' : 'i-trash', type: 'System', node: recycle, open: () => launch('recycle') },
   { label: 'Internet Explorer', modern: true, app: 'ie', icon: 'i-ie', type: 'Application', open: () => launch('ie', 'home') },
   { label: 'CONscripter', modern: true, app: 'cons', icon: 'i-game', type: 'Application', open: () => launch('cons') },
+  { label: 'VNBox', modern: true, app: 'vnbox', icon: 'i-vnbox', type: 'Application', open: () => launch('vnbox') },
   { label: 'Games', modern: true, app: 'ie', icon: 'i-cd', type: 'Shortcut', shortcut: true, open: () => launch('ie', 'games') },
   { label: 'Minesweeper', app: 'minesweeper', icon: 'i-mine', type: 'Application', open: () => launch('minesweeper') },
   { label: 'Solitaire', app: 'solitaire', icon: 'i-sol', type: 'Application', open: () => launch('solitaire') },
@@ -412,6 +413,7 @@ function startItems() {
       prog('Minesweeper', 'minesweeper', 'i-mine'),
       era('Reversi', 'reversi', 'i-reversi'),
       prog('Solitaire', 'solitaire', 'i-sol'),
+      prog('VNBox', 'vnbox', 'i-vnbox'),
       era('Spider Solitaire', 'spider', 'i-spider'),
     ]) },
     { label: 'Multimedia', icon: 'i-programs', submenu: some([
