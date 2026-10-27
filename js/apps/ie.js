@@ -20,7 +20,7 @@ export const PAGES = {
   games: { file: 'sites/games.html', url: 'http://www.angelfire.com/biz/blankiekun/games.html', label: 'Games', icon: 'i-pg-games' },
   guestbook: { file: 'sites/guestbook.html', url: 'http://www.geocities.com/SiliconValley/Lab/1995/guestbook.html', label: 'Guestbook', icon: 'i-pg-guestbook' },
   // Help in 10 and 11 (js/apps/system.js); not a project page, so not in Links or Favorites.
-  help: { file: 'sites/help.html', url: 'https://blankiekun.github.io/help', label: 'Get help', icon: 'i-helpbook', unlisted: true },
+  help: { file: 'sites/help.html', url: 'https://blankie.moe/help', label: 'Get help', icon: 'i-helpbook', unlisted: true },
 };
 const LISTED = Object.entries(PAGES).filter(([, p]) => !p.unlisted);
 const GITHUB = 'https://github.com/blankiekun';
