@@ -1,12 +1,11 @@
-# Uploads the site to the VPS (blankie.moe) on every push to main, the same way chimimouryou's
+# Uploads the site to the VPS (blankie.moe) when vnbox-update.yml puts a new VNBox release on main,
+# or when run by hand from the Actions tab (other changes wait for one of those). Same as chimimouryou's
 # vps-site.yml does (deploy/vps/ there): a new release folder over SSH, then one switch, so visitors
 # never get half a site. The key may only run chimireader-deploy, bound to /srv/blankie on the VPS.
 # Secrets: VPS_HOST (the VPS's IP), VPS_USER, VPS_SSH_KEY (the blankie deploy key's private half),
 # VPS_KNOWN_HOSTS (`ssh-keyscan -t ed25519 <VPS_HOST>`). Without them it skips.
 name: VPS site
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
