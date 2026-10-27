@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 concurrency: vnbox-update
 
@@ -54,3 +55,5 @@ jobs:
             --body "VNBox $TAG on the site, from https://github.com/blankiekun/VNBox/releases/tag/$TAG (vnbox-update workflow)." \
             || echo "the PR is already open"
           gh pr merge "vnbox-$TAG" --merge --delete-branch
+          # A merge by github.token starts no push workflows, so start the VPS upload here.
+          gh workflow run vps-site.yml --ref main

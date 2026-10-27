@@ -18,10 +18,10 @@ The sync options stay hidden until `GOOGLE_CLIENT_ID` in `js/config.js` is fille
    - Audience: **External**.
    - Contact email: yours. Accept the policy, then **Create**.
 4. **Branding.** Under Google Auth Platform > Branding:
-   - Application home page: `https://blankiekun.github.io/`
-   - Application privacy policy link: `https://blankiekun.github.io/privacy.html`
-   - Application terms of service link: `https://blankiekun.github.io/terms.html`
-   - Authorized domains: add `blankiekun.github.io`. If the console refuses it, leave
+   - Application home page: `https://blankie.moe/`
+   - Application privacy policy link: `https://blankie.moe/privacy.html`
+   - Application terms of service link: `https://blankie.moe/terms.html`
+   - Authorized domains: add `blankie.moe`. If the console refuses it, leave
      the field empty. The JavaScript origin in step 6 is what sign-in actually checks.
    - Save.
 5. **Scope.** Under Data Access, click **Add or remove scopes**, tick
@@ -30,7 +30,7 @@ The sync options stay hidden until `GOOGLE_CLIENT_ID` in `js/config.js` is fille
    console puts it under "sensitive scopes", let me know.
 6. **Client ID.** Under Clients, click **Create client**:
    - Application type: **Web application**. Name: anything.
-   - Authorized JavaScript origins: `https://blankiekun.github.io`. To test locally, also
+   - Authorized JavaScript origins: `https://blankie.moe`. To test locally, also
      add `http://localhost:8000` (no trailing slash for either).
    - Authorized redirect URIs: leave empty.
    - Create, then copy the **Client ID** (`....apps.googleusercontent.com`). It's public,

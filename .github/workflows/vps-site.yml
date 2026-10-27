@@ -1,0 +1,65 @@
+# Uploads the site to the VPS (blankie.moe) on every push to main, the same way chimimouryou's
+# vps-site.yml does (deploy/vps/ there): a new release folder over SSH, then one switch, so visitors
+# never get half a site. The key may only run chimireader-deploy, bound to /srv/blankie on the VPS.
+# Secrets: VPS_HOST (the VPS's IP), VPS_USER, VPS_SSH_KEY (the blankie deploy key's private half),
+# VPS_KNOWN_HOSTS (`ssh-keyscan -t ed25519 <VPS_HOST>`). Without them it skips.
+name: VPS site
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vps-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: vps
+      url: https://blankie.moe
+    steps:
+      - name: Check the secrets
+        id: secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_SSH_KEY" ] && [ -n "$VPS_KNOWN_HOSTS" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::VPS_HOST, VPS_USER, VPS_SSH_KEY and VPS_KNOWN_HOSTS aren't all set: skipping"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          persist-credentials: false
+
+      - name: Upload and switch
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/vps
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/vps
+          ssh=(ssh -i ~/.ssh/vps -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes)
+          id="$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::12}"
+          "${ssh[@]}" "$VPS_USER@$VPS_HOST" prepare "$id"
+          # Like Pages: everything but dot files (.git, .github). --checksum keeps unchanged files
+          # as the hard links prepare made.
+          rsync -rl --checksum --delete --exclude='.*' --chmod=D755,F644 -e "${ssh[*]}" \
+            ./ "$VPS_USER@$VPS_HOST:$id/"
+          "${ssh[@]}" "$VPS_USER@$VPS_HOST" activate "$id"
+          rm -f ~/.ssh/vps

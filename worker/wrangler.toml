@@ -6,7 +6,7 @@ preview_urls = false
 
 [vars]
 # Sites allowed to send. Add http://localhost:8000 (or similar) while testing locally.
-ALLOWED_ORIGINS = "https://blankiekun.github.io"
+ALLOWED_ORIGINS = "https://blankiekun.github.io,https://blankie.moe"
 
 # At most 3 messages per visitor IP per minute.
 [[ratelimits]]

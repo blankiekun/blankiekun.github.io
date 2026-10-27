@@ -135,7 +135,7 @@ function network() {
   const paint = () => {
     const up = navigator.onLine && net.wifi && !net.airplane;
     status.textContent = net.airplane ? 'Airplane mode is on' : up ? "You're connected to the Internet" : 'Not connected';
-    note.textContent = up ? 'Connected to the internet via ' + (location.host || 'blankiekun.github.io') + '.' : 'Turn on Wi-Fi to see this site again (it never left).';
+    note.textContent = up ? 'Connected to the internet via ' + (location.host || 'blankie.moe') + '.' : 'Turn on Wi-Fi to see this site again (it never left).';
   };
   paint();
   return [h('div', { class: 'st-card' }, h('h3', null, 'Network status'), icon('i-network', 'st-hero'), status, note,

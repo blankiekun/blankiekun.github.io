@@ -8,8 +8,8 @@ Discord channel. Turnstile blocks bots, and each visitor can send 3 messages a m
 
 1. **Discord webhook.** In your private channel: Edit Channel > Integrations >
    Webhooks > New Webhook. Copy its URL.
-2. **Turnstile widget.** Cloudflare dashboard > Turnstile > Add widget. Hostname
-   `blankiekun.github.io`, mode Managed. Copy the site key and the secret key.
+2. **Turnstile widget.** Cloudflare dashboard > Turnstile > Add widget. Hostnames
+   `blankie.moe` and `blankiekun.github.io`, mode Managed. Copy the site key and the secret key.
 3. **Deploy.**
    ```sh
    cd worker
