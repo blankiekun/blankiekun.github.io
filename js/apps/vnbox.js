@@ -4,11 +4,12 @@
 // without choosing it. Saves stay in this browser (IndexedDB). A text hook script (0xDC00's, in
 // vnbox/hooks/) sends each line of dialogue to the text log beside the game, for Yomitan or the clipboard.
 
-import { h, icon, download, store } from '../util.js';
+import { h, icon, download, store, wait } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
-import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when } from './conscripter.js';
+import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './conscripter.js';
+import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves } from './vnsaves.js';
 
 const RECENT = 'w95.vnbox.recent';
 const MAX_RECENT = 6;
@@ -131,6 +132,113 @@ function listDialog({ title, text, items, value, filter, parent, extra }) {
   });
 }
 
+// Files from the visitor's computer.
+function pickFiles(accept, multiple) {
+  return new Promise(resolve => {
+    const input = h('input', { type: 'file', accept, multiple, hidden: true });
+    input.addEventListener('change', () => { resolve([...input.files]); input.remove(); });
+    input.addEventListener('cancel', () => { resolve([]); input.remove(); });
+    document.body.append(input);
+    input.click();
+  });
+}
+
+// File > Save Files: a file browser over a game's saves (vnsaves.js), opened with the game stopped.
+// Download a file, a folder or everything as a .zip, upload files into a folder, restore a .zip at
+// its paths, delete; a backup .zip of what an overwrite or delete touches is downloaded first.
+function savesWindow(title, parent, onClosed) {
+  const areas = saveAreas(title);
+  let area = areas[0], entries = [], open = new Set(), selected = '';
+  const where = h('select', { class: 'field', 'aria-label': 'Location', onchange: () => { area = areas[where.value]; open = new Set(); selected = ''; reload(); } },
+    ...areas.map((a, i) => h('option', { value: i }, a.label)));
+  const list = h('div', { class: 'vnb-sv-list', role: 'tree', 'aria-label': 'Save files' });
+  const status = h('span', { class: 'vnb-sv-status' });
+  const btn = (html, onclick) => h('button', { class: 'btn', type: 'button', html, onclick });
+  const dlBtn = btn('<u>D</u>ownload', () => run(downloadSel));
+  const delBtn = btn('De<u>l</u>ete', () => run(remove));
+  const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  const zipName = what => `${title} ${area === areas[0] ? 'game folder' : 'wine'} ${what} ${stamp()}.zip`;
+  const entry = path => entries.find(e => e.path === path);
+  // Uploads go into the selected folder, or the selected file's.
+  const folder = () => !selected ? '' : entry(selected) && entry(selected).dir ? selected + '/' : selected.slice(0, selected.lastIndexOf('/') + 1);
+  // Folders before files at each level.
+  const order = e => e.path.split('/').map((p, i, all) => (i < all.length - 1 || e.dir ? 0 : 1) + p).join('\0');
+
+  function render() {
+    const rows = entries.filter(e => { const p = e.path.split('/'); return p.slice(0, -1).every((_, i) => open.has(p.slice(0, i + 1).join('/'))); })
+      .sort((a, b) => order(a).localeCompare(order(b)));
+    list.replaceChildren(...(rows.length ? rows.map(e => {
+      const depth = e.path.split('/').length - 1, name = e.path.split('/').pop();
+      return h('button', { class: 'vnb-sv-row' + (e.path === selected ? ' sel' : ''), type: 'button', role: 'treeitem',
+        'aria-selected': String(e.path === selected), ...(e.dir ? { 'aria-expanded': String(open.has(e.path)) } : {}),
+        style: { paddingLeft: 4 + depth * 16 + 'px' }, title: e.path,
+        onclick: () => { selected = e.path; if (e.dir && !open.delete(e.path)) open.add(e.path); render(); } },
+        icon(e.dir ? (open.has(e.path) ? 'i-folder-open' : 'i-folder') : 'i-doc'), h('span', { class: 'vnb-sv-name' }, name),
+        h('span', { class: 'cons-recent-at' }, e.dir ? '' : bytes(e.size)), h('span', { class: 'cons-recent-at' }, e.modified ? new Date(e.modified).toLocaleString() : ''));
+    }) : [h('p', { class: 'cse-empty' }, 'Nothing here yet. The game hasn\'t saved anything in this place.')]));
+    dlBtn.disabled = !entries.length;
+    dlBtn.innerHTML = selected ? '<u>D</u>ownload Selected' : '<u>D</u>ownload All';
+    delBtn.disabled = !selected;
+  }
+  async function reload() {
+    try { entries = await listSaves(area); } catch (e) { entries = []; status.textContent = e.message; }
+    render();
+  }
+  async function run(task) {
+    for (const b of form.querySelectorAll('button')) b.disabled = true;
+    status.textContent = 'Working...';
+    try { status.textContent = await task() || ''; } catch (e) { status.textContent = ''; msgbox({ title: 'Save Files', icon: 'error', parent: win, text: e.message }); }
+    for (const b of form.querySelectorAll('button')) b.disabled = false;
+    await reload();
+  }
+  async function backup(touched) {
+    if (touched.some(e => !e.dir)) download(zipName('backup'), makeZip(await readSaves(area, touched)));
+  }
+  async function downloadSel() {
+    download(zipName(selected ? selected.split('/').pop() : 'all'), makeZip(await readSaves(area, savesUnder(entries, selected))));
+  }
+  async function write(files) {
+    const paths = new Set(files.map(f => f.path));
+    await backup(entries.filter(e => !e.dir && paths.has(e.path)));
+    const replaced = await writeSaves(area, files, entries);
+    return `${files.length} file${files.length === 1 ? '' : 's'} written` + (replaced.length ? `, ${replaced.length} replaced (backup downloaded)` : '');
+  }
+  async function upload() {
+    const picked = await pickFiles('', true);
+    if (picked.length) run(async () => write(await Promise.all(picked.map(async f => ({ path: folder() + f.name, data: new Uint8Array(await f.arrayBuffer()) })))));
+  }
+  async function restore() {
+    const [zip] = await pickFiles('.zip,application/zip', false);
+    if (zip) run(async () => {
+      let files;
+      try { files = await readZip(zip); } catch { throw new Error('That zip could not be read. It may be damaged, or not really a .zip file.'); }
+      files = files.filter(f => savePathParts(f.path));
+      if (!files.length) throw new Error('That zip has no files in it.');
+      return write(await Promise.all(files.map(async f => ({ path: savePathParts(f.path).join('/'), data: new Uint8Array(await f.file.arrayBuffer()) }))));
+    });
+  }
+  async function remove() {
+    const b = await msgbox({ title: 'Save Files', icon: 'question', parent: win, buttons: ['&Yes', '&No'], text: `Delete ${selected}?\n\nA backup .zip of it is downloaded first.` });
+    if (b !== 'Yes') return '';
+    const touched = savesUnder(entries, selected);
+    await backup(touched);
+    const gone = await deleteSaves(area, entries, selected);
+    selected = '';
+    return `Deleted ${gone.filter(e => !e.dir).length} file(s)`;
+  }
+
+  const form = h('div', { class: 'cse' },
+    h('div', { class: 'cse-bar' }, h('label', null, 'Look in: ', where)),
+    list,
+    h('div', { class: 'cse-foot' }, status, dlBtn,
+      btn('<u>U</u>pload Files...', upload), btn('<u>R</u>estore Zip...', restore), delBtn,
+      h('button', { class: 'btn default', type: 'button', onclick: () => win.close() }, 'Close')));
+  const win = createWindow({ title: `Save Files - ${title}`, icon: 'i-floppy', body: form, parent,
+    width: 600, height: 420, minW: 360, minH: 240, onClosed });
+  reload();
+  return win;
+}
+
 function aboutVNBox(win) {
   return about('VNBox', 'i-vnbox', win, h('p', null, 'Engine ',
     h('a', { href: 'https://github.com/blankiekun/VNBox/releases/tag/' + ENGINE_VERSION, target: '_blank', rel: 'noopener' }, 'VNBox ' + ENGINE_VERSION),
@@ -162,6 +270,7 @@ function open() {
         e.preventDefault(); e.stopPropagation();
         openMenu([
           { label: '&Play', action: () => openRecent(r) },
+          { label: '&Save Files...', action: () => saveFiles(r) },
           { label: '&Remove from This Browser', action: () => removeGame(r) },
         ], { x: e.clientX, y: e.clientY });
       });
@@ -458,6 +567,25 @@ function open() {
     say('Deleted the saves');
   }
 
+  // The game stops while its save files are open (the engine would write its old tree back), and
+  // starts again once they're closed.
+  // shortcut: opening the same game again while they're open isn't blocked; block it if anyone does that.
+  let savesWin = null;
+  async function saveFiles(r) {
+    if (savesWin) return savesWin.focus();
+    const running = !!frame && game.title === r.title;
+    if (running) {
+      const b = await msgbox({ title: 'Save Files', icon: 'question', parent: win, buttons: ['OK', 'Cancel'],
+        text: `${r.title} stops while its save files are open, and starts again when you close them.\n\nAnything you haven't saved in the game will be lost.` });
+      if (b !== 'OK') return;
+      const g = game;
+      stop('The game is stopped while its save files are open');
+      await wait(100); // the closed frame lets go of its databases
+      r = g;
+    }
+    savesWin = savesWindow(r.title, win, () => { savesWin = null; if (running && !frame && win.el.isConnected) boot(r); });
+  }
+
   // File > Games in This Browser: what each copy takes, and a way to remove it.
   function gamesDialog() {
     const rows = h('div', { class: 'cons-recent-list' });
@@ -490,6 +618,7 @@ function open() {
       { label: 'Open &Zip...', disabled: !can, action: openZip },
       '-',
       { label: '&Close Game', disabled: !frame, action: () => confirmQuit().then(ok => ok && stop('Ready')) },
+      { label: '&Save Files...', disabled: !game, action: () => saveFiles(game) },
       { label: '&Games in This Browser...', action: gamesDialog },
       '-',
       ...recentGames().map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
