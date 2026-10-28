@@ -1141,6 +1141,17 @@ body.dragging-files iframe { pointer-events: none; }
 @media (prefers-reduced-motion: no-preference) { .gd-vn-more { animation: gd-blink 1s steps(1) infinite; } }
 @keyframes gd-blink { 50% { opacity: 0; } }
 .gd-vn-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* Weather: a glossy sky in the day's weather, the weather girl dressed for it, three days ahead */
+.gd-wx { --sky: #2f80d8, #a6d4f7; justify-content: space-between; padding: 4px; background: linear-gradient(#fff5, #fff0 45%), linear-gradient(var(--sky)); text-shadow: 0 1px 2px #0009; }
+.gd-wx[data-wx="cloud"] { --sky: #6f8197, #c3cedb; } .gd-wx[data-wx="rain"] { --sky: #34414f, #7a8b9e; } .gd-wx[data-wx="snow"] { --sky: #7f98b8, #e4ecf5; }
+.gd-wx-now { display: flex; align-items: center; width: 100%; }
+.gd-wx-girl { flex: none; width: 58px; height: 77px; }
+.gd-wx-txt { flex: 1; min-width: 0; text-align: right; }
+.gd-wx-t { padding: 0; border: 0; background: none; color: inherit; text-shadow: inherit; font: 300 26px/1 "Segoe UI Light", "Segoe UI", var(--font-ui); cursor: var(--hand); }
+.gd-wx-c { font-weight: bold; }
+.gd-wx-city { font-size: 11px; opacity: .9; }
+.gd-wx-days { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; padding: 2px 0; border-radius: 4px; background: #0003; text-align: center; font-size: 11px; }
+.gd-wx-ico { display: block; width: 20px; height: 22px; margin: 1px auto; }
 /* The decades before gadgets: a PC-98 game's status window for 1.0-3.1, a beveled
    LCD like a 9x tray clock, Samurize's dark strip for XP, bare thin Rainmeter text for 8-11. */
 html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd { border-radius: 0; background: #000; color: #5ff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #f5f, inset 0 0 0 6px #000; font-family: var(--font-mono, monospace); text-shadow: none; }
