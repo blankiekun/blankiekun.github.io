@@ -562,7 +562,7 @@ function open() {
   let frame = null;  // the running engine
   let errors = [];   // what the engine reported, for Debug > Engine Log
   let ownHook = null; // a hook script picked from a file this visit: { name, url }
-  let showLog = store.get(SHOW_LOG, true), clip = store.get(CLIP, false);
+  let showLog = store.get(SHOW_LOG, false), clip = store.get(CLIP, false);
 
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
     h('b', null, 'Drag a game folder or .zip here'),
@@ -787,6 +787,8 @@ function open() {
     if (pick == null || pick === (game.hook || '')) return frame && frame.focus();
     if (!(await confirmQuit())) return;
     game.hook = pick;
+    // Off at first: a hook is what fills it.
+    if (pick && !showLog) toggleLog();
     setGame(game.title, { hook: pick === 'file' ? '' : pick });
     boot(game);
   }
