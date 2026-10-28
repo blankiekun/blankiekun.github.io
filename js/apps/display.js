@@ -57,14 +57,15 @@ export const WALLPAPERS = {
     ['Moonlit Swings', 'pc98-moonlit-swings.png'], ['Autumn Leaves', 'pc98-autumn-leaves.png'], ['Rainy Room', 'dan98-bedroom-blues.jpg'],
     // late-90s cel anime for 95-Me
     ['Lain', 'lain.jpg'], ['Wired', 'wired.jpg'], ['Wired Crash', 'lain-win98-bsod.jpg'], ['Ed and Ein', 'bebop-ed-ein-sunset.jpg'], ['Bebop Alley', 'bebop-alley-crew.jpg'],
-    ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['Moon Guardians', 'sailor-moon-night.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'],
+    ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['Moon Guardians', 'sailor-moon-night.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'], ['Me-tan', 'me-tan.jpg'],
     // 2000s moe for 2000 and XP
     ['Peeking', 'konata.jpg'], ['Akiba Crossing', 'lucky-star-akiba.jpg'], ['SOS Brigade', 'haruhi-sos-brigade.jpg'], ['Chii Autumn', 'chobits-chii-autumn.jpg'], ['Snow Town', 'kanon-winter.jpg'],
+    ['2000-tan', '2000-tan.jpg'], ['XP-tan', 'xp-tan.jpg'], ['Bliss Midnight', 'bliss-midnight.jpg'],
     // Vista and 7
     ['Miku Error', 'miku-window-error.jpg'], ['Light Music', 'k-on-band.jpg'], ['Snow Umbrella', 'toradora-snow.jpg'], ['Magica Quintet', 'madoka-quintet.jpg'],
-    ['Clannad Road', 'clannad-road.jpg'], ['Lab Members', 'steins-gate-lab.jpg'],
+    ['Clannad Road', 'clannad-road.jpg'], ['Lab Members', 'steins-gate-lab.jpg'], ['Nanami', 'nanami-seven.jpg'],
     // 8-11
-    ['Violet Meadow', 'violet-meadow.jpg'], ['Suga Stairs', 'your-name-stairs.jpg'], ['Sunshine Girl', 'weathering-sky.jpg'], ['Harbor Band', 'bocchi-harbor.jpg'], ['Journey On', 'frieren-journey.jpg'],
+    ['Violet Meadow', 'violet-meadow.jpg'], ['Suga Stairs', 'your-name-stairs.jpg'], ['Sunshine Girl', 'weathering-sky.jpg'], ['Harbor Band', 'bocchi-harbor.jpg'], ['Journey On', 'frieren-journey.jpg'], ['Touko', 'touko-win10.jpg'],
   ].map(([name, file]) => [name, { url: `url("${new URL(`../../img/wallpapers/${file}`, import.meta.url)}")`, size: 'cover', repeat: 'no-repeat' }])),
 };
 
