@@ -1121,16 +1121,85 @@ body.dragging-files iframe { pointer-events: none; }
 .gd-slide img { width: 100%; height: 100%; object-fit: contain; }
 @media (prefers-reduced-motion: no-preference) { .gd-slide img { animation: gd-fade .8s; } }
 @keyframes gd-fade { from { opacity: 0; } }
+/* Moe Clock: big text straight on the wallpaper (Vista and 7: glass-white, like Rainmeter on Aero) */
+.gd-moe { background: none; box-shadow: none; gap: 2px; text-shadow: 0 1px 3px #000c, 0 0 8px #0006; cursor: default; }
+.gd-moe-t { font: 300 40px/1 "Segoe UI Light", "Segoe UI", var(--font-ui); font-variant-numeric: tabular-nums; }
+.gd-moe-d { font-size: 13px; letter-spacing: .1em; }
+/* Kanji of the Day: a card that flips between the glyph and its readings */
+.gd-kanji { gap: 3px; padding: 6px 8px; border: 0; cursor: var(--hand); text-align: left; }
+.gd-kanji[aria-pressed="true"] { align-items: flex-start; justify-content: flex-start; }
+.gd-kj-h { align-self: flex-start; font-size: 11px; opacity: .85; }
+.gd-kj-k { flex: 1; display: grid; place-items: center; font: 76px/1 "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP", sans-serif; }
+.gd-kj-en { font-size: 14px; font-weight: 600; }
+.gd-kj-ex { margin-top: auto; } .gd-kj-rd { opacity: .8; }
+.gd-kanji:focus-visible { outline: 1px dotted currentColor; outline-offset: -3px; }
+/* Visual Novel: a game's message window, white text in a dark blue box, a blinking ▼ when the line is done */
+.gd-vn { align-items: stretch; justify-content: flex-start; padding: 6px 8px; background: #000a5a; box-shadow: inset 0 0 0 1px #fff, inset 0 0 0 3px #000a5a, inset 0 0 0 4px #fff8; cursor: var(--hand); text-shadow: none; }
+.gd-vn:focus-visible { outline: 2px solid #ff5; outline-offset: 1px; }
+.gd-vn-msg { margin: 0; font: 12px/1.45 var(--font-pixel); overflow-wrap: anywhere; }
+.gd-vn-more { margin-left: 2px; font-size: 9px; }
+@media (prefers-reduced-motion: no-preference) { .gd-vn-more { animation: gd-blink 1s steps(1) infinite; } }
+@keyframes gd-blink { 50% { opacity: 0; } }
+.gd-vn-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+/* Weather: a glossy sky in the day's weather, the weather girl dressed for it, three days ahead */
+.gd-wx { --sky: #2f80d8, #a6d4f7; justify-content: space-between; padding: 4px; background: linear-gradient(#fff5, #fff0 45%), linear-gradient(var(--sky)); text-shadow: 0 1px 2px #0009; }
+.gd-wx[data-wx="cloud"] { --sky: #6f8197, #c3cedb; } .gd-wx[data-wx="rain"] { --sky: #34414f, #7a8b9e; } .gd-wx[data-wx="snow"] { --sky: #7f98b8, #e4ecf5; }
+.gd-wx-now { display: flex; align-items: center; width: 100%; }
+.gd-wx-girl { flex: none; width: 58px; height: 77px; }
+.gd-wx-txt { flex: 1; min-width: 0; text-align: right; }
+.gd-wx-t { padding: 0; border: 0; background: none; color: inherit; text-shadow: inherit; font: 300 26px/1 "Segoe UI Light", "Segoe UI", var(--font-ui); cursor: var(--hand); }
+.gd-wx-c { font-weight: bold; }
+.gd-wx-city { font-size: 11px; opacity: .9; }
+.gd-wx-days { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; padding: 2px 0; border-radius: 4px; background: #0003; text-align: center; font-size: 11px; }
+.gd-wx-ico { display: block; width: 20px; height: 22px; margin: 1px auto; }
+/* The decades before gadgets: a PC-98 game's status window for 1.0-3.1, a beveled
+   LCD like a 9x tray clock, Samurize's dark strip for XP, bare thin Rainmeter text for 8-11. */
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd { border-radius: 0; background: #000; color: #5ff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #f5f, inset 0 0 0 6px #000; font-family: var(--font-mono, monospace); text-shadow: none; }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-moe-t { font: bold 34px/1 var(--font-mono, monospace); }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-moe-d { color: #ff5; }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-vn { background: #0000aa; color: #fff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #fff, inset 0 0 0 5px #000, inset 0 0 0 6px #55f; padding: 8px 10px; }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-vn-msg { font-size: 13px; line-height: 16px; -webkit-font-smoothing: none; font-smooth: never; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .gd { border-radius: 0; background: var(--face); color: #000; box-shadow: var(--raised, inset -1px -1px #000, inset 1px 1px #fff); text-shadow: none; padding: 4px; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .gd-moe-t { align-self: stretch; text-align: center; background: #000; color: #3f3; box-shadow: inset 1px 1px #808080, inset -1px -1px #fff; font: bold 32px/1.15 var(--font-mono, monospace); }
+html[data-win="xp"] .gd { border-radius: 4px; background: linear-gradient(#000a, #0008); box-shadow: 0 0 0 1px #fff4; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-moe-t { font-size: 46px; font-weight: 200; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-moe { align-items: flex-start; text-shadow: 0 1px 4px #0009; }
+/* 8-11: the kanji card is a flat Live Tile in the accent colour; 11 rounds it like a widget */
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-kanji { border-radius: 0; background: var(--accent, #0078d7); color: #fff; box-shadow: none; text-shadow: none; padding: 8px 10px; }
+html[data-win="11"] .gd-kanji { border-radius: 8px; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-kj-k { font-weight: 300; }
+/* Pocket Pet: a green-grey LCD and three buttons; in 95-Me the whole thing is a plastic egg */
+.gd-pet { justify-content: space-between; gap: 6px; padding: 6px; }
+.gd-pet-lcd { align-self: stretch; padding: 4px; background: #9aa886; color: #1d2416; box-shadow: inset 1px 1px #0006, inset -1px -1px #fff6; font: 9px/1.3 var(--font-mono, monospace); text-align: center; text-shadow: none; }
+.gd-pet-px { display: block; width: 80px; height: 55px; margin: 0 auto 2px; fill: currentColor; }
+@media (prefers-reduced-motion: no-preference) { .gd-pet-px:not(.still) { animation: gd-bob 1.2s steps(1) infinite; } }
+@keyframes gd-bob { 50% { transform: translateY(-5px); } }
+.gd-pet-s { font-weight: bold; text-transform: uppercase; }
+.gd-pet-b { display: flex; gap: 4px; }
+.gd-pet-b button { padding: 2px 5px; font: 11px var(--font-ui); color: #000; cursor: var(--hand); }
+html:is([data-win="95"], [data-win="98"], [data-win="me"]) .gd-pet { margin: 0 4px; padding: 14px 12px 20px; border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%; color: #000;
+  background: radial-gradient(circle at 35% 25%, #fff9, #0000 30%), linear-gradient(#b48ce6, #7a4fc0); box-shadow: inset -2px -3px #0003, inset 2px 2px #fff6, 0 2px 3px #0006; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"]) .gd-pet-lcd { border: 3px solid #3d2a63; border-radius: 4px; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"]) .gd-pet-b button { border: 0; border-radius: 50%; width: 34px; height: 34px; padding: 0; font-size: 10px; background: radial-gradient(circle at 40% 35%, #ffe680, #e0a800); box-shadow: 0 2px #5a3b8a, inset -1px -1px #0003; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"]) .gd-pet-b button:active { transform: translateY(2px); box-shadow: inset -1px -1px #0003; }
+/* 8-11: no frame round the gadgets; the title bar to drag one by shows on hover */
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget { border-color: transparent; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget:not(:hover, :focus-within) > .titlebar { opacity: 0; }
 /* Vista's Sidebar: a dark glass strip down the right of the desktop, under the windows */
 .sidebar { position: absolute; top: 0; right: 0; bottom: 0; width: 170px; background: linear-gradient(90deg, #0000, #0007 14px, #0005); border-left: 1px solid #fff2; }
 @media (max-width: 640px), (max-height: 420px) { .sidebar { display: none; } }
 .gd-gallery { padding: 10px; font: 12px var(--font-ui); }
 .gd-gallery p { margin: 0 0 8px; }
-.gd-tiles { display: grid; grid-template-columns: repeat(4, 84px); gap: 6px; }
+.gd-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 84px; gap: 6px; }
 .gd-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1px solid transparent; border-radius: 3px; background: none; font: inherit; cursor: var(--hand); }
 .gd-tile:hover, .gd-tile:focus-visible { border-color: #7eb4ea; background: #e5f3fb; }
 .gd-tile svg, .gd-cal-ico { width: 32px; height: 32px; }
 .gd-cal-ico { display: grid; place-items: center; border: 1px solid #567; border-top: 7px solid #3b7fc4; border-radius: 3px; background: #fff; font-weight: bold; box-sizing: border-box; }
+/* The Desktop Mascot (js/apps/mascot.js): above the windows, under menus and the taskbar. */
+.mascot { position: fixed; left: 0; top: 0; z-index: 39999; width: 32px; height: 32px; cursor: grab; touch-action: none; user-select: none; outline-offset: 1px; }
+.mascot:active { cursor: grabbing; }
+.mascot:focus:not(:focus-visible) { outline: none; }
+.mascot svg { display: block; width: 100%; height: 100%; }
 
 /* ---------- Sticky Notes ---------- */
 .sn { flex: 1; min-height: 0; display: flex; }

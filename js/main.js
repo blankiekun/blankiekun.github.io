@@ -88,7 +88,7 @@ async function start() {
       return;
     }
   }
-  // Vista and 7 put back the gadgets that were open last visit.
+  // Put back the gadgets that were open last visit.
   import('./apps/gadgets.js').then(m => m.reopen());
   window.addEventListener('hashchange', () => {
     const w = activeWindow();
