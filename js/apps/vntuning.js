@@ -6,6 +6,9 @@
 
 // The game folder, program and hook: never tuned.
 const LOCKED = new Set(['lazy', 'p', 'frida', 'cdrom']);
+// boot()'s wine-override: no Mono/Gecko installs, and no crash debugger (a launcher that faults as it
+// hands over to the game would start winedbg, which is slow here and its dialog takes the screen).
+export const OVERRIDES = ['nomono', 'winedbg.exe='];
 export const COMPAT_KEYS = new Set(['registry', 'wine-override', 'wine-env', 'reg', 'desktop']);
 export const VERSIONS = ['win95', 'win98', 'winme', 'win2k', 'winxp', 'win7', 'win10'];
 
@@ -44,7 +47,7 @@ export function compatFromTuning(pairs) {
   };
   const lines = key => get(key).split('\n').filter(Boolean);
   const list = key => get(key).replace(/^\[|\]$/g, '').split(',');
-  const presets = list('registry'), overrides = list('wine-override').filter(i => i.includes('='));
+  const presets = list('registry'), overrides = list('wine-override').filter(i => i.includes('=') && !OVERRIDES.includes(i));
   return {
     renderer: presets.find(n => n === 'gl' || n === 'gdi') || '',
     version: presets.find(n => VERSIONS.includes(n)) || '',
@@ -57,7 +60,7 @@ export function compatFromTuning(pairs) {
 }
 
 // The Compatibility settings as address params (encoded: no &, = or # inside a value), invalid rows
-// left out. They replace boot()'s registry=jpfonts and wine-override=[nomono], so both stay in.
+// left out. They replace boot()'s registry=jpfonts and OVERRIDES, so both stay in.
 export function compatParams(c) {
   const presets = [c.renderer, c.version].filter(Boolean);
   const overrides = [...(c.movies ? [] : ['quartz=']), ...c.dlls.filter(validDll).map(d => `${d.name.toLowerCase()}=${d.mode}`)];
@@ -66,7 +69,7 @@ export function compatParams(c) {
   const param = (key, items, join) => items.length ? [`${key}=${encodeURIComponent(items.join(join))}`] : [];
   return [
     ...param('registry', presets.length ? ['jpfonts', ...presets] : [], ','),
-    ...param('wine-override', overrides.length ? ['nomono', ...overrides] : [], ','),
+    ...param('wine-override', overrides.length ? [...OVERRIDES, ...overrides] : [], ','),
     ...param('wine-env', env.slice(0, 32), '\n'),
     ...param('reg', reg.slice(0, 64), '\n'),
     ...(validDesktop(c.desktop) ? [`desktop=${c.desktop}`] : []),
