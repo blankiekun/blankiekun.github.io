@@ -19,7 +19,7 @@ import { DISC_DRIVE, SETUP_FOLDER, DISC_FILE, INSTALLER_NAMES, discsOf, discFold
   installerKind, silentArgs, installDir, discPrograms, installedPrograms, moveInstalled } from './vninstall.js';
 import { tabbed } from './system.js';
 import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
-import { VERSIONS, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
+import { VERSIONS, OVERRIDES, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
 
 const RECENT = 'w95.vnbox.recent';
 const MAX_RECENT = 6;
@@ -969,7 +969,7 @@ function open() {
       // The discs a game was installed from, read on demand, disc 1 in the drive.
       ...(g.discs && g.discs.length ? [arg('cdrom', g.discs.map(d => 'opfs:' + d).join(';'))] : []),
       // Japanese font names (ＭＳ ゴシック...) as jp.zip's fonts, no Mono/Gecko installs, full-rate sound,
-      'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100'];
+      'registry=jpfonts', arg('wine-override', `[${OVERRIDES}]`), 'audioFreq=44100'];
     // and the game's window fills the screen, which takes its size, without Wine's title bar (an
     // installer opens several windows, so not for it).
     if (inst) q.push(arg('w', inst.w), ...(inst.args ? [arg('args', inst.args)] : []), 'fitWindow=false');
