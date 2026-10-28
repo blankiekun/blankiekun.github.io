@@ -1,5 +1,5 @@
-// Desktop gadgets: CPU Meter, Calendar, Slide Show and the Moe Clock, plus the gallery that adds
-// them (and the Clock gadget, js/apps/clock.js). Vista docks them down the Sidebar on the right;
+// Desktop gadgets: CPU Meter, Calendar, Slide Show, the Moe Clock and the Pocket Pet, plus the gallery
+// that adds them (and the Clock gadget, js/apps/clock.js). Vista docks them down the Sidebar on the right;
 // every other era lets them float on the desktop, skinned for its decade (css/apps.css).
 // Which ones are open is remembered for the next visit.
 
@@ -114,9 +114,65 @@ function moeClock() {
   return gadget('moe', 'Moe Clock', body, 100, () => clearInterval(timer));
 }
 
+// ---------- Pocket Pet ----------
+
+// A late-90s keychain egg pet (our own blob, not anyone's character). Stats run 0-4; it ages from a
+// saved timestamp, so it gets hungry while the page is shut, but bottoms out sleepy, never dead.
+const PET_KEY = 'w95.pet';
+const RATE = { food: -1 / 90, fun: -1 / 120, mess: 1 / 180 };   // per minute: a heart every 1.5h, 2h, 3h
+export function petAge(s, now) {
+  const min = Math.max(0, (now - s.t) / 60000);   // a clock set back doesn't un-age it
+  const c = v => Math.min(4, Math.max(0, v));
+  return { food: c(s.food + RATE.food * min), fun: c(s.fun + RATE.fun * min), mess: c(s.mess + RATE.mess * min), t: now };
+}
+export const petMood = s => s.food < 1 && s.fun < 1 ? 'sleepy' : s.food < 1 ? 'hungry' : s.fun < 1 ? 'grumpy' : s.mess >= 3 ? 'messy' : 'happy';
+console.assert(petAge({ food: 4, fun: 4, mess: 0, t: 0 }, 90 * 60000).food === 3, 'pet: a heart of food per 90 minutes');
+console.assert(petMood(petAge({ food: 4, fun: 4, mess: 0, t: 0 }, 365 * 864e5)) === 'sleepy' && petAge({ food: 4, fun: 4, mess: 0, t: 0 }, 365 * 864e5).mess === 4, 'pet: a year away floors at sleepy, never below 0 or past 4');
+console.assert(petAge({ food: 2, fun: 2, mess: 1, t: 5e6 }, 1e6).food === 2, 'pet: a clock set back changes nothing');
+
+const PET = ['...######...', '..#......#..', '.#........#.', null, '#..........#', null, null, '.#........#.', '..########..', '...#....#...'];
+const FACES = {   // eyes row, then two mouth rows
+  happy: ['#..#....#..#', '#...#..#...#', '#....##....#'], messy: ['#..#....#..#', '#..........#', '#...####...#'],
+  hungry: ['#..#....#..#', '#....##....#', '#....##....#'], grumpy: ['#.##....##.#', '#....##....#', '#...#..#...#'],
+  sleepy: ['#.##....##.#', '#..........#', '#....##....#'],
+};
+const SAYS = { happy: 'Happy!', messy: 'Needs a clean', hungry: 'Hungry...', grumpy: 'Grumpy. Bored.', sleepy: 'Sleepy... zzz' };
+
+function pocketPet() {
+  const fresh = { food: 4, fun: 4, mess: 0, t: Date.now() }, had = store.get(PET_KEY, null);
+  let s = had && Number.isFinite(had.t) ? had : fresh;
+  const lcd = svg('svg', { viewBox: '0 0 16 11', class: 'gd-pet-px', 'aria-hidden': 'true', 'shape-rendering': 'crispEdges' });
+  const meters = h('div', { class: 'gd-pet-m', role: 'img' }), status = h('div', { class: 'gd-pet-s', 'aria-live': 'polite' });
+  function draw() {
+    s = petAge(s, Date.now());
+    store.set(PET_KEY, s);
+    const mood = petMood(s), face = FACES[mood];
+    const px = (x, y) => svg('rect', { x, y, width: 1, height: 1 });
+    const rows = PET.map((r, y) => r || face[[3, 5, 6].indexOf(y)]);
+    lcd.replaceChildren(...rows.flatMap((r, y) => [...r].flatMap((p, x) => p === '#' ? [px(x + 1, y)] : [])),
+      ...(s.mess >= 2 ? [[13, 9], [14, 9], [15, 9], [14, 8]].map(([x, y]) => px(x, y)) : []));   // a little pile beside it
+    lcd.classList.toggle('still', mood === 'sleepy');
+    const bar = v => '●'.repeat(Math.ceil(v)) + '○'.repeat(4 - Math.ceil(v));
+    meters.textContent = `FOOD ${bar(s.food)} FUN ${bar(s.fun)}`;
+    meters.setAttribute('aria-label', `Food ${Math.ceil(s.food)} of 4, fun ${Math.ceil(s.fun)} of 4`);
+    if (status.textContent !== SAYS[mood]) status.textContent = SAYS[mood];   // only announce a change
+  }
+  const act = f => () => { s = petAge(s, Date.now()); f(); draw(); };
+  const btn = (label, f) => h('button', { type: 'button', onclick: act(f) }, label);
+  const body = h('div', { class: 'gd gd-pet', role: 'group', 'aria-label': 'Pocket Pet' },
+    h('div', { class: 'gd-pet-lcd' }, lcd, meters, status),
+    h('div', { class: 'gd-pet-b' },
+      btn('Feed', () => { s.food = Math.min(4, s.food + 1); }),
+      btn('Play', () => { s.fun = Math.min(4, s.fun + 1); s.food = Math.max(0, s.food - .25); }),
+      btn('Clean', () => { s.mess = 0; })));
+  draw();
+  const timer = setInterval(draw, 30000);
+  return gadget('pet', 'Pocket Pet', body, 220, () => clearInterval(timer));
+}
+
 // ---------- Docking, the gallery, and remembering ----------
 
-const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock };
+const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, pet: pocketPet };
 
 // Vista's Sidebar: a translucent strip down the right, with the gadgets stacked in it. In 7 a new
 // gadget starts at the right under the others, then floats wherever it's dragged.
@@ -162,7 +218,7 @@ export function reopen() {
   store.get(KEY, []).filter(id => MAKERS[id]).forEach(add);
 }
 
-const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true]]
+const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['pet', 'Pocket Pet', 'i-game', true]]
   .filter(g => g[3]);
 
 function gallery() {
