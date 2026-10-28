@@ -14,6 +14,8 @@ import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves,
 import * as drive from './consdrive.js';
 import * as anki from './consanki.js';
 import { watchGamepads } from './vnpad.js';
+import { DISC_DRIVE, SETUP_FOLDER, DISC_FILE, INSTALLER_NAMES, discsOf, discFolder, discPath, discSize, listDisc, autorunProgram, copyProtection,
+  installerKind, silentArgs, installDir, discPrograms, installedPrograms, moveInstalled } from './vninstall.js';
 import { tabbed } from './system.js';
 import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
 import { VERSIONS, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
@@ -62,22 +64,47 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 
 // ---------- games in this browser ----------
 
-// [{ title, at, size, exe, hook, res }], newest first. Each one has a copy of its files in the
-// site's private storage (the origin private file system), in vn/<title>, where the engine reads them.
+// [{ title, at, size, exe, hook, res, discs }], newest first. Each one has a copy of its files in the
+// site's private storage (the origin private file system), in vn/<title>, where the engine reads them;
+// a game installed from discs keeps their images in vn-discs/ (vninstall.js), for games that check for them.
 const recentGames = () => store.get(RECENT, []);
 const vnRoot = () => navigator.storage.getDirectory().then(d => d.getDirectoryHandle('vn', { create: true }));
-const dropCopy = title => vnRoot().then(r => r.removeEntry(title, { recursive: true })).catch(() => {});
+async function dropCopy(r) {
+  await vnRoot().then(d => d.removeEntry(r.title, { recursive: true })).catch(() => {});
+  const kept = recentGames().flatMap(o => o.title === r.title ? [] : o.discs || []).map(d => d.slice(0, d.lastIndexOf('/')));
+  const opfs = await navigator.storage.getDirectory();
+  for (const folder of new Set((r.discs || []).map(d => d.slice(0, d.lastIndexOf('/'))))) {
+    if (!kept.includes(folder)) await opfs.getDirectoryHandle('vn-discs').then(d => d.removeEntry(folder.split('/')[1], { recursive: true })).catch(() => {});
+  }
+}
 
 function remember(g) {
   const old = recentGames().find(r => r.title === g.title) || {};
-  const list = [{ ...old, title: g.title, at: Date.now(), size: g.size, exe: g.exe, hook: g.hook || '', res: g.res }, ...recentGames().filter(r => r.title !== g.title)];
+  const list = [{ ...old, title: g.title, at: Date.now(), size: g.size, exe: g.exe, hook: g.hook || '', res: g.res, ...(g.discs && { discs: g.discs }) },
+    ...recentGames().filter(r => r.title !== g.title)];
   store.set(RECENT, list.slice(0, MAX_RECENT));
-  for (const r of list.slice(MAX_RECENT)) dropCopy(r.title);
+  for (const r of list.slice(MAX_RECENT)) dropCopy(r);
 }
 const setGame = (title, patch) => store.set(RECENT, recentGames().map(r => r.title === title ? { ...r, ...patch } : r));
 function forget(title) {
+  const r = recentGames().find(r => r.title === title) || { title };
   store.set(RECENT, recentGames().filter(r => r.title !== title));
-  dropCopy(title);
+  dropCopy(r);
+}
+
+// Copies the discs' images into vn-discs/ (files already there with the same size are kept).
+async function copyDiscs(discs, progress) {
+  const opfs = await navigator.storage.getDirectory();
+  let done = 0;
+  for (const disc of discs) {
+    let d = opfs;
+    for (const p of discFolder(disc).split('/')) d = await d.getDirectoryHandle(p, { create: true });
+    for (const f of disc.files) {
+      const there = await d.getFileHandle(f.name).then(h => h.getFile()).catch(() => null);
+      if (!there || there.size !== f.size) await f.stream().pipeTo(await (await d.getFileHandle(f.name, { create: true })).createWritable());
+      progress(done += f.size);
+    }
+  }
 }
 
 async function copyGame(g, progress) {
@@ -268,6 +295,50 @@ const KNOBS = [
 ];
 
 // Game > Tuning: a game's VNBox settings and Wine fixes (vntuning.js). Resolves to its new tuning, or null.
+// The install's settings: the game's name, the installer and whether it asks its questions.
+// kindOf(path) reads which installer a program is. Resolves to { title, installer, kind, silent }, or null.
+function installDialog({ title, programs, kindOf, protection, from }, parent) {
+  return new Promise(resolve => {
+    const name = h('input', { class: 'field', value: title, spellcheck: false, 'aria-label': 'Name' });
+    const sel = h('select', { class: 'field vnb-list', size: Math.min(8, Math.max(3, programs.length)), 'aria-label': 'Installer' },
+      ...programs.map((p, i) => h('option', { value: p, selected: !i }, p)));
+    const silent = h('input', { type: 'checkbox', checked: true });
+    const silentRow = h('label', { class: 'cons-check', hidden: true }, silent, h('span'));
+    let kind;
+    async function pick() {
+      const path = sel.value;
+      kind = undefined;
+      silentRow.hidden = true;
+      const k = await kindOf(path);
+      if (sel.value !== path || !k) return;
+      kind = k;
+      silentRow.lastChild.innerHTML = `Install without its questions (<u>q</u>uiet; ${INSTALLER_NAMES[k]})`;
+      silentRow.hidden = false;
+    }
+    sel.addEventListener('change', pick);
+    pick();
+    let done = false;
+    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const form = h('form', { class: 'dlg vnb-dlg' },
+      h('p', null, `Installs the game from ${from} into this browser, then plays it like a game folder you opened.`),
+      protection.length ? h('div', { class: 'cons-warn-row' }, icon('i-warn'), h('p', null, h('b', null, protection.join(' and ') + ' copy protection: '),
+        'games with it don\'t run in VNBox, even once installed.')) : null,
+      h('label', { class: 'dp-row' }, h('span', { html: '<u>N</u>ame:' }), name),
+      h('p', null, 'The ', h('b', null, 'installer'), ' to run:'), sel, silentRow,
+      h('div', { class: 'btns right' },
+        h('button', { class: 'btn default', type: 'submit' }, h('span', { html: '<u>I</u>nstall' })),
+        h('button', { class: 'btn', type: 'button', onclick: () => finish(null) }, 'Cancel')));
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const t = name.value.trim().replace(/[\\/:*?"<>|]/g, '_');
+      if (t && sel.value) finish({ title: t, installer: sel.value, kind, silent: !!kind && silent.checked });
+    });
+    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
+    const d = createWindow({ title: 'Install', body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    sel.focus();
+  });
+}
+
 function tuningDialog(g, parent) {
   return new Promise(resolve => {
     const pairs = tuningPairs(g.tuning), c = compatFromTuning(pairs);
@@ -777,15 +848,22 @@ function open() {
     unskip();
     errors = [];
     kept = []; retake = null;
-    shots = anki.settings().on && !!hookUrl(g);
+    // g.install: an installer running ({ p, w, args, since }, see install), with no hook, tuning or sync.
+    const inst = g.install;
+    const hook = inst ? null : hookUrl(g);
+    shots = anki.settings().on && !!hook;
     const arg = (k, v) => k + '=' + encodeURIComponent(v);
     // The shell reads env= undecoded and splits it at the colon, so only the quotes are escaped.
-    const hook = hookUrl(g);
-    const q = tuned([arg('lazy', 'opfs:vn/' + g.title), arg('p', g.exe), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
+    const q = [arg('lazy', 'opfs:vn/' + g.title), arg('p', inst ? inst.p : g.exe), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
       'env=%22LC_ALL:ja_JP.UTF-8%22', arg('resolution', g.res || SIZES[1]), ...(hook ? [arg('frida', hook)] : []),
+      // The discs a game was installed from, read on demand, disc 1 in the drive.
+      ...(g.discs && g.discs.length ? [arg('cdrom', g.discs.map(d => 'opfs:' + d).join(';'))] : []),
       // Japanese font names (ＭＳ ゴシック...) as jp.zip's fonts, no Mono/Gecko installs, full-rate sound,
-      // and the game's window fills the screen, which takes its size, without Wine's title bar.
-      'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100', 'fitWindow=true'], g.tuning);
+      'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100'];
+    // and the game's window fills the screen, which takes its size, without Wine's title bar (an
+    // installer opens several windows, so not for it).
+    if (inst) q.push(arg('w', inst.w), ...(inst.args ? [arg('args', inst.args)] : []), 'fitWindow=false');
+    else q.splice(0, q.length, ...tuned([...q, 'fitWindow=true'], g.tuning));
     frame = h('iframe', { class: 'cons-frame', title: g.title, allow: 'fullscreen; autoplay', style: { visibility: 'hidden' } });
     const me = frame;
     const start = () => {
@@ -805,7 +883,7 @@ function open() {
           for (const type of ['mousedown', 'keydown']) w.addEventListener(type, retakeShot, true);
         }
         const canvas = w.document.getElementById('canvas');
-        new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+        if (!inst) new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
         frame.style.visibility = '';
         ankiWatch();
         frame.focus();
@@ -817,10 +895,10 @@ function open() {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     view.replaceChildren(h('div', { class: 'vnb-play' }, frame, log));
     win.setTitle(g.title + ' - VNBox');
-    statusGame.textContent = g.exe + ', ' + bytes(g.size);
-    say('Playing ' + g.title);
+    statusGame.textContent = inst ? '' : g.exe + ', ' + bytes(g.size);
+    say(inst ? `Installing ${g.title}: VNBox goes on when the installer closes, or choose File > Finish Install` : 'Playing ' + g.title);
     // Newer saves from Google Drive go in before the engine reads its databases.
-    if (!drive.enabled()) start();
+    if (!drive.enabled() || inst) start();
     else {
       say('Syncing saves with Google Drive...');
       wait(100) // a frame just closed lets go of its databases
@@ -845,7 +923,10 @@ function open() {
 
   // The engine posts { type: 'vnbox-error', source, message }; a game that couldn't be read never starts.
   function onMessage(e) {
-    if (!frame || e.source !== frame.contentWindow || !e.data || e.data.type !== 'vnbox-error') return;
+    if (!frame || e.source !== frame.contentWindow || !e.data) return;
+    // No Windows program left running: the installer is done.
+    if (e.data.type === 'vnbox-exit' && game.install) return finishInstall();
+    if (e.data.type !== 'vnbox-error') return;
     errors.push(`[${e.data.source}] ${e.data.message}`);
     if (e.data.source === 'lazyfs') {
       stop('The game stopped');
@@ -857,8 +938,9 @@ function open() {
   async function confirmQuit() {
     if (!frame) return true;
     const b = await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
-      text: `Quit ${game.title}?\n\nAnything you haven't saved in the game will be lost.` });
+      text: game.install ? `Stop installing ${game.title}?\n\nWhat it has installed so far is removed.` : `Quit ${game.title}?\n\nAnything you haven't saved in the game will be lost.` });
     if (b !== 'Yes') return false;
+    if (game.install) { const g = game; stop('Ready'); await dropInstall(g); return true; }
     if (drive.enabled()) {
       say('Copying saves to Google Drive...');
       await watchSaves({ leaving: true });
@@ -913,7 +995,7 @@ function open() {
   }
 
   async function runSync(title, { w, starting, leaving, interactive, report }) {
-    if (!starting && (!w || frame !== w)) return 0;
+    if (!starting && (!w || frame !== w || game.install)) return 0;
     showSync('syncing...', 'Copying saves to and from Google Drive');
     try {
       const { size, files } = await syncedSaves(title);
@@ -953,7 +1035,7 @@ function open() {
   // The engine writes the game's saves into its databases as it runs: a new one is copied at the next look.
   async function watchSaves(opts) {
     const w = frame;
-    if (!w || !w.src || !drive.enabled()) return;
+    if (!w || !w.src || !drive.enabled() || game.install) return;
     const { saved, at } = await savedSince(game.title, saveSeen).catch(() => ({ saved: false, at: saveSeen }));
     if (frame !== w) return;
     saveSeen = at;
@@ -1003,6 +1085,11 @@ function open() {
       try { list = await walkHandle(handle); } catch (e) { idle(); return error(`The folder ${handle.name} could not be read.\n\n${e.message}`); }
     }
     let g = findGame(list);
+    // Disc images with no game beside them, or a folder with only an installer, are installed.
+    const setupOnly = g && g.exes.every(e => /setup|install/i.test(e));
+    const discs = (!g || setupOnly) && await discsOf(list.map(f => f.file).filter(f => DISC_FILE.test(f.name)));
+    if (discs && discs.length) { idle(); return install({ discs }); }
+    if (setupOnly) { idle(); return install({ folder: g }); }
     if (!g && list.some(f => /\.zip$/i.test(f.path))) {
       say('Unpacking...');
       try { g = findGame(await unzipAll(list)); } catch { idle(); return error('That zip could not be read. It may be damaged, or not really a .zip file.'); }
@@ -1010,7 +1097,7 @@ function open() {
     if (!g) {
       idle();
       return error(list.some(f => /\.(7z|rar|lzh)$/i.test(f.path)) ? 'That looks like an archive VNBox can\'t open. Extract it first, or make it a .zip.'
-        : 'There is no Windows game here.\n\nVNBox looks for a folder with the game\'s .exe in it. If the game came on a disc or with an installer, install it on Windows first and open the folder it went into.');
+        : 'There is no Windows game here.\n\nVNBox looks for a folder with the game\'s .exe in it. A game on a disc installs from its disc image (.iso, .cue, .mds): File > Install from Disc Image.');
     }
     const old = recentGames().find(r => r.title === g.title);
     g.exe = old && g.exes.includes(old.exe) ? old.exe : g.exes.length === 1 ? g.exes[0]
@@ -1035,6 +1122,117 @@ function open() {
     delete g.files;
     remember(g);
     boot(g);
+  }
+
+  // ---------- installing from discs or an installer folder (vninstall.js) ----------
+
+  // Installs from discs [{ main, files }] or an installer folder ({ title, files, size } from findGame).
+  async function install({ discs, folder }) {
+    let programs, listing = null, autorun = null, protection = [], title;
+    if (discs) {
+      say('Reading the disc...');
+      try { listing = await listDisc(discs[0]); } catch (e) { idle(); return error(`${discs[0].main.name} could not be read.\n\n${e.message}`); }
+      idle();
+      if (!listing) return error(`${discs[0].main.name} has no file system VNBox can read: DVDs with only UDF, and music CDs, can't be installed.`);
+      const inf = listing.files.find(f => /^autorun\.inf$/i.test(f.path));
+      autorun = inf && autorunProgram(new TextDecoder('shift_jis').decode(await listing.read(inf)));
+      protection = copyProtection(listing.files.map(f => f.path));
+      programs = discPrograms(listing.files, autorun);
+      title = (listing.label || discs[0].main.name.replace(/\.[^.]*$/, '')).replace(/[\\/:*?"<>|]/g, '_');
+    } else {
+      programs = discPrograms(folder.files.map(f => ({ path: f.path })), null);
+      title = folder.title;
+    }
+    if (!programs.length) return error('There is no Windows program (.exe) on this disc to install the game with.');
+    // Which installer a program is, from its first 4 MB.
+    const kindOf = async path => installerKind(discs ? await listing.read(listing.files.find(f => f.path === path), 4 << 20)
+      : new Uint8Array(await folder.files.find(f => f.path === path).file.slice(0, 4 << 20).arrayBuffer()));
+    const opts = await installDialog({ title, programs, kindOf, protection, from: discs ? discs.map(d => d.main.name).join(', ') : 'the folder ' + folder.title }, win);
+    if (!opts) return;
+    if (recentGames().some(r => r.title === opts.title)) return error(`${opts.title} is already in this browser. Give this one another name, or remove it in File > Games in This Browser first.`);
+    if (!(await confirmQuit())) return;
+    const size = discs ? discSize(discs) : folder.size;
+    const st = navigator.storage, { usage = 0, quota = 0 } = st.estimate ? await st.estimate().catch(() => ({})) : {};
+    // Room for the copy and about as much again for what the installer writes.
+    if (quota && size * 2 > quota - usage) return error(`There's no room in this browser to install ${opts.title}: it needs about ${bytes(size * 2)}, and ${bytes(Math.max(0, quota - usage))} is free.`);
+    if (frame) stop('Ready');
+    let shown = -1;
+    const progress = done => {
+      const pct = Math.floor(done / (size || 1) * 100);
+      if (pct !== shown) say(`Copying the ${discs ? 'disc' : 'installer'} into this browser... ${shown = pct}%`);
+    };
+    const discList = discs ? discs.map(discPath) : undefined;
+    try {
+      if (discs) await copyDiscs(discs, progress);
+      // The game's folder (C:\files\<title>, the install target) holds an installer folder's copy while it runs.
+      await copyGame({ title: opts.title, files: discs ? [] : folder.files.map(f => ({ path: SETUP_FOLDER + '/' + f.path, file: f.file })) }, progress);
+    } catch (e) {
+      await dropCopy({ title: opts.title, discs: discList });
+      idle();
+      return error(`The ${discs ? 'disc' : 'installer'} could not be copied into this browser.\n\n${e.message}`);
+    }
+    const dir = installDir(opts.title), installer = opts.installer.replaceAll('/', '\\');
+    let p = discs ? `${DISC_DRIVE}:\\${installer}` : `${dir}\\${SETUP_FOLDER}\\${installer}`;
+    const w = p.slice(0, p.lastIndexOf('\\') + 1);
+    const quiet = opts.silent ? silentArgs(opts.kind, dir) : '';
+    const own = autorun && autorun.program.toLowerCase() === opts.installer.toLowerCase() ? autorun.args : '';
+    let args = [own, quiet].filter(Boolean).join(' ');
+    // InstallShield's setup.exe /s stalls in VNBox; msiexec on the package beside it doesn't.
+    const folderOf = x => x.slice(0, x.lastIndexOf('/') + 1);
+    const msi = quiet && opts.kind === 'installshield' && discs && listing.files.find(f => /\.msi$/i.test(f.path) && folderOf(f.path) === folderOf(opts.installer));
+    if (msi) { p = 'msiexec'; args = `/i "${DISC_DRIVE}:\\${msi.path.replaceAll('/', '\\')}" /qn`; }
+    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, since: Date.now() } });
+  }
+
+  // The installer exited, or the visitor says it's done: the program it installed is picked, and it and
+  // the files beside it move out of the engine's databases into the game's folder.
+  async function finishInstall() {
+    const g = game, me = frame;
+    if (!me || !g.install || g.install.finishing) return;
+    g.install.finishing = true;
+    say('Looking for the installed game...');
+    await wait(1500); // the engine writes the last changes to its databases a moment after they happen
+    if (frame !== me) return;
+    stop('Looking for the installed game...');
+    await wait(100); // the closed frame lets go of its databases
+    try {
+      const found = await installedPrograms(g.title, g.install.since);
+      if (!found.length) {
+        await dropInstall(g);
+        idle();
+        return error(`The installer left no Windows program (.exe) VNBox could find, so ${g.title} wasn't added.\n\nIf it stopped with an error, try again with its questions on, or with the disc's other installer.`);
+      }
+      const pick = found.length === 1 ? '0' : await listDialog({ title: 'Choose the Program', parent: win, value: '0',
+        items: found.map((f, i) => [String(i), f.path.replace(/^drive_c\//, 'C:/') + (f.shortcut ? ' (has a shortcut)' : '') + ', ' + bytes(f.size)]),
+        text: `Which program starts ${g.title}? It and the files beside it become the game's folder. Cancel discards the install.` });
+      if (pick == null) { await dropInstall(g); return idle(); }
+      const dir = await (await vnRoot()).getDirectoryHandle(g.title);
+      let shown = -1;
+      const moved = await moveInstalled(g.title, dir, found[+pick], (done, total) => {
+        const pct = Math.floor(done / (total || 1) * 100);
+        if (pct !== shown) say(`Moving ${g.title} into its folder... ${shown = pct}%`);
+      });
+      const ready = { title: g.title, exe: moved.exe, size: g.size + moved.size, hook: '', ...(g.discs && { discs: g.discs }) };
+      remember(ready);
+      showRecent();
+      boot(ready);
+    } catch (e) {
+      idle();
+      error(`${g.title} could not be added.\n\n${e.message}`);
+    }
+  }
+  // A game, not an installer.
+  const playing = () => !!game && !game.install;
+  // Removes what a stopped install left: the game's folder and databases, and its discs.
+  async function dropInstall(g) {
+    if (game === g) game = null;
+    await wait(100); // the closed frame lets go of its databases
+    await dropCopy(g);
+    await deleteSaveDbs(g.title);
+  }
+  async function pickDiscs() {
+    const picked = (await pickFiles('.iso,.cue,.bin,.mds,.mdf,.img,.wav', true)).filter(f => DISC_FILE.test(f.name));
+    if (picked.length) install({ discs: await discsOf(picked) });
   }
 
   async function openPicked() { load(await pickFolder()); }
@@ -1138,9 +1336,11 @@ function open() {
     { label: '&File', items: () => [
       { label: 'Open &Folder...', key: 'Ctrl+O', disabled: !can, action: openPicked },
       { label: 'Open &Zip...', disabled: !can, action: openZip },
+      { label: '&Install from Disc Image...', disabled: !can, action: pickDiscs },
+      ...(frame && game.install ? [{ label: 'Finish I&nstall', action: finishInstall }] : []),
       '-',
       { label: '&Close Game', disabled: !frame, action: () => confirmQuit().then(ok => ok && stop('Ready')) },
-      { label: '&Save Files...', disabled: !game, action: () => saveFiles(game) },
+      { label: '&Save Files...', disabled: !playing(), action: () => saveFiles(game) },
       { label: '&Games in This Browser...', action: gamesDialog },
       ...(drive.available ? ['-',
         { label: drive.enabled() ? 'Turn Off Google &Drive Sync...' : 'Sync with Google &Drive...', action: () => drive.enabled() ? driveOff() : driveOn() },
@@ -1151,16 +1351,21 @@ function open() {
       { label: 'E&xit', action: () => win.close() },
     ] },
     { label: '&Game', items: () => [
-      { label: '&Restart', disabled: !frame, action: () => confirmQuit().then(ok => ok && boot(game)) },
+      { label: '&Restart', disabled: !frame || !!game.install, action: () => confirmQuit().then(ok => ok && boot(game)) },
       { label: 'S&kip Text', key: 'Ctrl', checked: skip, disabled: !frame, action: toggleSkip },
-      { label: 'Screen &Size', disabled: !game, submenu: [...new Set([...SIZES, ...(game && game.res && game.res !== LEARN ? [game.res] : [])])].map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
-      { label: '&Tuning...', disabled: !game, action: tune },
+      { label: 'Screen &Size', disabled: !playing(), submenu: [...new Set([...SIZES, ...(game && game.res && game.res !== LEARN ? [game.res] : [])])].map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
+      { label: '&Tuning...', disabled: !playing(), action: tune },
+      // Swaps the discs of a game installed from more than one (the engine's own controls are hidden).
+      ...(game && game.discs ? [{ label: 'D&isc', disabled: !frame, submenu: [
+        ...game.discs.map((d, i) => ({ label: `&${i + 1} ${d.slice(d.lastIndexOf('/') + 1)}`, checked: !!frame && frame.contentWindow.cdromCurrent === i,
+          action: () => frame.contentWindow.insertCDRomDisc(i) })),
+        '-', { label: '&Eject', action: () => frame.contentWindow.ejectCDRomDisc() }] }] : []),
       '-',
       { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
     ] },
     { label: '&Text', items: () => [
-      { label: 'Text &Hook...', disabled: !game, action: chooseHook },
-      { label: 'Text Cl&eanup...', disabled: !game, action: cleanup },
+      { label: 'Text &Hook...', disabled: !playing(), action: chooseHook },
+      { label: 'Text Cl&eanup...', disabled: !playing(), action: cleanup },
       '-',
       { label: 'Show Text &Log', checked: showLog, action: toggleLog },
       { label: '&Copy Each Line to the Clipboard', checked: clip, action: () => { clip = !clip; store.set(CLIP, clip); } },
@@ -1179,7 +1384,7 @@ function open() {
     ] },
     { label: '&Debug', items: () => [
       { label: 'Engine L&og', disabled: !frame, action: engineLog },
-      { label: '&Delete This Game\'s Saves...', disabled: !frame, action: deleteSaves },
+      { label: '&Delete This Game\'s Saves...', disabled: !frame || !playing(), action: deleteSaves },
     ] },
     { label: '&Help', items: () => [
       { label: '&Help Topics', action: () => launch('help', 'VNBox') }, '-',
