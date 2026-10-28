@@ -1264,6 +1264,8 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
   .vnb-play { flex-direction: column; }
   .vnb-log { flex-basis: 30%; border-left: 0; border-top: 2px solid var(--face); }
 }
+.vnb-progress { box-sizing: border-box; width: min(360px, 100%); margin: 40px auto; padding: 0 16px; display: flex; flex-direction: column; gap: 6px; }
+.vnb-progress p { margin: 0; }
 .vnb-dlg { width: 420px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
 .vnb-dlg p { margin: 0; }
 .vnb-list { width: 100%; }

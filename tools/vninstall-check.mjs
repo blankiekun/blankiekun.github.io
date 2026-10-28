@@ -52,6 +52,7 @@ assert.deepEqual(copyProtection(['DATA/secdrv.sys', 'x.exe']), ['SafeDisc']);
 assert.equal(programRoot({ area: 1, path: 'drive_c/Program Files/Maker/Game/game.exe' }), 'drive_c/Program Files/Maker');
 assert.equal(programRoot({ area: 1, path: 'drive_c/Game/game.exe' }), 'drive_c/Game');
 assert.equal(programRoot({ area: 0, path: 'game.exe' }), '');
+assert.equal(programRoot({ area: 1, path: 'drive_c/users/username/AppData/Local/Programs/Game/game.exe' }), 'drive_c/users/username/AppData/Local/Programs/Game'.split('/').slice(0, 6).join('/'));
 
 // A shortcut with only LinkInfo's ANSI local path.
 const lnk = new Uint8Array(0x4c + 0x1c + 20), dv = new DataView(lnk.buffer);

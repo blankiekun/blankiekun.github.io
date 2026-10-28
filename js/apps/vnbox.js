@@ -951,7 +951,7 @@ function open() {
     unskip();
     errors = [];
     kept = []; retake = null;
-    // g.install: an installer running ({ p, w, args, since }, see install), with no hook, tuning or sync.
+    // g.install: an installer running ({ p, w, args, quiet }, see install), with no hook, tuning or sync.
     const inst = g.install;
     const hook = inst ? null : hookUrl(g);
     shots = anki.settings().on && !!hook;
@@ -1188,8 +1188,32 @@ function open() {
   // ---------- opening games ----------
 
   // From a folder handle, or a list of files already read.
+  // Asks the browser to keep this site's storage before a big copy: Firefox asks the visitor, and lifts
+  // its 10 GB cap when they agree; Chrome and Edge decide alone, and never clear it on their own after.
+  const keepStorage = () => navigator.storage && navigator.storage.persist ? navigator.storage.persist().catch(() => false) : Promise.resolve(false);
+
+  // A copy into this browser, shown in the window: its text, a bar, and how much of how much.
+  // Returns progress(done, total?); the caller puts the window back (boot, or welcome on a failure).
+  function showProgress(text, total) {
+    const bar = h('i'), meter = h('div', { class: 'cp-prog', role: 'progressbar', 'aria-label': text, 'aria-valuemin': 0, 'aria-valuemax': 100 }, bar);
+    const count = h('p', { class: 'cons-recent-at' });
+    view.replaceChildren(h('div', { class: 'vnb-progress' }, h('p', null, text), meter, count));
+    let shown = -1;
+    return (done, t = total) => {
+      const pct = Math.floor(done / (t || 1) * 100);
+      if (pct === shown) return;
+      shown = pct;
+      bar.style.width = pct + '%';
+      meter.setAttribute('aria-valuenow', pct);
+      count.textContent = `${bytes(done)} of ${bytes(t)} (${pct}%)`;
+      say(`${text} ${pct}%`);
+    };
+  }
+  const copyFailed = (text, e) => { view.replaceChildren(welcome); idle(); return error(`${text}\n\n${e.message}`); };
+
   async function load({ list, handle, link }) {
     if (list && !list.length) return;
+    keepStorage();
     say('Reading files...');
     if (!list) {
       try { list = await walkHandle(handle); } catch (e) { idle(); return error(`The folder ${handle.name} could not be read.\n\n${e.message}`); }
@@ -1215,18 +1239,14 @@ function open() {
         text: `${g.title} has more than one program. Which one starts the game?` });
     if (!g.exe) return idle();
     if (!(await confirmQuit())) return idle();
+    await keepStorage(); // answered (or not asked again) before the room is measured
     const s = navigator.storage, { usage = 0, quota = 0 } = s.estimate ? await s.estimate().catch(() => ({})) : {};
     if (quota && g.size > (quota - usage) * 0.9) { idle(); return error(`There's no room in this browser for ${g.title} (${bytes(g.size)}). Remove a game you've finished from File > Games in This Browser, or free some disk space.`); }
     if (frame) stop('Ready');
-    let shown = -1;
     try {
-      await copyGame(g, done => {
-        const pct = Math.floor(done / (g.size || 1) * 100);
-        if (pct !== shown) say(`Copying ${g.title} into this browser... ${shown = pct}%`);
-      });
+      await copyGame(g, showProgress(`Copying ${g.title} into this browser...`, g.size));
     } catch (e) {
-      idle();
-      return error(`${g.title} could not be copied into this browser.\n\n${e.message}`);
+      return copyFailed(`${g.title} could not be copied into this browser.`, e);
     }
     Object.assign(g, { hook: old ? old.hook : '', res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
     // Linked from a game's saves in Drive (linkDrive).
@@ -1240,6 +1260,7 @@ function open() {
 
   // Installs from discs [{ main, files }] or an installer folder ({ title, files, size } from findGame).
   async function install({ discs, folder }) {
+    keepStorage();
     let programs, listing = null, autorun = null, protection = [], title;
     if (discs) {
       say('Reading the disc...');
@@ -1264,15 +1285,12 @@ function open() {
     if (recentGames().some(r => r.title === opts.title)) return error(`${opts.title} is already in this browser. Give this one another name, or remove it in File > Games in This Browser first.`);
     if (!(await confirmQuit())) return;
     const size = discs ? discSize(discs) : folder.size;
+    await keepStorage();
     const st = navigator.storage, { usage = 0, quota = 0 } = st.estimate ? await st.estimate().catch(() => ({})) : {};
     // Room for the copy and about as much again for what the installer writes.
     if (quota && size * 2 > quota - usage) return error(`There's no room in this browser to install ${opts.title}: it needs about ${bytes(size * 2)}, and ${bytes(Math.max(0, quota - usage))} is free.`);
     if (frame) stop('Ready');
-    let shown = -1;
-    const progress = done => {
-      const pct = Math.floor(done / (size || 1) * 100);
-      if (pct !== shown) say(`Copying the ${discs ? 'disc' : 'installer'} into this browser... ${shown = pct}%`);
-    };
+    const progress = showProgress(`Copying the ${discs ? 'disc' : 'installer'} into this browser...`, size);
     const discList = discs ? discs.map(discPath) : undefined;
     try {
       if (discs) await copyDiscs(discs, progress);
@@ -1280,8 +1298,7 @@ function open() {
       await copyGame({ title: opts.title, files: discs ? [] : folder.files.map(f => ({ path: SETUP_FOLDER + '/' + f.path, file: f.file })) }, progress);
     } catch (e) {
       await dropCopy({ title: opts.title, discs: discList });
-      idle();
-      return error(`The ${discs ? 'disc' : 'installer'} could not be copied into this browser.\n\n${e.message}`);
+      return copyFailed(`The ${discs ? 'disc' : 'installer'} could not be copied into this browser.`, e);
     }
     const dir = installDir(opts.title), installer = opts.installer.replaceAll('/', '\\');
     let p = discs ? `${DISC_DRIVE}:\\${installer}` : `${dir}\\${SETUP_FOLDER}\\${installer}`;
@@ -1293,7 +1310,7 @@ function open() {
     const folderOf = x => x.slice(0, x.lastIndexOf('/') + 1);
     const msi = quiet && opts.kind === 'installshield' && discs && listing.files.find(f => /\.msi$/i.test(f.path) && folderOf(f.path) === folderOf(opts.installer));
     if (msi) { p = 'msiexec'; args = `/i "${DISC_DRIVE}:\\${msi.path.replaceAll('/', '\\')}" /qn`; }
-    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, quiet: !!quiet, since: Date.now() } });
+    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, quiet: !!quiet } });
   }
 
   // The installer exited, or the visitor says it's done: the program it installed is picked, and it and
@@ -1314,29 +1331,24 @@ function open() {
     stop('Looking for the installed game...');
     await wait(100); // the closed frame lets go of its databases
     try {
-      const found = await installedPrograms(g.title, g.install.since);
+      const found = await installedPrograms(g.title);
       if (!found.length) {
         await dropInstall(g);
         idle();
         return error(`The installer left no Windows program (.exe) VNBox could find, so ${g.title} wasn't added.\n\nIf it stopped with an error, try again with its questions on, or with the disc's other installer.`);
       }
-      const pick = found.length === 1 ? '0' : await listDialog({ title: 'Choose the Program', parent: win, value: '0',
+      const pick = await listDialog({ title: 'Choose the Program', parent: win, value: '0',
         items: found.map((f, i) => [String(i), f.path.replace(/^drive_c\//, 'C:/') + (f.shortcut ? ' (has a shortcut)' : '') + ', ' + bytes(f.size)]),
         text: `Which program starts ${g.title}? It and the files beside it become the game's folder. Cancel discards the install.` });
       if (pick == null) { await dropInstall(g); return idle(); }
       const dir = await (await vnRoot()).getDirectoryHandle(g.title);
-      let shown = -1;
-      const moved = await moveInstalled(g.title, dir, found[+pick], (done, total) => {
-        const pct = Math.floor(done / (total || 1) * 100);
-        if (pct !== shown) say(`Moving ${g.title} into its folder... ${shown = pct}%`);
-      });
+      const moved = await moveInstalled(g.title, dir, found[+pick], showProgress(`Moving ${g.title} into its folder...`));
       const ready = { title: g.title, exe: moved.exe, size: g.size + moved.size, hook: '', ...(g.discs && { discs: g.discs }) };
       remember(ready);
       showRecent();
       boot(ready);
     } catch (e) {
-      idle();
-      error(`${g.title} could not be added.\n\n${e.message}`);
+      copyFailed(`${g.title} could not be added.`, e);
     }
   }
   // A game, not an installer.
