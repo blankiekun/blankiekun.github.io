@@ -66,3 +66,8 @@ jp.zip holds the IPA fonts, under the IPA Font License v1.0 (included in the zip
 
 == Text hook scripts (vnbox/hooks/) https://github.com/0xDC00/scripts
 MIT, vnbox/hooks/LICENSE.
+
+== Anime wallpapers (img/wallpapers/), fan wallpapers of other people's art, shown as desktop pictures
+rooftop.jpg, shore.jpg: PC-98 game CG, artists unknown
+lain.jpg, wired.jpg: Serial Experiments Lain, character design by Yoshitoshi ABe
+konata.jpg: Konata Izumi (Lucky Star, Kagami Yoshimizu) over the Bliss hill

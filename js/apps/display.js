@@ -50,6 +50,9 @@ export const WALLPAPERS = {
   'Harmony': { url: 'radial-gradient(circle at 50% 45%, #bfe6ff 0, #4aa3ec 12%, transparent 34%), radial-gradient(ellipse 80% 40% at 30% 80%, rgba(120, 200, 80, .35), transparent 70%), linear-gradient(#2a74c4, #0f3d7a)', size: 'cover', repeat: 'no-repeat' },
   'Hero': { url: 'linear-gradient(100deg, transparent 52%, rgba(120, 200, 255, .5) 58%, transparent 66%), radial-gradient(ellipse 30% 45% at 62% 50%, #7cc8ff, #1a73d9 45%, transparent 70%), linear-gradient(#001a40, #003b86)', size: 'cover', repeat: 'no-repeat' },
   'Bloom': { url: 'radial-gradient(ellipse 30% 40% at 50% 58%, #e4f0ff, #3b82f6 45%, transparent 70%), radial-gradient(ellipse 50% 30% at 50% 70%, rgba(0, 70, 200, .5), transparent 70%), linear-gradient(#d5e6ff, #8fb6f2)', size: 'cover', repeat: 'no-repeat' },
+  // Anime pictures in each era's style (img/wallpapers/, see THIRD-PARTY.txt).
+  ...Object.fromEntries([['Rooftop', 'rooftop'], ['Sunset Shore', 'shore'], ['Lain', 'lain'], ['Wired', 'wired'], ['Peeking', 'konata']]
+    .map(([name, file]) => [name, { url: `url("${new URL(`../../img/wallpapers/${file}.jpg`, import.meta.url)}")`, size: 'cover', repeat: 'no-repeat' }])),
 };
 
 const SCHEMES = {
