@@ -2,7 +2,7 @@
 // in a frame (vnbox/engine/boxedwine.html). The engine reads the game from this browser's private
 // storage a block at a time, so each game is copied there once and opens again from Recent games
 // without choosing it. Saves stay in this browser (IndexedDB), and with Google Drive sync on (consdrive.js,
-// shared with CONscripter) are copied to the visitor's Drive as the game saves them. A text hook script (0xDC00's, in
+// shared with CONscripter) are copied to the visitor's Drive as the game saves them. A text hook script (0xDC00's, or a LunaHook engine port, in
 // vnbox/hooks/) sends each line of dialogue to the text log beside the game, for Yomitan or the clipboard.
 
 import { h, icon, download, store, wait } from '../util.js';
@@ -14,6 +14,7 @@ import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves,
 import * as drive from './consdrive.js';
 import * as anki from './consanki.js';
 import { watchGamepads } from './vnpad.js';
+import { lunaSuggestion } from './vnhooks.js';
 import { DISC_DRIVE, SETUP_FOLDER, DISC_FILE, INSTALLER_NAMES, discsOf, discFolder, discPath, discSize, listDisc, autorunProgram, copyProtection,
   installerKind, silentArgs, installDir, discPrograms, installedPrograms, moveInstalled } from './vninstall.js';
 import { tabbed } from './system.js';
@@ -152,6 +153,19 @@ async function deleteSaveDbs(title) {
     const r = indexedDB.deleteDatabase(d.name);
     r.onsuccess = r.onerror = r.onblocked = res;
   })));
+}
+
+// The paths of the files and folders in a game's copy (vn/<title>), for the LunaHook engines' file checks.
+async function gameFileNames(title) {
+  const out = [];
+  async function walk(d, prefix) {
+    for await (const [name, handle] of d.entries()) {
+      out.push(prefix + name);
+      if (handle.kind === 'directory') await walk(handle, prefix + name + '/');
+    }
+  }
+  await walk(await (await vnRoot()).getDirectoryHandle(title), '').catch(() => {});
+  return out;
 }
 
 let hookList = null;
@@ -457,7 +471,7 @@ function aboutVNBox(win) {
   return about('VNBox', 'i-vnbox', win, h('p', null, 'Engine ',
     h('a', { href: 'https://github.com/blankiekun/VNBox/releases/tag/' + ENGINE_VERSION, target: '_blank', rel: 'noopener' }, 'VNBox ' + ENGINE_VERSION),
     h('br'), 'Wine 11.0 on Tiny Core Linux, from Boxedwine', h('br'),
-    'Text hooks by 0xDC00 and contributors (MIT)'));
+    'Text hooks by 0xDC00 and contributors (MIT), and LunaHook\'s engines (HIllya51 and contributors) as ported by chimimouryou (GPL-3.0-or-later)'));
 }
 
 // ---------- touch and gamepads (ported from chimimouryou #307) ----------
@@ -715,8 +729,11 @@ function open() {
   async function chooseHook() {
     if (!game) return;
     const list = await hooks();
-    const items = [['', '(None)'], ...(ownHook ? [['file', ownHook.name + ' (from your computer)']] : []), ...list];
-    const pick = await listDialog({ title: 'Text Hook', parent: win, filter: true, items, value: game.hook || '',
+    // The LunaHook engine whose files the game has, first in the list.
+    const fits = lunaSuggestion(list, await gameFileNames(game.title), game.exe);
+    const items = [['', '(None)'], ...(ownHook ? [['file', ownHook.name + ' (from your computer)']] : []),
+      ...list.filter(([f]) => f === fits).map(([f, n]) => [f, n + ' (fits this game)']), ...list.filter(([f]) => f !== fits)];
+    const pick = await listDialog({ title: 'Text Hook', parent: win, filter: true, items, value: game.hook || fits || '',
       text: 'Choose the hook script for ' + game.title + '. It sends each line the game shows to the text log. The game restarts to use it.',
       extra: finish => h('button', { class: 'btn', type: 'button', onclick: () => pickHookFile().then(f => f && finish('file')) }, h('span', { html: 'From a F<u>i</u>le...' })) });
     if (pick == null || pick === (game.hook || '')) return frame && frame.focus();
