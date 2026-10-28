@@ -147,6 +147,32 @@ export function findGame(list) {
   return { title, files, exes: progs, size: files.reduce((n, f) => n + f.file.size, 0) };
 }
 
+// What's in this browser for games not in the list (removed games' saves, which for an installed game
+// hold what the installer left too; an install stopped without VNBox; disc images no game uses):
+// [{ title, disc (a vn-discs folder), size }], biggest first. busy: a title in use, left out.
+async function leftovers(busy) {
+  const list = recentGames(), known = new Set([...list.map(r => r.title), busy]);
+  const used = new Set(list.flatMap(r => r.discs || []).map(d => d.split('/')[1]));
+  const sizeOf = async d => { let n = 0; for await (const [, x] of d.entries()) n += x.kind === 'file' ? (await x.getFile()).size : await sizeOf(x); return n; };
+  const found = new Map(), add = (title, size, disc) => {
+    const k = disc ? 'disc:' + disc : title, o = found.get(k) || { title, disc, size: 0 };
+    o.size += size;
+    found.set(k, o);
+  };
+  const opfs = await navigator.storage.getDirectory();
+  for (const [name, d] of await Array.fromAsync((await vnRoot()).entries())) if (!known.has(name) && d.kind === 'directory') add(name, await sizeOf(d));
+  const discs = await opfs.getDirectoryHandle('vn-discs').catch(() => null);
+  if (discs) for await (const [name, d] of discs.entries()) if (!used.has(name)) add('', await sizeOf(d), name);
+  const dbs = indexedDB.databases ? await indexedDB.databases().catch(() => []) : [];
+  const titles = new Set(dbs.map(d => /^\/(?:lazyapp|root\/lazy)\/(.+)$/.exec(d.name || '')).filter(Boolean)
+    .map(m => { try { return decodeURIComponent(m[1]); } catch { return ''; } }).filter(t => t.startsWith('opfs:vn/')).map(t => t.slice(8)));
+  for (const title of titles) {
+    if (known.has(title)) continue;
+    for (const area of saveAreas(title)) add(title, (await listSaves(area).catch(() => [])).reduce((n, e) => n + e.size, 0));
+  }
+  return [...found.values()].sort((a, b) => b.size - a.size);
+}
+
 // The save databases of a game: the engine names them after their mount points, which end in the game's folder.
 async function deleteSaveDbs(title) {
   const end = encodeURIComponent('opfs:vn/' + title);
@@ -562,7 +588,7 @@ function open() {
   let frame = null;  // the running engine
   let errors = [];   // what the engine reported, for Debug > Engine Log
   let ownHook = null; // a hook script picked from a file this visit: { name, url }
-  let showLog = store.get(SHOW_LOG, true), clip = store.get(CLIP, false);
+  let showLog = store.get(SHOW_LOG, false), clip = store.get(CLIP, false);
 
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
     h('b', null, 'Drag a game folder or .zip here'),
@@ -787,6 +813,8 @@ function open() {
     if (pick == null || pick === (game.hook || '')) return frame && frame.focus();
     if (!(await confirmQuit())) return;
     game.hook = pick;
+    // Off at first: a hook is what fills it.
+    if (pick && !showLog) toggleLog();
     setGame(game.title, { hook: pick === 'file' ? '' : pick });
     boot(game);
   }
@@ -929,7 +957,8 @@ function open() {
     shots = anki.settings().on && !!hook;
     const arg = (k, v) => k + '=' + encodeURIComponent(v);
     // The shell reads env= undecoded and splits it at the colon, so only the quotes are escaped.
-    const q = [arg('lazy', 'opfs:vn/' + g.title), arg('p', inst ? inst.p : g.exe), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
+    // p: Windows separators, since the shell starts it through cmd /c, which reads Game/game.exe's /game.exe as a switch.
+    const q = [arg('lazy', 'opfs:vn/' + g.title), arg('p', inst ? inst.p : g.exe.replaceAll('/', '\\')), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
       'env=%22LC_ALL:ja_JP.UTF-8%22', arg('resolution', g.res || SIZES[1]), ...(hook ? [arg('frida', hook)] : []),
       // The discs a game was installed from, read on demand, disc 1 in the drive.
       ...(g.discs && g.discs.length ? [arg('cdrom', g.discs.map(d => 'opfs:' + d).join(';'))] : []),
@@ -974,7 +1003,8 @@ function open() {
     view.replaceChildren(h('div', { class: 'vnb-play' }, frame, log));
     win.setTitle(g.title + ' - VNBox');
     statusGame.textContent = inst ? '' : g.exe + ', ' + bytes(g.size);
-    say(inst ? `Installing ${g.title}: VNBox goes on when the installer closes, or choose File > Finish Install` : 'Playing ' + g.title);
+    say(!inst ? 'Playing ' + g.title : inst.quiet ? `Installing ${g.title} quietly: the installer shows no window, and VNBox goes on by itself when it's done`
+      : `Installing ${g.title}: VNBox goes on when the installer closes, or choose File > Finish Install`);
     // Newer saves from Google Drive go in before the engine reads its databases.
     if (!drive.enabled() || inst) start();
     else {
@@ -1003,7 +1033,7 @@ function open() {
   function onMessage(e) {
     if (!frame || e.source !== frame.contentWindow || !e.data) return;
     // No Windows program left running: the installer is done.
-    if (e.data.type === 'vnbox-exit' && game.install) return finishInstall();
+    if (e.data.type === 'vnbox-exit' && game.install) return finishInstall(true);
     if (e.data.type !== 'vnbox-error') return;
     errors.push(`[${e.data.source}] ${e.data.message}`);
     if (e.data.source === 'lazyfs') {
@@ -1263,14 +1293,20 @@ function open() {
     const folderOf = x => x.slice(0, x.lastIndexOf('/') + 1);
     const msi = quiet && opts.kind === 'installshield' && discs && listing.files.find(f => /\.msi$/i.test(f.path) && folderOf(f.path) === folderOf(opts.installer));
     if (msi) { p = 'msiexec'; args = `/i "${DISC_DRIVE}:\\${msi.path.replaceAll('/', '\\')}" /qn`; }
-    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, since: Date.now() } });
+    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, quiet: !!quiet, since: Date.now() } });
   }
 
   // The installer exited, or the visitor says it's done: the program it installed is picked, and it and
   // the files beside it move out of the engine's databases into the game's folder.
-  async function finishInstall() {
+  // exited: no Windows program is left running; else the visitor chose File > Finish Install.
+  async function finishInstall(exited) {
     const g = game, me = frame;
     if (!me || !g.install || g.install.finishing) return;
+    if (!exited) {
+      const b = await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+        text: `The installer is still running${g.install.quiet ? ' (quietly, with no window)' : ''}, and VNBox goes on by itself when it closes.\n\nStop it now and keep what it has installed so far? A game stopped halfway may not start.` });
+      if (b !== 'Yes' || frame !== me || g.install.finishing) return;
+    }
     g.install.finishing = true;
     say('Looking for the installed game...');
     await wait(1500); // the engine writes the last changes to its databases a moment after they happen
@@ -1392,7 +1428,25 @@ function open() {
   function gamesDialog() {
     const rows = h('div', { class: 'cons-recent-list' });
     const used = h('p');
+    const leftRows = h('div', { class: 'cons-recent-list' });
+    const leftBox = h('fieldset', { class: 'group', hidden: true }, h('legend', null, 'Left behind'),
+      h('p', null, 'Saves of games you removed (for a game installed here, with what its installer left), and copies no game uses.'), leftRows);
+    async function showLeft() {
+      const left = await leftovers(game && game.title).catch(() => []);
+      leftBox.hidden = !left.length;
+      leftRows.replaceChildren(...left.map(l => h('div', { class: 'cons-kept-item' }, icon('i-folder'),
+        h('span', { class: 'cons-recent-name' }, l.disc ? 'Disc image no game uses' : l.title), h('span', { class: 'cons-recent-at' }, bytes(l.size)),
+        h('button', { class: 'btn', type: 'button', title: 'Delete it', onclick: async () => {
+          const b = await msgbox({ title: 'VNBox', icon: 'warn', parent: d, buttons: ['&Yes', '&No'],
+            text: l.disc ? 'Delete this disc image from this browser?' : `Delete what's left of ${l.title} in this browser, its saves included?\n\nThis can't be undone (copies in Google Drive stay).` });
+          if (b !== 'Yes') return;
+          if (l.disc) await navigator.storage.getDirectory().then(o => o.getDirectoryHandle('vn-discs')).then(o => o.removeEntry(l.disc, { recursive: true })).catch(() => {});
+          else { await dropCopy({ title: l.title }); await deleteSaveDbs(l.title); }
+          show();
+        } }, 'Delete'))));
+    }
     function show() {
+      showLeft();
       const list = recentGames();
       rows.replaceChildren(...(list.length ? list.map(r => h('div', { class: 'cons-kept-item' }, icon('i-folder'),
         h('span', { class: 'cons-recent-name' }, r.title), h('span', { class: 'cons-recent-at' }, bytes(r.size || 0)),
@@ -1408,6 +1462,7 @@ function open() {
     const form = h('form', { class: 'dlg cons-settings' },
       h('fieldset', { class: 'group' }, h('legend', null, 'Games'),
         h('p', null, 'Each game you open is copied here, so it opens again without choosing its folder. Removing one keeps its saves.'), rows, used),
+      leftBox,
       h('div', { class: 'btns right' }, h('button', { class: 'btn default', type: 'submit' }, 'Close')));
     form.addEventListener('submit', e => { e.preventDefault(); d.close(true); });
     const d = createWindow({ title: 'Games in This Browser', body: form, dialog: true, resizable: false, width: 'auto', parent: win, taskbar: false });
