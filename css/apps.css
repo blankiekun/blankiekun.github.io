@@ -1125,6 +1125,14 @@ body.dragging-files iframe { pointer-events: none; }
 .gd-moe { background: none; box-shadow: none; gap: 2px; text-shadow: 0 1px 3px #000c, 0 0 8px #0006; cursor: default; }
 .gd-moe-t { font: 300 40px/1 "Segoe UI Light", "Segoe UI", var(--font-ui); font-variant-numeric: tabular-nums; }
 .gd-moe-d { font-size: 13px; letter-spacing: .1em; }
+/* Kanji of the Day: a card that flips between the glyph and its readings */
+.gd-kanji { gap: 3px; padding: 6px 8px; border: 0; cursor: var(--hand); text-align: left; }
+.gd-kanji[aria-pressed="true"] { align-items: flex-start; justify-content: flex-start; }
+.gd-kj-h { align-self: flex-start; font-size: 11px; opacity: .85; }
+.gd-kj-k { flex: 1; display: grid; place-items: center; font: 76px/1 "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP", sans-serif; }
+.gd-kj-en { font-size: 14px; font-weight: 600; }
+.gd-kj-ex { margin-top: auto; } .gd-kj-rd { opacity: .8; }
+.gd-kanji:focus-visible { outline: 1px dotted currentColor; outline-offset: -3px; }
 /* The decades before gadgets: a PC-98 game's status window for 1.0-3.1, a beveled
    LCD like a 9x tray clock, Samurize's dark strip for XP, bare thin Rainmeter text for 8-11. */
 html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd { border-radius: 0; background: #000; color: #5ff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #f5f, inset 0 0 0 6px #000; font-family: var(--font-mono, monospace); text-shadow: none; }
@@ -1135,6 +1143,10 @@ html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .g
 html[data-win="xp"] .gd { border-radius: 4px; background: linear-gradient(#000a, #0008); box-shadow: 0 0 0 1px #fff4; }
 html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-moe-t { font-size: 46px; font-weight: 200; }
 html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-moe { align-items: flex-start; text-shadow: 0 1px 4px #0009; }
+/* 8-11: the kanji card is a flat Live Tile in the accent colour; 11 rounds it like a widget */
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-kanji { border-radius: 0; background: var(--accent, #0078d7); color: #fff; box-shadow: none; text-shadow: none; padding: 8px 10px; }
+html[data-win="11"] .gd-kanji { border-radius: 8px; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-kj-k { font-weight: 300; }
 /* 8-11: no frame round the gadgets; the title bar to drag one by shows on hover */
 html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget { border-color: transparent; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget:not(:hover, :focus-within) > .titlebar { opacity: 0; }
