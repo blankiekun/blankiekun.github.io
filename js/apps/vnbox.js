@@ -77,6 +77,10 @@ const recentGames = () => store.get(RECENT, []);
 const vnRoot = () => navigator.storage.getDirectory().then(d => d.getDirectoryHandle('vn', { create: true }));
 async function dropCopy(r) {
   await vnRoot().then(d => d.removeEntry(r.title, { recursive: true })).catch(() => {});
+  await dropDiscs(r);
+}
+// r's disc images, unless another game uses them.
+async function dropDiscs(r) {
   const kept = recentGames().flatMap(o => o.title === r.title ? [] : o.discs || []).map(d => d.slice(0, d.lastIndexOf('/')));
   const opfs = await navigator.storage.getDirectory();
   for (const folder of new Set((r.discs || []).map(d => d.slice(0, d.lastIndexOf('/'))))) {
@@ -1370,7 +1374,14 @@ function open() {
       if (pick == null) { await dropInstall(g); return idle(); }
       const dir = await (await vnRoot()).getDirectoryHandle(g.title);
       const moved = await moveInstalled(g.title, dir, found[+pick], showProgress(`Moving ${g.title} into its folder...`));
-      const ready = { title: g.title, exe: moved.exe, size: g.size + moved.size, hook: '', ...(g.discs && { discs: g.discs }) };
+      // The disc images double what the game takes: kept only if wanted.
+      let discs = g.discs;
+      if (discs && discs.length && await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+        text: `Keep the disc images of ${g.title} (${bytes(g.size)})?\n\nSome games need their disc to start, or play music and movies from it. No frees the space; if the game then asks for its disc, install it again.` }) === 'No') {
+        await dropDiscs(g);
+        discs = undefined;
+      }
+      const ready = { title: g.title, exe: moved.exe, size: (discs ? g.size : 0) + moved.size, hook: '', ...(discs && { discs }) };
       remember(ready);
       showRecent();
       boot(ready);
