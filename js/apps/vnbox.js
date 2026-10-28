@@ -13,6 +13,7 @@ import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZ
 import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
 import * as drive from './consdrive.js';
 import { tabbed } from './system.js';
+import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
 import { VERSIONS, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
 
 const RECENT = 'w95.vnbox.recent';
@@ -320,6 +321,56 @@ function tuningDialog(g, parent) {
   });
 }
 
+// Text > Text Cleanup: a game's filters for its hooked lines (vnclean.js). recent is the raw lines the
+// hook sent lately, for Suggest. Resolves to the new cleanup, or null.
+function cleanupDialog(g, recent, parent) {
+  return new Promise(resolve => {
+    const c = g.cleanup || {};
+    const boxes = FILTERS.map(([key, title, hint]) => {
+      const box = h('input', { type: 'checkbox', checked: filterOn(c, key) });
+      return [key, box, h('label', { class: 'cons-check', title: hint }, box, h('span', null, title + ': ', h('span', { class: 'dp-note' }, hint)))];
+    });
+    const num = (value, min, max) => h('input', { class: 'field vnb-clean-num', type: 'number', min, max, value });
+    const count = num(c.repeatCount || 0, 0, 10), size = num(c.recentSize || DEFAULT_RECENT, 1, 100);
+    const rules = h('textarea', { class: 'field vnb-tune-text', rows: 3, spellcheck: false, autocomplete: 'off', wrap: 'off', placeholder: '^【.+?】 => ' }, rulesText(c.rules));
+    const set = cleanup => boxes.forEach(([key, box]) => { box.checked = filterOn(cleanup, key); });
+    function suggest() {
+      const s = suggestCleanup(recent.slice(-50));
+      if (!s) return msgbox({ title: 'Text Cleanup', icon: 'info', parent: d,
+        text: recent.length < 3 ? 'Click through a few lines in the game first, then try again.' : 'The recent lines look clean: nothing to suggest.' });
+      set(s);
+    }
+    let done = false;
+    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const form = h('form', { class: 'dlg vnb-dlg vnb-tune' },
+      h('p', null, 'Filters for what a hook gets wrong, run in this order on each line before the text log shows it. OK also cleans the lines already in the log.'),
+      h('div', { class: 'vnb-clean-list' }, ...boxes.map(b => b[2])),
+      h('label', { class: 'dp-row' }, h('span', { html: 'Repeat &count (0: guessed):'.replace(/&(.)/, '<u>$1</u>') }), count),
+      h('label', { class: 'dp-row' }, h('span', { html: 'Recent lines &kept:'.replace(/&(.)/, '<u>$1</u>') }), size),
+      h('label', { class: 'vnb-tune-area' }, h('span', { html: 'R<u>e</u>place rules, one a line: regular expression => replacement' }), rules),
+      h('div', { class: 'btns right' },
+        h('button', { class: 'btn', type: 'button', onclick: suggest }, h('span', { html: '<u>S</u>uggest' })),
+        h('button', { class: 'btn', type: 'button', onclick: () => { set({}); count.value = 0; size.value = DEFAULT_RECENT; rules.value = ''; } }, h('span', { html: '<u>R</u>eset' })),
+        h('button', { class: 'btn default', type: 'submit' }, 'OK'),
+        h('button', { class: 'btn', type: 'button', onclick: () => finish(null) }, 'Cancel')));
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const r = rulesFromText(rules.value);
+      if (r.bad.length) return msgbox({ title: 'Text Cleanup', icon: 'error', parent: d, text: 'These rules aren\'t valid regular expressions, so nothing was changed yet:\n\n' + r.bad.join('\n') });
+      // Only what differs from the defaults is kept.
+      const out = {};
+      for (const [key, box] of boxes) if (box.checked !== (key === 'newOnly')) out[key] = box.checked;
+      if (+count.value > 0) out.repeatCount = Math.min(10, Math.round(+count.value));
+      if (+size.value > 0 && +size.value !== DEFAULT_RECENT) out.recentSize = Math.min(100, Math.round(+size.value));
+      if (r.rules.length) out.rules = r.rules;
+      finish(out);
+    });
+    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
+    const d = createWindow({ title: 'Text Cleanup - ' + g.title, body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    form.querySelector('input').focus();
+  });
+}
+
 function aboutVNBox(win) {
   return about('VNBox', 'i-vnbox', win, h('p', null, 'Engine ',
     h('a', { href: 'https://github.com/blankiekun/VNBox/releases/tag/' + ENGINE_VERSION, target: '_blank', rel: 'noopener' }, 'VNBox ' + ENGINE_VERSION),
@@ -419,18 +470,36 @@ function open() {
 
   // ---------- the text log ----------
 
-  function addLine(text) {
-    text = String(text).trim();
+  // raw: the lines as the hook sent them, so a new cleanup can redo the log.
+  let raw = [], clean = hookCleaner({});
+  function addLine(line, quiet) {
+    if (!quiet) { raw.push(String(line)); if (raw.length > MAX_LINES) raw.shift(); }
+    const text = clean(String(line)).trim();
     if (!text) return;
     const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     logEmpty.remove();
     log.append(h('p', null, text));
     while (log.childElementCount > MAX_LINES) log.firstElementChild.remove();
     if (atEnd) log.scrollTop = log.scrollHeight;
-    if (clip && navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    if (!quiet && clip && navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
   }
   const lines = () => [...log.querySelectorAll('p:not(.vnb-log-empty)')].map(p => p.textContent);
-  function clearLog() { log.replaceChildren(logEmpty); }
+  function clearLog() {
+    raw = [];
+    clean = hookCleaner((game && game.cleanup) || {});
+    log.replaceChildren(logEmpty);
+  }
+  async function cleanup() {
+    const c = await cleanupDialog(game, raw, win);
+    if (!c) return frame && frame.focus();
+    game.cleanup = c;
+    setGame(game.title, { cleanup: c });
+    const old = raw;
+    clearLog();
+    for (const line of old) addLine(line, true);
+    raw = old;
+    frame && frame.focus();
+  }
   clearLog();
   function toggleLog() {
     showLog = !showLog;
@@ -865,6 +934,7 @@ function open() {
     ] },
     { label: '&Text', items: () => [
       { label: 'Text &Hook...', disabled: !game, action: chooseHook },
+      { label: 'Text &Cleanup...', disabled: !game, action: cleanup },
       '-',
       { label: 'Show Text &Log', checked: showLog, action: toggleLog },
       { label: '&Copy Each Line to the Clipboard', checked: clip, action: () => { clip = !clip; store.set(CLIP, clip); } },

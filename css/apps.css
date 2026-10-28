@@ -1278,3 +1278,5 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 .vnb-tune { width: 480px; }
 .vnb-tune-area { display: flex; flex-direction: column; gap: 2px; }
 .vnb-tune-text { width: 100%; resize: vertical; font-family: monospace; }
+.vnb-clean-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.vnb-clean-num { width: 5em; }
