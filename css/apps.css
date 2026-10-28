@@ -1125,11 +1125,21 @@ body.dragging-files iframe { pointer-events: none; }
 .gd-moe { background: none; box-shadow: none; gap: 2px; text-shadow: 0 1px 3px #000c, 0 0 8px #0006; cursor: default; }
 .gd-moe-t { font: 300 40px/1 "Segoe UI Light", "Segoe UI", var(--font-ui); font-variant-numeric: tabular-nums; }
 .gd-moe-d { font-size: 13px; letter-spacing: .1em; }
+/* Visual Novel: a game's message window, white text in a dark blue box, a blinking ▼ when the line is done */
+.gd-vn { align-items: stretch; justify-content: flex-start; padding: 6px 8px; background: #000a5a; box-shadow: inset 0 0 0 1px #fff, inset 0 0 0 3px #000a5a, inset 0 0 0 4px #fff8; cursor: var(--hand); text-shadow: none; }
+.gd-vn:focus-visible { outline: 2px solid #ff5; outline-offset: 1px; }
+.gd-vn-msg { margin: 0; font: 12px/1.45 var(--font-pixel); overflow-wrap: anywhere; }
+.gd-vn-more { margin-left: 2px; font-size: 9px; }
+@media (prefers-reduced-motion: no-preference) { .gd-vn-more { animation: gd-blink 1s steps(1) infinite; } }
+@keyframes gd-blink { 50% { opacity: 0; } }
+.gd-vn-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 /* The decades before gadgets: a PC-98 game's status window for 1.0-3.1, a beveled
    LCD like a 9x tray clock, Samurize's dark strip for XP, bare thin Rainmeter text for 8-11. */
 html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd { border-radius: 0; background: #000; color: #5ff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #f5f, inset 0 0 0 6px #000; font-family: var(--font-mono, monospace); text-shadow: none; }
 html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-moe-t { font: bold 34px/1 var(--font-mono, monospace); }
 html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-moe-d { color: #ff5; }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-vn { background: #0000aa; color: #fff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #fff, inset 0 0 0 5px #000, inset 0 0 0 6px #55f; padding: 8px 10px; }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-vn-msg { font-size: 13px; line-height: 16px; -webkit-font-smoothing: none; font-smooth: never; }
 html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .gd { border-radius: 0; background: var(--face); color: #000; box-shadow: var(--raised, inset -1px -1px #000, inset 1px 1px #fff); text-shadow: none; padding: 4px; }
 html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .gd-moe-t { align-self: stretch; text-align: center; background: #000; color: #3f3; box-shadow: inset 1px 1px #808080, inset -1px -1px #fff; font: bold 32px/1.15 var(--font-mono, monospace); }
 html[data-win="xp"] .gd { border-radius: 4px; background: linear-gradient(#000a, #0008); box-shadow: 0 0 0 1px #fff4; }
@@ -1143,7 +1153,7 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget:not(:hover
 @media (max-width: 640px), (max-height: 420px) { .sidebar { display: none; } }
 .gd-gallery { padding: 10px; font: 12px var(--font-ui); }
 .gd-gallery p { margin: 0 0 8px; }
-.gd-tiles { display: grid; grid-template-columns: repeat(5, 84px); gap: 6px; }
+.gd-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 84px; gap: 6px; }
 .gd-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1px solid transparent; border-radius: 3px; background: none; font: inherit; cursor: var(--hand); }
 .gd-tile:hover, .gd-tile:focus-visible { border-color: #7eb4ea; background: #e5f3fb; }
 .gd-tile svg, .gd-cal-ico { width: 32px; height: 32px; }
