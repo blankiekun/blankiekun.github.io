@@ -4,6 +4,8 @@
 # never get half a site. The key may only run chimireader-deploy, bound to /srv/blankie on the VPS.
 # Secrets: VPS_HOST (the VPS's IP), VPS_USER, VPS_SSH_KEY (the blankie deploy key's private half),
 # VPS_KNOWN_HOSTS (`ssh-keyscan -t ed25519 <VPS_HOST>`). Without them it skips.
+# Optional: secret CF_API_TOKEN (Zone → Cache Purge) and variable CF_ZONE_ID purge /vnbox/ from
+# Cloudflare after each deploy, since VNBox's files keep their names across versions (as chimimouryou's).
 name: VPS site
 on:
   workflow_dispatch:
@@ -62,3 +64,15 @@ jobs:
             ./ "$VPS_USER@$VPS_HOST:$id/"
           "${ssh[@]}" "$VPS_USER@$VPS_HOST" activate "$id"
           rm -f ~/.ssh/vps
+
+      - name: Purge VNBox from Cloudflare
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ vars.CF_ZONE_ID }}
+        run: |
+          if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_ZONE_ID" ]; then echo "No CF_API_TOKEN/CF_ZONE_ID: purge skipped"; exit 0; fi
+          curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
+            -H "Authorization: Bearer $CF_API_TOKEN" -H 'Content-Type: application/json' \
+            --data '{"prefixes":["blankie.moe/vnbox/"]}' > /dev/null
+          echo "Purged blankie.moe/vnbox/"
