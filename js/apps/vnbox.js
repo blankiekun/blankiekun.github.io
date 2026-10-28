@@ -1026,7 +1026,8 @@ function open() {
       setSize(LEARN);
       boot(game);
       say('Restarting at a bigger screen to fit the game');
-    } else if (game.res === LEARN && width + 'x' + height !== LEARN && (width > 800 || height > 600)) setSize(width + 'x' + height, true);
+    // Not from a window too small to be a game's screen (Wine's crash dialog, a launcher).
+    } else if (game.res === LEARN && width + 'x' + height !== LEARN && (width > 800 || height > 600) && width >= 640 && height >= 480) setSize(width + 'x' + height, true);
   }
 
   // The engine posts { type: 'vnbox-error', source, message }; a game that couldn't be read never starts.
