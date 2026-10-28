@@ -40,7 +40,9 @@ const KEPT_LINES = 500, KEPT_PICTURES = 30;
 const KEPT_SOUNDS = 10;
 // How often a running game's databases are checked for a new save to copy to Google Drive.
 const SAVE_POLL = 5000;
-const driveKey = title => 'vnbox:' + title;
+// A game's saves in Drive go by its title, or by the title it was linked to (the same game in a
+// folder named otherwise on another computer; record.drive).
+const driveKey = title => 'vnbox:' + ((recentGames().find(r => r.title === title) || {}).drive || title);
 const hhmm = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 // The engine waits for the game's files with JSPI, which Chrome and Edge have (137 and later).
 const canRun = typeof WebAssembly === 'object' && typeof WebAssembly.Suspending === 'function';
@@ -68,7 +70,7 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 
 // ---------- games in this browser ----------
 
-// [{ title, at, size, exe, hook, res, discs }], newest first. Each one has a copy of its files in the
+// [{ title, at, size, exe, hook, res, discs, drive }], newest first. Each one has a copy of its files in the
 // site's private storage (the origin private file system), in vn/<title>, where the engine reads them;
 // a game installed from discs keeps their images in vn-discs/ (vninstall.js), for games that check for them.
 const recentGames = () => store.get(RECENT, []);
@@ -84,7 +86,7 @@ async function dropCopy(r) {
 
 function remember(g) {
   const old = recentGames().find(r => r.title === g.title) || {};
-  const list = [{ ...old, title: g.title, at: Date.now(), size: g.size, exe: g.exe, hook: g.hook || '', res: g.res, ...(g.discs && { discs: g.discs }) },
+  const list = [{ ...old, title: g.title, at: Date.now(), size: g.size, exe: g.exe, hook: g.hook || '', res: g.res, ...(g.discs && { discs: g.discs }), ...(g.drive && { drive: g.drive }) },
     ...recentGames().filter(r => r.title !== g.title)];
   store.set(RECENT, list.slice(0, MAX_RECENT));
   for (const r of list.slice(MAX_RECENT)) dropCopy(r);
@@ -567,7 +569,52 @@ function open() {
     h('span', null, 'the one with the game\'s .exe in it'));
   const recentRows = h('div', { class: 'cons-recent-list' });
   const recentBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Recent games'), recentRows);
+  // Games whose saves are in Google Drive but not linked to a game here (from another computer):
+  // Link... picks the game they're the saves of.
+  const driveRows = h('div', { class: 'cons-recent-list' });
+  const driveBox = h('fieldset', { class: 'group cons-recent', hidden: true }, h('legend', null, 'Saves in your Google Drive'), driveRows);
+  let driveShown = 0;
+  async function showDrive() {
+    const n = ++driveShown;
+    if (!drive.enabled()) { driveBox.hidden = true; return; }
+    let games;
+    // Not signed in this visit: asked, never a sign-in window out of the blue.
+    try { games = await (drive.signedIn() ? drive.list('vnbox:') : Promise.reject(new drive.DriveError('', 'signin'))); } catch (e) {
+      if (n !== driveShown) return;
+      driveBox.hidden = false;
+      driveRows.replaceChildren(e.kind === 'signin'
+        ? h('button', { class: 'cons-recent-item', type: 'button', onclick: () => drive.signInAgain().then(showDrive, () => {}) },
+          icon('i-info'), h('span', { class: 'cons-recent-name' }, 'Sign in to Google to see the games saved in your Drive'))
+        : h('span', { class: 'cons-recent-at' }, e.message));
+      return;
+    }
+    if (n !== driveShown) return;
+    const linked = new Set(recentGames().map(r => r.drive || r.title));
+    const rest = games.filter(g => !linked.has(g.title));
+    driveBox.hidden = !rest.length;
+    driveRows.replaceChildren(...rest.map(g => h('div', { class: 'cons-kept-item' }, icon('i-folder'),
+      h('span', { class: 'cons-recent-name' }, g.title), h('span', { class: 'cons-recent-at' }, when(g.at)),
+      h('button', { class: 'btn', type: 'button', title: 'Choose the game these saves are from', onclick: () => linkDrive(g.title) }, 'Link...'))));
+  }
+  async function linkDrive(title) {
+    const list = recentGames();
+    const pick = await listDialog({ title: 'Link Saves', parent: win, value: '',
+      items: [['', 'Open the game\'s folder...'], ...list.map(r => [r.title, r.title + (r.drive ? ` (now linked to ${r.drive})` : '')])],
+      text: `Which game are the saves of ${title} from? It syncs with them from now on, and newer ones come in when it starts.` });
+    if (pick == null) return;
+    if (pick) {
+      setGame(pick, { drive: pick === title ? undefined : title });
+      showRecent();
+      say(`${pick} now syncs with the saves of ${title}`);
+      if (frame && game.title === pick) syncSaves(pick, { w: frame, interactive: true, report: true });
+      return;
+    }
+    const picked = await pickFolder();
+    load({ ...picked, link: title });
+  }
+
   function showRecent() {
+    showDrive();
     const list = recentGames();
     recentBox.hidden = !list.length;
     recentRows.replaceChildren(...list.map(r => {
@@ -602,6 +649,7 @@ function open() {
         h('button', { class: 'btn', type: 'button', disabled: !can, onclick: openZip }, h('span', { html: 'Open <u>Z</u>ip...' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'VNBox') }, h('span', { html: '<u>H</u>elp' }))),
       recentBox,
+      driveBox,
       h('fieldset', { class: 'group cons-warn' }, h('legend', null, 'Good to know'),
         h('div', { class: 'cons-warn-row' }, icon('i-info'), h('p', null,
           'The first game downloads Wine (120 MB, once) and sets it up, which takes a few minutes. Games are slower than on Windows, and not every game runs. ',
@@ -1091,6 +1139,7 @@ function open() {
       return;
     }
     showSync('Google Drive', 'Saves are in this browser and synced with Google Drive. Click to sync now.');
+    showDrive();
     say('Google Drive sync is on');
     if (frame) syncSaves(game.title, { w: frame, interactive: true, report: true });
   }
@@ -1102,13 +1151,14 @@ function open() {
     await chain;
     await drive.disconnect();
     showSync('', '');
+    showDrive();
     say('Google Drive sync is off');
   }
 
   // ---------- opening games ----------
 
   // From a folder handle, or a list of files already read.
-  async function load({ list, handle }) {
+  async function load({ list, handle, link }) {
     if (list && !list.length) return;
     say('Reading files...');
     if (!list) {
@@ -1149,6 +1199,8 @@ function open() {
       return error(`${g.title} could not be copied into this browser.\n\n${e.message}`);
     }
     Object.assign(g, { hook: old ? old.hook : '', res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
+    // Linked from a game's saves in Drive (linkDrive).
+    if (link && link !== g.title) g.drive = link;
     delete g.files;
     remember(g);
     boot(g);

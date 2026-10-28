@@ -233,6 +233,16 @@ export async function sync(title, local, interactive = false, meta = {}) {
   return m.toLocal;
 }
 
+// The games whose saves are in Drive under a prefix (e.g. 'vnbox:'): [{ title (after the prefix), at (ms) }],
+// newest first, from the files' names (upload names them '<title> saves.json.gz').
+export async function list(prefix, interactive = false) {
+  const end = ' saves.json.gz', seen = new Set();
+  const r = await api(`${API}/files?spaces=appDataFolder&pageSize=1000&orderBy=modifiedTime desc&fields=files(name,modifiedTime)&q=${encodeURIComponent('trashed = false')}`, {}, interactive);
+  return (await r.json()).files.filter(f => f.name.startsWith(prefix) && f.name.endsWith(end))
+    .map(f => ({ title: f.name.slice(prefix.length, -end.length), at: Date.parse(f.modifiedTime) }))
+    .filter(g => !seen.has(g.title) && seen.add(g.title));
+}
+
 // Deletes the game's saves from Drive.
 export async function remove(title, interactive = false) {
   const f = await find(title, interactive);
