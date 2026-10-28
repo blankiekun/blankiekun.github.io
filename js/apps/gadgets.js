@@ -1,9 +1,9 @@
-// Desktop gadgets: CPU Meter, Calendar, Slide Show, the Moe Clock, Kanji of the Day and the Pocket Pet,
+// Desktop gadgets: CPU Meter, Calendar, Slide Show, the Moe Clock, Kanji of the Day, the Pocket Pet and a Visual Novel,
 // plus the gallery that adds them (and the Clock gadget, js/apps/clock.js). Vista docks them down the Sidebar on the right;
 // every other era lets them float on the desktop, skinned for its decade (css/apps.css).
 // Which ones are open is remembered for the next visit.
 
-import { h, icon, store, small } from '../util.js';
+import { h, icon, store, small, reducedMotion } from '../util.js';
 import { createWindow, launch, all } from '../wm.js';
 import { sample } from './sysmon.js';
 import { V } from '../version.js';
@@ -260,9 +260,60 @@ function pocketPet() {
   return gadget('pet', 'Pocket Pet', body, 220, () => clearInterval(timer));
 }
 
+// ---------- Visual Novel ----------
+
+// A PC-98 adventure game's message window, chatting about life at the computer.
+const VN_LINES = [
+  'おはよう! The fan is humming. Coffee first, then email.',
+  'You left forty tabs open again... 大丈夫, I counted them for you.',
+  'It is raining outside. 雨の日は、ゲームの日だね。',
+  'I defragmented my thoughts. All the blue blocks are in a row now.',
+  'Look, the screensaver stars! Just one more minute, okay?',
+  'ちょっと待って — saving... saving... done. Phew.',
+  'The modem sings when it dials. I think it is a happy song.',
+  'Your desktop is so tidy today. えらい、えらい。',
+  'I made you a folder called "Later". It is very full.',
+  'お茶、冷めちゃうよ。 Your tea is getting cold.',
+  'Shall we play Minesweeper? I won’t click the corners.',
+  'The clock says it is late. 夜ふかしは、ほどほどにね。',
+  'I like the sound the floppy makes. カリカリ、カリカリ。',
+  'Thank you for not unplugging me during the update.',
+  'また明日ね。 Good night, and sweet dreams.',
+];
+
+// One press: a line still typing finishes at once; a finished one moves on to the next.
+export const vnAdvance = ({ line, shown }, lines) =>
+  shown < [...lines[line]].length ? { line, shown: [...lines[line]].length } : { line: (line + 1) % lines.length, shown: 0 };
+// One timer tick: one more character, stopping at the end of the line.
+export const vnType = ({ line, shown }, lines) => ({ line, shown: Math.min(shown + 1, [...lines[line]].length) });
+console.assert(vnType({ line: 0, shown: 0 }, ['あb']).shown === 1 && vnType({ line: 0, shown: 2 }, ['あb']).shown === 2, 'vn: types one character, stops at the end');
+console.assert(vnAdvance({ line: 0, shown: 1 }, ['あb', 'c']).shown === 2 && vnAdvance({ line: 0, shown: 2 }, ['あb', 'c']).line === 1, 'vn: a press finishes the line, then moves on');
+console.assert(vnAdvance({ line: 1, shown: 1 }, ['a', 'c']).line === 0, 'vn: the last line wraps to the first');
+
+function visualNovel() {
+  let st = { line: 0, shown: 0 };
+  const text = h('span', { 'aria-hidden': 'true' }), more = h('span', { class: 'gd-vn-more', 'aria-hidden': 'true' }, '▼');
+  const live = h('span', { class: 'gd-vn-live', lang: 'ja', 'aria-live': 'polite' });
+  function draw() {
+    const chars = [...VN_LINES[st.line]];
+    text.textContent = chars.slice(0, st.shown).join('');
+    more.hidden = st.shown < chars.length;
+  }
+  // The whole line goes to the screen reader once, not letter by letter.
+  const say = () => { if (live.textContent !== VN_LINES[st.line]) live.textContent = VN_LINES[st.line]; };
+  const next = () => { st = vnAdvance(st, VN_LINES); if (reducedMotion.matches) st = vnAdvance(st, VN_LINES); say(); draw(); };
+  const body = h('div', { class: 'gd gd-vn', tabindex: 0, role: 'button', 'aria-label': 'Visual Novel: next line', title: 'Click or press Enter',
+    onclick: next, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); } } },
+    h('p', { class: 'gd-vn-msg', lang: 'ja' }, text, more), live);
+  if (reducedMotion.matches) st = vnAdvance(st, VN_LINES);
+  const timer = setInterval(() => { st = vnType(st, VN_LINES); draw(); }, 60);
+  say(); draw();
+  return gadget('vn', 'Visual Novel', body, 120, () => clearInterval(timer));
+}
+
 // ---------- Docking, the gallery, and remembering ----------
 
-const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, kanji: kanjiOfTheDay, pet: pocketPet };
+const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, kanji: kanjiOfTheDay, pet: pocketPet, vn: visualNovel };
 
 // Vista's Sidebar: a translucent strip down the right, with the gadgets stacked in it. In 7 a new
 // gadget starts at the right under the others, then floats wherever it's dragged.
@@ -322,7 +373,7 @@ export function reopen() {
   (fresh ? ERA_GADGETS[V.id] || [] : store.get(KEY, [])).filter(id => MAKERS[id] && here.includes(id)).forEach(add);
 }
 
-const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['kanji', 'Kanji of the Day', 'i-charmap', true], ['pet', 'Pocket Pet', 'i-game', true]]
+const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['kanji', 'Kanji of the Day', 'i-charmap', true], ['pet', 'Pocket Pet', 'i-game', true], ['vn', 'Visual Novel', 'i-book', true]]
   .filter(g => g[3]);
 
 function gallery() {
