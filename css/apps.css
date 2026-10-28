@@ -1195,6 +1195,11 @@ html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget:not(:hover
 .gd-tile:hover, .gd-tile:focus-visible { border-color: #7eb4ea; background: #e5f3fb; }
 .gd-tile svg, .gd-cal-ico { width: 32px; height: 32px; }
 .gd-cal-ico { display: grid; place-items: center; border: 1px solid #567; border-top: 7px solid #3b7fc4; border-radius: 3px; background: #fff; font-weight: bold; box-sizing: border-box; }
+/* The Desktop Mascot (js/apps/mascot.js): above the windows, under menus and the taskbar. */
+.mascot { position: fixed; left: 0; top: 0; z-index: 39999; width: 32px; height: 32px; cursor: grab; touch-action: none; user-select: none; outline-offset: 1px; }
+.mascot:active { cursor: grabbing; }
+.mascot:focus:not(:focus-visible) { outline: none; }
+.mascot svg { display: block; width: 100%; height: 100%; }
 
 /* ---------- Sticky Notes ---------- */
 .sn { flex: 1; min-height: 0; display: flex; }

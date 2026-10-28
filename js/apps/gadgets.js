@@ -1,5 +1,6 @@
 // Desktop gadgets: CPU Meter, Calendar, Slide Show, the Moe Clock, Kanji of the Day, the Pocket Pet, a Visual Novel
-// and Weather, plus the gallery that adds them (and the Clock gadget, js/apps/clock.js). Vista docks them down the Sidebar on the right;
+// and Weather, plus the gallery that adds them (and the Clock gadget, js/apps/clock.js, and the Desktop Mascot, js/apps/mascot.js).
+// Vista docks them down the Sidebar on the right;
 // every other era lets them float on the desktop, skinned for its decade (css/apps.css).
 // Which ones are open is remembered for the next visit.
 
@@ -7,6 +8,7 @@ import { h, icon, store, small, reducedMotion } from '../util.js';
 import { createWindow, launch, all } from '../wm.js';
 import { sample } from './sysmon.js';
 import { V } from '../version.js';
+import { mascot, sprite } from './mascot.js';
 
 const SIDEBAR = V.id === 'vista';
 // The Clock and CPU Meter gadgets are Vista and 7's own; other eras get the rest.
@@ -407,7 +409,7 @@ function weather() {
 
 // ---------- Docking, the gallery, and remembering ----------
 
-const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, kanji: kanjiOfTheDay, pet: pocketPet, vn: visualNovel, weather };
+const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, kanji: kanjiOfTheDay, pet: pocketPet, vn: visualNovel, weather, mascot };
 
 // Vista's Sidebar: a translucent strip down the right, with the gadgets stacked in it. In 7 a new
 // gadget starts at the right under the others, then floats wherever it's dragged.
@@ -422,6 +424,7 @@ function restack(added) {
   const right = document.getElementById('windows').clientWidth;
   let y = 10;
   for (const w of open.values()) {
+    if (w.mascot) continue;   // she walks about on her own
     if (SIDEBAR || w === added) {
       w.el.style.left = right - w.el.offsetWidth - 10 + 'px';
       w.el.style.top = y + 'px';
@@ -437,7 +440,7 @@ const save = () => store.set(KEY, [...open.keys()]);
 async function add(id) {
   if (small.matches) return;   // no room beside a maximized window
   const had = open.get(id);
-  if (had && all().includes(had)) return had.focus();
+  if (had && (had.mascot ? had.el.isConnected : all().includes(had))) return had.focus();
   const win = await MAKERS[id]();   // the Clock gadget is a program, which may still be loading
   if (!win) return;
   open.set(id, win);
@@ -467,7 +470,7 @@ export function reopen() {
   (fresh ? ERA_GADGETS[V.id] || [] : store.get(KEY, [])).filter(id => MAKERS[id] && here.includes(id)).forEach(add);
 }
 
-const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['kanji', 'Kanji of the Day', 'i-charmap', true], ['pet', 'Pocket Pet', 'i-game', true], ['vn', 'Visual Novel', 'i-book', true], ['weather', 'Weather', () => wxIcon('sun'), true]]
+const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['kanji', 'Kanji of the Day', 'i-charmap', true], ['pet', 'Pocket Pet', 'i-game', true], ['vn', 'Visual Novel', 'i-book', true], ['weather', 'Weather', () => wxIcon('sun'), true], ['mascot', 'Desktop Mascot', sprite, true]]
   .filter(g => g[3]);
 
 function gallery() {
