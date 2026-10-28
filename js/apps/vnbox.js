@@ -968,7 +968,15 @@ function open() {
     // and the game's window fills the screen, which takes its size, without Wine's title bar (an
     // installer opens several windows, so not for it).
     if (inst) q.push(arg('w', inst.w), ...(inst.args ? [arg('args', inst.args)] : []), 'fitWindow=false');
-    else q.splice(0, q.length, ...tuned([...q, 'fitWindow=true'], g.tuning));
+    else {
+      // A program in a subfolder: by its full path, run in its own folder as a shortcut would, so it finds its files.
+      const sub = g.exe.lastIndexOf('/'), inGame = s => installDir(g.title) + '\\' + s.replaceAll('/', '\\');
+      if (sub > 0) {
+        q[1] = arg('p', inGame(g.exe));
+        q.push(arg('w', inGame(g.exe.slice(0, sub))));
+      }
+      q.splice(0, q.length, ...tuned([...q, 'fitWindow=true'], g.tuning));
+    }
     frame = h('iframe', { class: 'cons-frame', title: g.title, allow: 'fullscreen; autoplay', style: { visibility: 'hidden' } });
     const me = frame;
     const start = () => {
