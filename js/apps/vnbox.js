@@ -15,7 +15,7 @@ const MAX_RECENT = 6;
 const SHOW_LOG = 'w95.vnbox.log';
 const CLIP = 'w95.vnbox.clip';
 // The engine release in vnbox/engine/; tools/update-vnbox.sh (run by VNBox's update-site workflow) bumps it.
-const ENGINE_VERSION = 'v0.2.0';
+const ENGINE_VERSION = 'v0.2.1';
 const ENGINE = 'vnbox/engine/';
 const SIZES = ['640x480', '800x600', '1024x768', '1280x720'];
 const MAX_LINES = 1000;
