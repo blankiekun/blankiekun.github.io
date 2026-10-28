@@ -18,6 +18,8 @@ const CLIP = 'w95.vnbox.clip';
 const ENGINE_VERSION = 'v0.2.2';
 const ENGINE = 'vnbox/engine/';
 const SIZES = ['640x480', '800x600', '1024x768', '1280x720'];
+// The screen a game too big for the 800x600 start runs on once, to learn its size (see fitted).
+const LEARN = '1920x1200';
 const MAX_LINES = 1000;
 // The engine waits for the game's files with JSPI, which Chrome and Edge have (137 and later).
 const canRun = typeof WebAssembly === 'object' && typeof WebAssembly.Suspending === 'function';
@@ -28,7 +30,8 @@ const NOT_GAME = /^(unins|setup|install|config|vcredist|dxsetup|dxwebsetup|direc
 const FRAME_CSS = `body { background: #000; color: #c0c0c0; font: 12px sans-serif; }
 #controls, #console, #app > hr { display: none !important; }
 #dropzone { padding: 0; }
-div.emscripten_border { border: 0; }`;
+div.emscripten_border { border: 0; }
+canvas { outline: none; } /* it takes focus (tabindex) for the game's keys: no ring around the game */`;
 
 // Pixel art for the welcome page: a box with a visual novel in its window.
 const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="crispEdges">
@@ -302,13 +305,18 @@ function open() {
     // The shell reads env= undecoded and splits it at the colon, so only the quotes are escaped.
     const hook = hookUrl(g);
     const q = [arg('lazy', 'opfs:vn/' + g.title), arg('p', g.exe), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
-      'env=%22LC_ALL:ja_JP.UTF-8%22', arg('resolution', g.res || SIZES[1]), ...(hook ? [arg('frida', hook)] : [])];
+      'env=%22LC_ALL:ja_JP.UTF-8%22', arg('resolution', g.res || SIZES[1]), ...(hook ? [arg('frida', hook)] : []),
+      // Japanese font names (ＭＳ ゴシック...) as jp.zip's fonts, no Mono/Gecko installs, full-rate sound,
+      // and the game's window fills the screen, which takes its size, without Wine's title bar.
+      'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100', 'fitWindow=true'];
     frame = h('iframe', { class: 'cons-frame', title: g.title, src: ENGINE + 'boxedwine.html?' + q.join('&'), allow: 'fullscreen; autoplay', style: { visibility: 'hidden' } });
     const me = frame;
     frame.addEventListener('load', () => {
       const w = frame.contentWindow;
       w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: FRAME_CSS }));
       w.boxedwineText = line => { if (frame === me) addLine(line); };
+      const canvas = w.document.getElementById('canvas');
+      new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
       frame.style.visibility = '';
       frame.focus();
     }, { once: true });
@@ -320,6 +328,20 @@ function open() {
     win.setTitle(g.title + ' - VNBox');
     statusGame.textContent = g.exe + ', ' + bytes(g.size);
     say('Playing ' + g.title);
+  }
+
+  // Wine caps a new window at the screen plus its frame, so a game bigger than the 800x600 start comes
+  // out a few pixels over it, cut off (Muramasa, 1024x576: 806x576). Such a game starts once on a big
+  // screen, where its window gets its own size, which is kept as its screen size. Sizes the visitor
+  // chose are left alone. (chimimouryou's fittedTuning)
+  function fitted(me, width, height) {
+    if (frame !== me) return;
+    const over = (n, start) => n > start && n <= start + 32;
+    if (!game.res && (over(width, 800) || over(height, 600))) {
+      setSize(LEARN);
+      boot(game);
+      say('Restarting at a bigger screen to fit the game');
+    } else if (game.res === LEARN && width + 'x' + height !== LEARN && (width > 800 || height > 600)) setSize(width + 'x' + height, true);
   }
 
   // The engine posts { type: 'vnbox-error', source, message }; a game that couldn't be read never starts.
@@ -346,10 +368,10 @@ function open() {
     launch('notepad', { name: game.title + ' log.txt', text: text || '(The engine hasn\'t printed anything yet.)' });
   }
 
-  function setSize(res) {
+  function setSize(res, quiet) {
     game.res = res;
     setGame(game.title, { res });
-    say('Restart the game to use the new screen size');
+    if (!quiet) say('Restart the game to use the new screen size');
   }
 
   // ---------- opening games ----------
@@ -476,7 +498,7 @@ function open() {
     ] },
     { label: '&Game', items: () => [
       { label: '&Restart', disabled: !frame, action: () => confirmQuit().then(ok => ok && boot(game)) },
-      { label: 'Screen &Size', disabled: !game, submenu: SIZES.map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
+      { label: 'Screen &Size', disabled: !game, submenu: [...new Set([...SIZES, ...(game && game.res && game.res !== LEARN ? [game.res] : [])])].map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
       '-',
       { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
     ] },
