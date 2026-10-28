@@ -158,8 +158,22 @@ async function add(id) {
   restack(win);
 }
 
+// What each era puts on the desktop the first time it boots; ids not built yet are skipped.
+const ERA_GADGETS = {
+  '1.0': ['vn'], '2.0': ['vn'], '3.1': ['vn', 'moe'],
+  '95': ['pet', 'moe'], '98': ['pet', 'moe'], 'me': ['pet', 'moe'],
+  '2000': ['mascot', 'moe'], 'xp': ['mascot', 'moe'],
+  'vista': ['clock', 'cpu', 'weather'], '7': ['clock', 'cpu', 'weather'],
+  '8': ['kanji', 'moe'], '10': ['kanji', 'moe'], '11': ['kanji', 'moe'],
+};
+const ERA_KEY = 'w95.gadgets.era';
+
 export function reopen() {
-  store.get(KEY, []).filter(id => MAKERS[id]).forEach(add);
+  const fresh = store.get(ERA_KEY, null) !== V.id;
+  store.set(ERA_KEY, V.id);
+  const here = LIST.map(g => g[0]);
+  // A version switch reloads the page; show that era's gadgets instead of the last era's.
+  (fresh ? ERA_GADGETS[V.id] || [] : store.get(KEY, [])).filter(id => MAKERS[id] && here.includes(id)).forEach(add);
 }
 
 const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true]]
