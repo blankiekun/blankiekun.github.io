@@ -1,0 +1,5 @@
+The LunaHook engine hooks here are ported from LunaHook in LunaTranslator
+(https://github.com/HIllya51/LunaTranslator, commit be625f4), Copyright (c) HIllya51 and contributors,
+licensed under the GNU General Public License v3.0. The ports, by chimimouryou
+(https://github.com/blankiekun/chimimouryou, scripts/vnbox/engines/), are GPL-3.0-or-later: see
+https://www.gnu.org/licenses/gpl-3.0.html. Each file is its own source.

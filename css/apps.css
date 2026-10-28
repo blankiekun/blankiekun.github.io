@@ -1267,3 +1267,16 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 .vnb-dlg { width: 420px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
 .vnb-dlg p { margin: 0; }
 .vnb-list { width: 100%; }
+.vnb-sv-list { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; background: var(--paper); box-shadow: var(--sunken); padding: 2px; }
+.vnb-sv-row { display: flex; align-items: center; gap: 6px; padding: 1px 4px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; flex: none; }
+.vnb-sv-row svg { width: 16px; height: 16px; flex: none; }
+.vnb-sv-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vnb-sv-row.sel { background: var(--select); color: var(--select-ink); }
+.vnb-sv-row.sel .cons-recent-at { color: inherit; }
+.vnb-sv-row:focus-visible { outline: 1px dotted currentColor; outline-offset: -1px; }
+.vnb-sv-status { margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vnb-tune { width: 480px; }
+.vnb-tune-area { display: flex; flex-direction: column; gap: 2px; }
+.vnb-tune-text { width: 100%; resize: vertical; font-family: monospace; }
+.vnb-clean-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.vnb-clean-num { width: 5em; }

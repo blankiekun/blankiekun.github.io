@@ -328,7 +328,7 @@ function dosTime(d) {
 }
 
 // Stored, not deflated: save files are small and mostly incompressible anyway.
-function makeZip(files) {
+export function makeZip(files) {
   const enc = new TextEncoder(), parts = [], central = [];
   let off = 0;
   for (const f of files) {
@@ -355,7 +355,7 @@ function makeZip(files) {
 
 // Reads the zip a slice at a time, so a game of a few GB doesn't have to fit in memory:
 // stored files are slices of the zip itself, deflated ones are unpacked once into Blobs.
-async function readZip(zip) {
+export async function readZip(zip) {
   const tail = await zip.slice(Math.max(0, zip.size - 65557)).arrayBuffer(), t = new DataView(tail);
   let e = tail.byteLength - 22;
   while (e >= 0 && t.getUint32(e, true) !== 0x06054b50) e--;
