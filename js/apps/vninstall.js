@@ -227,10 +227,14 @@ export async function installedPrograms(title) {
 }
 
 // The folder holding an installed program, as it is moved into the game's folder: all of the game
-// folder's layer, else the program's folder under Program Files, a user's AppData\Local or Roaming
-// (per-user installs), or drive_c.
-export function programRoot(program) {
-  if (program.area === 0) return '';
+// folder's layer (entries, its listing), or the one folder in it that an installer added to the one it
+// was given (C:\files\<title>\<title>); else the program's folder under Program Files, a user's
+// AppData\Local or Roaming (per-user installs), or drive_c.
+export function programRoot(program, entries = []) {
+  if (program.area === 0) {
+    const top = program.path.split('/')[0], under = (p, d) => p === d || p.startsWith(d + '/');
+    return program.path.includes('/') && entries.every(e => under(e.path, top) || under(e.path, SETUP_FOLDER)) ? top : '';
+  }
   const parts = program.path.split('/');
   const depth = /^program files/i.test(parts[1] || '') ? 3 : /^users\/[^/]+\/appdata\/(?:local|roaming)$/i.test(parts.slice(1, 5).join('/')) ? 6 : 2;
   return parts.slice(0, Math.min(depth, parts.length - 1)).join('/');
@@ -240,8 +244,9 @@ export function programRoot(program) {
 // layer, where it would load whole into memory each start; removes the installer folder's copy.
 // Returns { exe (the program's path in the folder), size }.
 export async function moveInstalled(title, dir, program, progress) {
-  const area = saveAreas(title)[program.area], root = programRoot(program);
-  const entries = (await listSaves(area)).filter(e => !root || e.path.startsWith(root + '/'));
+  const area = saveAreas(title)[program.area], all = await listSaves(area), root = programRoot(program, all);
+  // The root folder's own entry too, so the moved folder doesn't stay behind empty.
+  const entries = all.filter(e => !root || e.path === root || e.path.startsWith(root + '/'));
   const files = entries.filter(e => !e.dir), total = files.reduce((n, e) => n + e.size, 0);
   const inFolder = p => root ? p.slice(root.length + 1) : p;
   let done = 0;

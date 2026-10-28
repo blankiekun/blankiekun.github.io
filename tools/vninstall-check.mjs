@@ -52,6 +52,9 @@ assert.deepEqual(copyProtection(['DATA/secdrv.sys', 'x.exe']), ['SafeDisc']);
 assert.equal(programRoot({ area: 1, path: 'drive_c/Program Files/Maker/Game/game.exe' }), 'drive_c/Program Files/Maker');
 assert.equal(programRoot({ area: 1, path: 'drive_c/Game/game.exe' }), 'drive_c/Game');
 assert.equal(programRoot({ area: 0, path: 'game.exe' }), '');
+const nested = [{ path: 'G', dir: true }, { path: 'G/game.exe' }, { path: 'G/mov/1.mpg' }, { path: '_setup/x' }];
+assert.equal(programRoot({ area: 0, path: 'G/game.exe' }, nested), 'G');
+assert.equal(programRoot({ area: 0, path: 'G/game.exe' }, [...nested, { path: 'save.dat' }]), '');
 assert.equal(programRoot({ area: 1, path: 'drive_c/users/username/AppData/Local/Programs/Game/game.exe' }), 'drive_c/users/username/AppData/Local/Programs/Game'.split('/').slice(0, 6).join('/'));
 
 // A shortcut with only LinkInfo's ANSI local path.

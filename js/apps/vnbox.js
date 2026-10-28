@@ -55,6 +55,7 @@ const FRAME_CSS = `body { background: #000; color: #c0c0c0; font: 12px sans-seri
 #dropzone { padding: 0; }
 div.emscripten_border { border: 0; }
 canvas { outline: none; } /* it takes focus (tabindex) for the game's keys: no ring around the game */
+div.emscripten_border > canvas:not(.emscripten) { z-index: 2; } /* a movie (vnbox-movie.js) over the WebGL canvas (z-index 1), which stays visible and black while it plays */
 body { touch-action: none; } /* taps are the game's left button (frameControls), never a pan or zoom */
 #vnb-pad { position: fixed; z-index: 2; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 2px solid #fff; border-radius: 50%; outline: 1px solid #000; pointer-events: none; }
 #vnb-pad[hidden] { display: none; }`;
@@ -77,6 +78,10 @@ const recentGames = () => store.get(RECENT, []);
 const vnRoot = () => navigator.storage.getDirectory().then(d => d.getDirectoryHandle('vn', { create: true }));
 async function dropCopy(r) {
   await vnRoot().then(d => d.removeEntry(r.title, { recursive: true })).catch(() => {});
+  await dropDiscs(r);
+}
+// r's disc images, unless another game uses them.
+async function dropDiscs(r) {
   const kept = recentGames().flatMap(o => o.title === r.title ? [] : o.discs || []).map(d => d.slice(0, d.lastIndexOf('/')));
   const opfs = await navigator.storage.getDirectory();
   for (const folder of new Set((r.discs || []).map(d => d.slice(0, d.lastIndexOf('/'))))) {
@@ -1370,7 +1375,14 @@ function open() {
       if (pick == null) { await dropInstall(g); return idle(); }
       const dir = await (await vnRoot()).getDirectoryHandle(g.title);
       const moved = await moveInstalled(g.title, dir, found[+pick], showProgress(`Moving ${g.title} into its folder...`));
-      const ready = { title: g.title, exe: moved.exe, size: g.size + moved.size, hook: '', ...(g.discs && { discs: g.discs }) };
+      // The disc images double what the game takes: kept only if wanted.
+      let discs = g.discs;
+      if (discs && discs.length && await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+        text: `Keep the disc images of ${g.title} (${bytes(g.size)})?\n\nSome games need their disc to start, or play music and movies from it. No frees the space; if the game then asks for its disc, install it again.` }) === 'No') {
+        await dropDiscs(g);
+        discs = undefined;
+      }
+      const ready = { title: g.title, exe: moved.exe, size: (discs ? g.size : 0) + moved.size, hook: '', ...(discs && { discs }) };
       remember(ready);
       showRecent();
       boot(ready);
