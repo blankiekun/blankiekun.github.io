@@ -651,6 +651,7 @@ function open() {
         openMenu([
           { label: '&Play', action: () => openRecent(r) },
           { label: '&Save Files...', action: () => saveFiles(r) },
+          { label: 'Pro&gram...', action: () => chooseProgram(r) },
           { label: '&Remove from This Browser', action: () => removeGame(r) },
         ], { x: e.clientX, y: e.clientY });
       });
@@ -1026,7 +1027,8 @@ function open() {
       setSize(LEARN);
       boot(game);
       say('Restarting at a bigger screen to fit the game');
-    } else if (game.res === LEARN && width + 'x' + height !== LEARN && (width > 800 || height > 600)) setSize(width + 'x' + height, true);
+    // Not from a window too small to be a game's screen (Wine's crash dialog, a launcher).
+    } else if (game.res === LEARN && width + 'x' + height !== LEARN && (width > 800 || height > 600) && width >= 640 && height >= 480) setSize(width + 'x' + height, true);
   }
 
   // The engine posts { type: 'vnbox-error', source, message }; a game that couldn't be read never starts.
@@ -1060,6 +1062,23 @@ function open() {
     const out = frame && frame.contentDocument && frame.contentDocument.getElementById('output');
     const text = [out ? out.value : '', ...errors].filter(Boolean).join('\n');
     launch('notepad', { name: game.title + ' log.txt', text: text || '(The engine hasn\'t printed anything yet.)' });
+  }
+
+  // Game > Program: which of the game's programs starts it (installers and uninstallers last).
+  // g: the game's record, the one playing or a recent one (right-click).
+  async function chooseProgram(g = game) {
+    const running = !!frame && game.title === g.title;
+    const name = p => p.slice(p.lastIndexOf('/') + 1);
+    const exes = (await gameFileNames(g.title)).filter(p => /\.exe$/i.test(p))
+      .sort((a, b) => NOT_GAME.test(name(a)) - NOT_GAME.test(name(b)) || a.split('/').length - b.split('/').length || a.localeCompare(b));
+    if (!exes.length) return error(`There are no programs in ${g.title}'s copy in this browser.`);
+    const pick = await listDialog({ title: 'Choose the Program', parent: win, items: exes.map(e => [e, e]), value: g.exe,
+      text: `Which program starts ${g.title}?` + (running ? ' The game restarts to use it.' : '') });
+    if (pick == null || pick === g.exe) return frame && frame.focus();
+    if (running && !(await confirmQuit())) return;
+    setGame(g.title, { exe: pick });
+    if (game && game.title === g.title) game.exe = pick;
+    if (running) boot(game);
   }
 
   async function tune() {
@@ -1503,6 +1522,7 @@ function open() {
       { label: '&Restart', disabled: !frame || !!game.install, action: () => confirmQuit().then(ok => ok && boot(game)) },
       { label: 'S&kip Text', key: 'Ctrl', checked: skip, disabled: !frame, action: toggleSkip },
       { label: 'Screen &Size', disabled: !playing(), submenu: [...new Set([...SIZES, ...(game && game.res && game.res !== LEARN ? [game.res] : [])])].map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
+      { label: '&Program...', disabled: !playing(), action: () => chooseProgram() },
       { label: '&Tuning...', disabled: !playing(), action: tune },
       // Swaps the discs of a game installed from more than one (the engine's own controls are hidden).
       ...(game && game.discs ? [{ label: 'D&isc', disabled: !frame, submenu: [
