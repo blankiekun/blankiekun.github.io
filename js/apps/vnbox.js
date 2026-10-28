@@ -13,6 +13,7 @@ import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZ
 import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
 import * as drive from './consdrive.js';
 import * as anki from './consanki.js';
+import { watchGamepads } from './vnpad.js';
 import { tabbed } from './system.js';
 import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
 import { VERSIONS, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
@@ -21,6 +22,7 @@ const RECENT = 'w95.vnbox.recent';
 const MAX_RECENT = 6;
 const SHOW_LOG = 'w95.vnbox.log';
 const CLIP = 'w95.vnbox.clip';
+const FOLD = 'w95.vnbox.fold';  // touch screens: Menu / Skip buttons folded away
 // The engine release in vnbox/engine/; tools/update-vnbox.sh (run by VNBox's update-site workflow) bumps it.
 const ENGINE_VERSION = 'v0.2.2';
 const ENGINE = 'vnbox/engine/';
@@ -44,7 +46,10 @@ const FRAME_CSS = `body { background: #000; color: #c0c0c0; font: 12px sans-seri
 #controls, #console, #app > hr { display: none !important; }
 #dropzone { padding: 0; }
 div.emscripten_border { border: 0; }
-canvas { outline: none; } /* it takes focus (tabindex) for the game's keys: no ring around the game */`;
+canvas { outline: none; } /* it takes focus (tabindex) for the game's keys: no ring around the game */
+body { touch-action: none; } /* taps are the game's left button (frameControls), never a pan or zoom */
+#vnb-pad { position: fixed; z-index: 2; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 2px solid #fff; border-radius: 50%; outline: 1px solid #000; pointer-events: none; }
+#vnb-pad[hidden] { display: none; }`;
 
 // Pixel art for the welcome page: a box with a visual novel in its window.
 const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="crispEdges">
@@ -381,6 +386,85 @@ function aboutVNBox(win) {
     'Text hooks by 0xDC00 and contributors (MIT)'));
 }
 
+// ---------- touch and gamepads (ported from chimimouryou #307) ----------
+
+// Wine's frames go to the present canvas while it shows, else the game draws with GL on #canvas
+// (VNBox's own activeCanvas test).
+function screenCanvas(w) {
+  const d = w.document, present = d.getElementById('boxedwine-webgl-canvas-0'), style = present && w.getComputedStyle(present);
+  return present && present.width && style.display !== 'none' && style.visibility !== 'hidden' ? present : d.getElementById('canvas');
+}
+
+// The game's mouse, wheel and keys, sent to #canvas (where the engine's SDL listens) at frame coordinates.
+function gameMouse(w, type, button, x, y) {
+  w.document.getElementById('canvas').dispatchEvent(new w.MouseEvent(type, { bubbles: true, cancelable: true, button,
+    buttons: type === 'mousedown' ? [1, 4, 2][button] : 0, clientX: x, clientY: y }));
+}
+function gameWheel(w, deltaY, { x, y }) {
+  w.document.getElementById('canvas').dispatchEvent(new w.WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY, clientX: x, clientY: y }));
+}
+function gameKey(w, down, code, key, keyCode) {
+  const e = new w.KeyboardEvent(down ? 'keydown' : 'keyup', { bubbles: true, cancelable: true, code, key, ctrlKey: down && key === 'Control' });
+  // Engines that still read keyCode get it too (the constructor leaves it 0).
+  Object.defineProperty(e, 'keyCode', { value: keyCode });
+  Object.defineProperty(e, 'which', { value: keyCode });
+  w.document.getElementById('canvas').dispatchEvent(e);
+}
+
+// Sets up a just-loaded frame: VNBox only takes the mouse, so a finger is the left button (SDL's
+// own touch handling never gets it); the pads are hidden from the engine (the page reads them and
+// would act twice), kept as w.vnbPads; and the pad's cursor, a ring the stick moves.
+function frameControls(w) {
+  const d = w.document;
+  let touchId = null;
+  function touchMouse(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    cursor.hidden = true;
+    const t = [...e.changedTouches].find(t => e.type === 'touchstart' ? touchId === null : t.identifier === touchId);
+    if (!t) return;
+    if (e.type === 'touchstart') {
+      touchId = t.identifier;
+      gameMouse(w, 'mousemove', 0, t.clientX, t.clientY);
+      gameMouse(w, 'mousedown', 0, t.clientX, t.clientY);
+    } else if (e.type === 'touchmove') gameMouse(w, 'mousemove', 0, t.clientX, t.clientY);
+    else { touchId = null; gameMouse(w, 'mouseup', 0, t.clientX, t.clientY); }
+  }
+  for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) w.addEventListener(type, touchMouse, { capture: true, passive: false });
+  // Focus in the frame can keep the news of a pad from the page.
+  w.addEventListener('gamepadconnected', () => window.dispatchEvent(new Event('gamepadconnected')));
+  if (w.navigator.getGamepads) {
+    w.vnbPads = w.navigator.getGamepads.bind(w.navigator);
+    w.navigator.getGamepads = () => [];
+  }
+  const cursor = Object.assign(d.createElement('div'), { id: 'vnb-pad', hidden: true });
+  d.body.append(cursor);
+  // A real mouse hides it.
+  w.addEventListener('mousemove', e => { if (e.isTrusted) cursor.hidden = true; }, true);
+}
+
+// Where the pad's cursor is, else the middle of the game, in frame coordinates.
+function cursorAt(w) {
+  const c = w.document.getElementById('vnb-pad');
+  if (c && !c.hidden) return { x: parseFloat(c.style.left), y: parseFloat(c.style.top) };
+  const box = screenCanvas(w).getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
+
+// Moves the pad's cursor by its speed (each axis -1..1) for ms milliseconds, within the game.
+function padMove(w, dx, dy, ms) {
+  const c = w.document.getElementById('vnb-pad');
+  if (!c) return;
+  const box = screenCanvas(w).getBoundingClientRect(), at = cursorAt(w);
+  // Crossing the game in about two seconds at full tilt.
+  const speed = Math.max(box.width, box.height) / 2000 * ms;
+  const x = Math.max(box.left, Math.min(box.right - 1, at.x + dx * speed));
+  const y = Math.max(box.top, Math.min(box.bottom - 1, at.y + dy * speed));
+  Object.assign(c.style, { left: x + 'px', top: y + 'px' });
+  c.hidden = false;
+  gameMouse(w, 'mousemove', 0, x, y);
+}
+
 // ---------- the window ----------
 
 function open() {
@@ -423,7 +507,7 @@ function open() {
       h('h2', null, 'Welcome to VNBox'),
       h('p', null, 'VNBox plays Windows visual novels in the browser, on Wine in an emulated PC. Open a game folder, or a .zip of one, from your computer to start. The game is copied into this browser and never leaves this computer.'),
       can ? null : h('div', { class: 'cons-warn-row' }, icon('i-warn'),
-        h('p', null, h('b', null, 'This browser can\'t run VNBox. '), 'It needs Chrome or Edge, version 137 or later, on a computer.')),
+        h('p', null, h('b', null, 'This browser can\'t run VNBox. '), 'It needs Chrome or Edge, version 137 or later.')),
       dropBox,
       h('div', { class: 'cons-btns' },
         h('button', { class: 'btn default', type: 'button', disabled: !can, onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
@@ -459,7 +543,7 @@ function open() {
     win.focus();
     document.documentElement.requestFullscreen().then(() => {
       win.el.classList.add('cons-full');
-      fsBtn.lastChild.textContent = 'Exit Full Screen';
+      fsBtn.lastChild.textContent = touchFs.textContent = 'Exit Full Screen';
       frame && frame.focus();
     }, () => {});
   }
@@ -467,9 +551,51 @@ function open() {
     if (document.fullscreenElement || !isFull()) return;
     win.el.classList.remove('cons-full');
     root.classList.remove('reveal');
-    fsBtn.lastChild.textContent = 'Full Screen';
+    fsBtn.lastChild.textContent = touchFs.textContent = 'Full Screen';
   }
   document.addEventListener('fullscreenchange', leftFull);
+
+  // ---------- touch and gamepads ----------
+
+  // The frame's window once frameControls set it up, else null.
+  const gameWin = () => frame && frame.contentWindow && frame.contentWindow.document.getElementById('vnb-pad') ? frame.contentWindow : null;
+  // Skip holds Ctrl, the key most Windows visual novels skip with while it is down. A new frame holds none.
+  let skip = false;
+  function toggleSkip() {
+    const w = gameWin();
+    if (!w) return;
+    skip = !skip;
+    skipBtn.classList.toggle('on', skip);
+    gameKey(w, skip, 'ControlLeft', 'Control', 17);
+  }
+  function unskip() { skip = false; skipBtn.classList.remove('on'); }
+  // The game's menu: a right click where the pad's cursor is, else in the middle of the game.
+  function gameMenu() {
+    const w = gameWin();
+    if (!w) return;
+    const at = cursorAt(w);
+    gameMouse(w, 'mousedown', 2, at.x, at.y);
+    gameMouse(w, 'mouseup', 2, at.x, at.y);
+  }
+  // Pad buttons (vnpad.js): the window's own actions here, the game's mouse in the frame.
+  function padChange(pressed, released) {
+    const w = gameWin();
+    if (w && released.includes('advance')) { const at = cursorAt(w); gameMouse(w, 'mouseup', 0, at.x, at.y); }
+    for (const a of pressed) {
+      if (a === 'skip') toggleSkip();
+      else if (a === 'log') toggleLog();
+      else if (a === 'fullscreen') fullScreen();
+      else if (!w) continue;
+      else if (a === 'advance') { const at = cursorAt(w); gameMouse(w, 'mousedown', 0, at.x, at.y); }
+      else if (a === 'menu') gameMenu();
+      else if (a === 'wheelUp' || a === 'wheelDown') gameWheel(w, a === 'wheelUp' ? -120 : 120, cursorAt(w));
+    }
+  }
+  // The frame hides the pads from its engine (frameControls) but can still read them.
+  const padStop = watchGamepads(() => {
+    const w = gameWin();
+    return [...(navigator.getGamepads ? navigator.getGamepads() : []), ...(w && w.vnbPads ? w.vnbPads() : [])];
+  }, { change: padChange, cursor: (dx, dy, ms) => { const w = gameWin(); if (w) padMove(w, dx, dy, ms); } });
 
   // ---------- the text log ----------
 
@@ -555,14 +681,10 @@ function open() {
   // game started, so the engine's WebGL keeps its last frame readable (a buffer copy per frame).
   let kept = [], retake = null, shots = false, ankiStop = null, ankiError = '';
 
-  // Wine's frames go to the present canvas while it shows, else the game draws with GL on #canvas
-  // (VNBox's own activeCanvas test).
   function screenshot() {
-    const w = frame && frame.contentWindow, d = w && w.document;
-    if (!d) return Promise.resolve(null);
-    const present = d.getElementById('boxedwine-webgl-canvas-0'), style = present && w.getComputedStyle(present);
-    const c = present && present.width && style.display !== 'none' && style.visibility !== 'hidden' ? present : d.getElementById('canvas');
-    return new Promise(resolve => c.toBlob(resolve, 'image/webp', 0.9));
+    const w = frame && frame.contentWindow;
+    if (!w || !w.document) return Promise.resolve(null);
+    return new Promise(resolve => screenCanvas(w).toBlob(resolve, 'image/webp', 0.9));
   }
 
   function keep(text) {
@@ -637,6 +759,7 @@ function open() {
   function stop(msg) {
     if (frame) frame.remove();
     frame = null;
+    unskip();
     ankiWatch();
     view.classList.remove('playing');
     fsBtn.disabled = true;
@@ -651,6 +774,7 @@ function open() {
   function boot(g) {
     if (frame) frame.remove();
     game = g;
+    unskip();
     errors = [];
     kept = []; retake = null;
     shots = anki.settings().on && !!hookUrl(g);
@@ -672,11 +796,13 @@ function open() {
         const w = frame.contentWindow;
         w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: FRAME_CSS }));
         w.boxedwineText = line => { if (frame === me) addLine(line); };
+        frameControls(w);
         // Before Wine opens a window, so before the engine makes its WebGL context.
         if (shots) {
           const proto = w.HTMLCanvasElement.prototype, get = proto.getContext;
           proto.getContext = function (type, attrs) { return get.call(this, type, /^webgl/.test(type) ? { ...attrs, preserveDrawingBuffer: true } : attrs); };
-          for (const type of ['mousedown', 'touchstart', 'keydown']) w.addEventListener(type, retakeShot, true);
+          // Taps reach the game as mousedowns (frameControls).
+          for (const type of ['mousedown', 'keydown']) w.addEventListener(type, retakeShot, true);
         }
         const canvas = w.document.getElementById('canvas');
         new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
@@ -1026,6 +1152,7 @@ function open() {
     ] },
     { label: '&Game', items: () => [
       { label: '&Restart', disabled: !frame, action: () => confirmQuit().then(ok => ok && boot(game)) },
+      { label: 'S&kip Text', key: 'Ctrl', checked: skip, disabled: !frame, action: toggleSkip },
       { label: 'Screen &Size', disabled: !game, submenu: [...new Set([...SIZES, ...(game && game.res && game.res !== LEARN ? [game.res] : [])])].map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
       { label: '&Tuning...', disabled: !game, action: tune },
       '-',
@@ -1071,7 +1198,22 @@ function open() {
   bar.addEventListener('pointerenter', () => clearTimeout(hideTimer));
   bar.addEventListener('pointerleave', () => { hideTimer = setTimeout(() => root.classList.remove('reveal'), 400); });
 
-  const root = h('div', { class: 'cons vnb' }, hot, bar, view, status);
+  // Touch screens have no right-click or Ctrl, so the game's menu and skip get buttons
+  // under the game, in place of the status bar (CSS shows it only for touch, while playing).
+  const refocus = f => () => { f(); if (frame) frame.focus(); };
+  const skipBtn = h('button', { class: 'btn', type: 'button', onclick: refocus(toggleSkip) }, 'Skip');
+  const touchFs = h('button', { class: 'btn', type: 'button', onclick: fullScreen, hidden: !canFull }, 'Full Screen');
+  let folded = store.get(FOLD, false);
+  const touchBar = h('div', { class: 'cons-touch' },
+    h('button', { class: 'btn', type: 'button', onclick: refocus(gameMenu) }, 'Menu'),
+    skipBtn, touchFs, h('button', { class: 'btn cons-fold', type: 'button', 'aria-label': folded ? 'Show buttons' : 'Hide buttons', 'aria-expanded': String(!folded), onclick: e => {
+      folded = root.classList.toggle('cons-folded');
+      store.set(FOLD, folded);
+      e.currentTarget.setAttribute('aria-expanded', !folded);
+      e.currentTarget.setAttribute('aria-label', folded ? 'Show buttons' : 'Hide buttons');
+      if (frame) frame.focus();
+    } }));
+  const root = h('div', { class: folded ? 'cons vnb cons-folded' : 'cons vnb' }, hot, bar, view, touchBar, status);
   root.addEventListener('dragover', e => {
     if (!can || ![...e.dataTransfer.types].includes('Files')) return;
     e.preventDefault();
@@ -1097,6 +1239,7 @@ function open() {
     onClose: confirmQuit,
     onClosed: () => {
       clearInterval(poll);
+      padStop();
       if (ankiStop) ankiStop();
       document.removeEventListener('visibilitychange', onHide);
       document.removeEventListener('fullscreenchange', leftFull);
