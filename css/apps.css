@@ -1275,3 +1275,6 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 .vnb-sv-row.sel .cons-recent-at { color: inherit; }
 .vnb-sv-row:focus-visible { outline: 1px dotted currentColor; outline-offset: -1px; }
 .vnb-sv-status { margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vnb-tune { width: 480px; }
+.vnb-tune-area { display: flex; flex-direction: column; gap: 2px; }
+.vnb-tune-text { width: 100%; resize: vertical; font-family: monospace; }

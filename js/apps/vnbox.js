@@ -12,6 +12,8 @@ import { msgbox, about } from '../dialogs.js';
 import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './conscripter.js';
 import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
 import * as drive from './consdrive.js';
+import { tabbed } from './system.js';
+import { VERSIONS, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
 
 const RECENT = 'w95.vnbox.recent';
 const MAX_RECENT = 6;
@@ -246,6 +248,78 @@ function savesWindow(title, parent, onClosed) {
   return win;
 }
 
+// Game > Tuning's settings: [key, label, the value boot() runs with, options ([value, text]) or [on, off] for a check box].
+// What each does: boxedwine-shell.js and startupArgs.cpp in VNBox.
+const KNOBS = [
+  ['audioFreq', '&Sound rate:', '44100', [['11025', '11025 Hz'], ['22050', '22050 Hz'], ['44100', '44100 Hz']]],
+  ['bpp', 'C&olour depth:', '32', [['8', '8 bits'], ['16', '16 bits'], ['32', '32 bits']]],
+  ['cpu', '&CPU:', '', [['', 'Pentium 4'], ['p3', 'Pentium III'], ['p2', 'Pentium II']]],
+  ['fitWindow', 'The game\'s window &fills the screen, without a title bar', 'true', null, ['true', 'false']],
+  ['disableWasmJitForWrittenCode', '&No JIT for code the game rewrites (can help games that patch themselves)', '', null, ['true', '']],
+];
+
+// Game > Tuning: a game's VNBox settings and Wine fixes (vntuning.js). Resolves to its new tuning, or null.
+function tuningDialog(g, parent) {
+  return new Promise(resolve => {
+    const pairs = tuningPairs(g.tuning), c = compatFromTuning(pairs);
+    const valueOf = ([key, , initial]) => { const p = pairs.find(x => keyOf(x) === key); return p ? p.slice(key.length + 1) : initial; };
+    const select = (options, value) => h('select', { class: 'field' }, ...options.map(([v, t]) => h('option', { value: v, selected: v === value }, t)));
+    const mn = label => label.replace(/&(.)/, '<u>$1</u>');
+    const row = (label, el) => h('label', { class: 'dp-row' }, h('span', { html: mn(label) }), el);
+    const check = (label, checked) => {
+      const box = h('input', { type: 'checkbox', checked });
+      return [box, h('label', { class: 'cons-check' }, box, h('span', { html: mn(label) }))];
+    };
+    const area = (label, value, placeholder) => {
+      const t = h('textarea', { class: 'field vnb-tune-text', rows: 3, spellcheck: false, autocomplete: 'off', wrap: 'off', placeholder }, value);
+      return [t, h('label', { class: 'vnb-tune-area' }, h('span', { html: mn(label) }), t)];
+    };
+
+    const knobs = KNOBS.map(k => {
+      const [, label, , options, onOff] = k;
+      if (options) { const el = select(options, valueOf(k)); return { k, get: () => el.value, el: row(label, el) }; }
+      const [box, el] = check(label, valueOf(k) === onOff[0]);
+      return { k, get: () => onOff[box.checked ? 0 : 1], el };
+    });
+    const extra = h('input', { class: 'field', spellcheck: false, autocomplete: 'off', placeholder: 'e.g. safe-memory=true&disableHideCursor=true',
+      value: pairs.filter(p => !KNOBS.some(k => k[0] === keyOf(p)) && !COMPAT_KEYS.has(keyOf(p))).join('&') });
+    const renderer = select([['', 'Default (OpenGL)'], ['gl', 'OpenGL'], ['gdi', 'GDI']], c.renderer);
+    const version = select([['', 'Default (10)'], ...VERSIONS.map(v => [v, 'Windows ' + ({ winme: 'ME', win2k: '2000', winxp: 'XP' }[v] || v.slice(3))])], c.version);
+    const [movies, moviesEl] = check('Play &movies (DirectShow). Off lets a game that hangs on its opening movie skip it', c.movies);
+    const desktop = h('input', { class: 'field', spellcheck: false, placeholder: 'e.g. 800x600 (empty: none)', value: c.desktop });
+    const [dlls, dllsEl] = area('&DLL overrides, one a line: name=n (native), name=b (built-in) or name= (off)', rowsText('dlls', c.dlls), 'd3d9=n');
+    const [reg, regEl] = area('&Registry values: key | name | REG_SZ or REG_DWORD | value', rowsText('registry', c.registry), 'HKCU\\Software\\Wine\\Direct3D | renderer | REG_SZ | gdi');
+    const [env, envEl] = area('&Environment variables: NAME=value', rowsText('env', c.env), 'NAME=value');
+
+    const panels = [
+      h('div', { class: 'dp-panel' }, ...knobs.map(x => x.el),
+        row('E&xtra:', extra), h('p', { class: 'dp-note' }, 'Extra settings go into VNBox\'s address as typed (a=b&c=d). The game, program and hook can\'t be changed here.')),
+      h('div', { class: 'dp-panel' }, h('p', { class: 'dp-note' }, 'Wine fixes for a game that won\'t start, shows nothing or stops at a movie. The renderer, Windows version and registry values stay in this game\'s Wine setup after you set them back: pick the other value to undo them.'),
+        row('Re&nderer:', renderer), row('&Windows version:', version), moviesEl, row('&Virtual desktop:', desktop), dllsEl, regEl, envEl),
+    ];
+    let done = false;
+    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const form = h('form', { class: 'dlg vnb-dlg vnb-tune' }, tabbed(['Settings', 'Compatibility'], panels),
+      h('div', { class: 'btns right' },
+        h('button', { class: 'btn', type: 'button', onclick: () => { extra.value = ''; finish(''); } }, h('span', { html: 'Reset <u>A</u>ll' })),
+        h('button', { class: 'btn default', type: 'submit' }, 'OK'),
+        h('button', { class: 'btn', type: 'button', onclick: () => finish(null) }, 'Cancel')));
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const rows = { dlls: rowsFromText('dlls', dlls.value), registry: rowsFromText('registry', reg.value), env: rowsFromText('env', env.value) };
+      const bad = [...Object.values(rows).flatMap(x => x.bad), ...(desktop.value.trim() && !validDesktop(desktop.value.trim()) ? [desktop.value] : [])];
+      if (bad.length) return msgbox({ title: 'Tuning', icon: 'error', parent: d, text: 'These aren\'t valid, so nothing was changed yet:\n\n' + bad.join('\n') });
+      const compat = { renderer: renderer.value, version: version.value, movies: movies.checked, desktop: desktop.value.trim(),
+        dlls: rows.dlls.rows, registry: rows.registry.rows, env: rows.env.rows };
+      finish([...knobs.filter(x => x.get() !== x.k[2]).map(x => `${x.k[0]}=${x.get()}`), ...compatParams(compat),
+        extra.value.trim().replace(/^[?&]+|&+$/g, '')].filter(Boolean).join('&'));
+    });
+    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
+    const d = createWindow({ title: 'Tuning - ' + g.title, body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    form.querySelector('select').focus();
+  });
+}
+
 function aboutVNBox(win) {
   return about('VNBox', 'i-vnbox', win, h('p', null, 'Engine ',
     h('a', { href: 'https://github.com/blankiekun/VNBox/releases/tag/' + ENGINE_VERSION, target: '_blank', rel: 'noopener' }, 'VNBox ' + ENGINE_VERSION),
@@ -422,11 +496,11 @@ function open() {
     const arg = (k, v) => k + '=' + encodeURIComponent(v);
     // The shell reads env= undecoded and splits it at the colon, so only the quotes are escaped.
     const hook = hookUrl(g);
-    const q = [arg('lazy', 'opfs:vn/' + g.title), arg('p', g.exe), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
+    const q = tuned([arg('lazy', 'opfs:vn/' + g.title), arg('p', g.exe), arg('root', 'TinyCore15Wine11.0-web.zip'), arg('overlay', 'jp.zip'),
       'env=%22LC_ALL:ja_JP.UTF-8%22', arg('resolution', g.res || SIZES[1]), ...(hook ? [arg('frida', hook)] : []),
       // Japanese font names (ＭＳ ゴシック...) as jp.zip's fonts, no Mono/Gecko installs, full-rate sound,
       // and the game's window fills the screen, which takes its size, without Wine's title bar.
-      'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100', 'fitWindow=true'];
+      'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100', 'fitWindow=true'], g.tuning);
     frame = h('iframe', { class: 'cons-frame', title: g.title, allow: 'fullscreen; autoplay', style: { visibility: 'hidden' } });
     const me = frame;
     const start = () => {
@@ -502,6 +576,17 @@ function open() {
     const out = frame && frame.contentDocument && frame.contentDocument.getElementById('output');
     const text = [out ? out.value : '', ...errors].filter(Boolean).join('\n');
     launch('notepad', { name: game.title + ' log.txt', text: text || '(The engine hasn\'t printed anything yet.)' });
+  }
+
+  async function tune() {
+    const t = await tuningDialog(game, win);
+    if (t == null || t === (game.tuning || '')) return;
+    game.tuning = t;
+    setGame(game.title, { tuning: t });
+    if (!frame) return say('Tuning saved');
+    const b = await msgbox({ title: 'Tuning', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+      text: `Restart ${game.title} now to use the new tuning?\n\nAnything you haven't saved in the game will be lost. If you don't, it's used from the next start.` });
+    if (b === 'Yes' && frame) boot(game);
   }
 
   function setSize(res, quiet) {
@@ -652,7 +737,7 @@ function open() {
       idle();
       return error(`${g.title} could not be copied into this browser.\n\n${e.message}`);
     }
-    Object.assign(g, { hook: old ? old.hook : '', res: old ? old.res : undefined });
+    Object.assign(g, { hook: old ? old.hook : '', res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
     delete g.files;
     remember(g);
     boot(g);
@@ -774,6 +859,7 @@ function open() {
     { label: '&Game', items: () => [
       { label: '&Restart', disabled: !frame, action: () => confirmQuit().then(ok => ok && boot(game)) },
       { label: 'Screen &Size', disabled: !game, submenu: [...new Set([...SIZES, ...(game && game.res && game.res !== LEARN ? [game.res] : [])])].map(s => ({ label: s.replace('x', ' x '), checked: game && (game.res || SIZES[1]) === s, action: () => setSize(s) })) },
+      { label: '&Tuning...', disabled: !game, action: tune },
       '-',
       { label: isFull() ? 'Exit &Full Screen' : '&Full Screen', disabled: !frame || !canFull, action: fullScreen },
     ] },
