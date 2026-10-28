@@ -201,16 +201,21 @@ function areaPath(target, title) {
   return null;
 }
 
+// Not programs: Windows' own folder, and the icons Windows Installer keeps as .exe files for shortcuts.
+const NOT_INSTALLED = /^drive_c\/(?:windows\/|users\/[^/]+\/AppData\/Roaming\/Microsoft\/Installer\/)/i;
+
 // The programs an install left: [{ area (0 game folder, 1 prefix), path, size, shortcut }], .exe
-// files written into the game folder, or into the prefix's drive_c since `since` (ms), the ones a
-// shortcut (Start Menu, desktop) points at first, setup tools last, then biggest first.
-export async function installedPrograms(title, since) {
+// files written into the game folder or the prefix's drive_c, the ones a shortcut (Start Menu,
+// desktop) points at first, setup tools last, then biggest first. Every file in the prefix's database
+// is one Wine wrote for this game (the base prefix is in the engine's zip). Not by time: installers
+// give the files they copy their original dates.
+export async function installedPrograms(title) {
   const areas = saveAreas(title);
   const [game, prefix] = await Promise.all(areas.map(listSaves));
-  const fresh = prefix.filter(e => !e.dir && e.modified >= since - 60000);
+  const fresh = prefix.filter(e => !e.dir);
   const found = new Map(), add = (area, e) => found.set(area + '|' + e.path.toLowerCase(), { area, path: e.path, size: e.size, shortcut: false });
   for (const e of game) if (!e.dir && /\.exe$/i.test(e.path) && !e.path.startsWith(SETUP_FOLDER + '/')) add(0, e);
-  for (const e of fresh) if (/^drive_c\/.*\.exe$/i.test(e.path) && !/^drive_c\/windows\//i.test(e.path)) add(1, e);
+  for (const e of fresh) if (/^drive_c\/.*\.exe$/i.test(e.path) && !NOT_INSTALLED.test(e.path)) add(1, e);
   const links = fresh.filter(e => /\.lnk$/i.test(e.path));
   for (const link of await readSaves(areas[1], links)) {
     const place = areaPath(lnkTarget(link.data) || '', title);
@@ -222,11 +227,13 @@ export async function installedPrograms(title, since) {
 }
 
 // The folder holding an installed program, as it is moved into the game's folder: all of the game
-// folder's layer, else the program's folder under Program Files (or drive_c).
+// folder's layer, else the program's folder under Program Files, a user's AppData\Local or Roaming
+// (per-user installs), or drive_c.
 export function programRoot(program) {
   if (program.area === 0) return '';
   const parts = program.path.split('/');
-  return parts.slice(0, Math.min(/^program files/i.test(parts[1] || '') ? 3 : 2, parts.length - 1)).join('/');
+  const depth = /^program files/i.test(parts[1] || '') ? 3 : /^users\/[^/]+\/appdata\/(?:local|roaming)$/i.test(parts.slice(1, 5).join('/')) ? 6 : 2;
+  return parts.slice(0, Math.min(depth, parts.length - 1)).join('/');
 }
 
 // Moves an installed game into its OPFS folder (dir, vn/<title>) and out of the engine's IndexedDB

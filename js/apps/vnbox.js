@@ -951,7 +951,7 @@ function open() {
     unskip();
     errors = [];
     kept = []; retake = null;
-    // g.install: an installer running ({ p, w, args, since }, see install), with no hook, tuning or sync.
+    // g.install: an installer running ({ p, w, args, quiet }, see install), with no hook, tuning or sync.
     const inst = g.install;
     const hook = inst ? null : hookUrl(g);
     shots = anki.settings().on && !!hook;
@@ -1310,7 +1310,7 @@ function open() {
     const folderOf = x => x.slice(0, x.lastIndexOf('/') + 1);
     const msi = quiet && opts.kind === 'installshield' && discs && listing.files.find(f => /\.msi$/i.test(f.path) && folderOf(f.path) === folderOf(opts.installer));
     if (msi) { p = 'msiexec'; args = `/i "${DISC_DRIVE}:\\${msi.path.replaceAll('/', '\\')}" /qn`; }
-    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, quiet: !!quiet, since: Date.now() } });
+    boot({ title: opts.title, exe: '', size: discs ? size : 0, discs: discList, install: { p, w, args, quiet: !!quiet } });
   }
 
   // The installer exited, or the visitor says it's done: the program it installed is picked, and it and
@@ -1331,13 +1331,13 @@ function open() {
     stop('Looking for the installed game...');
     await wait(100); // the closed frame lets go of its databases
     try {
-      const found = await installedPrograms(g.title, g.install.since);
+      const found = await installedPrograms(g.title);
       if (!found.length) {
         await dropInstall(g);
         idle();
         return error(`The installer left no Windows program (.exe) VNBox could find, so ${g.title} wasn't added.\n\nIf it stopped with an error, try again with its questions on, or with the disc's other installer.`);
       }
-      const pick = found.length === 1 ? '0' : await listDialog({ title: 'Choose the Program', parent: win, value: '0',
+      const pick = await listDialog({ title: 'Choose the Program', parent: win, value: '0',
         items: found.map((f, i) => [String(i), f.path.replace(/^drive_c\//, 'C:/') + (f.shortcut ? ' (has a shortcut)' : '') + ', ' + bytes(f.size)]),
         text: `Which program starts ${g.title}? It and the files beside it become the game's folder. Cancel discards the install.` });
       if (pick == null) { await dropInstall(g); return idle(); }
