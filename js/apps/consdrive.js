@@ -1,4 +1,4 @@
-// Google Drive sync for CONscripter saves. Each game's saves go to one file in the
+// Google Drive sync for CONscripter and VNBox saves (VNBox's games as 'vnbox:<title>'). Each game's saves go to one file in the
 // app's hidden folder in the visitor's Drive (appDataFolder): only this site can see
 // that folder, and the site can see nothing else in their Drive. Signing in is
 // Google's token flow, all in the browser, so there's no server; a token lasts an hour.
@@ -186,8 +186,8 @@ async function download(title, f, interactive) {
   return files;
 }
 
-async function upload(title, f, files, interactive) {
-  const body = await gzip(JSON.stringify({ v: 1, game: title, at: Date.now(),
+async function upload(title, f, files, interactive, meta) {
+  const body = await gzip(JSON.stringify({ v: 1, game: title, at: Date.now(), ...meta,
     files: files.map(x => ({ path: x.path, mtime: x.mtime, data: b64(x.data) })) }));
   let r;
   if (f) {
@@ -223,12 +223,13 @@ export function merge(local, remote) {
 // local: this browser's saves of the game. Uploads what Drive is missing, and resolves
 // to the files from Drive that are newer than this browser's, for the caller to write.
 // interactive: straight from a click, so it may open the sign-in window.
-export async function sync(title, local, interactive = false) {
+// meta: more fields for the uploaded file, such as the engine that wrote the saves.
+export async function sync(title, local, interactive = false, meta = {}) {
   local = local.map(f => ({ path: f.path, data: f.data, mtime: +f.mtime || 0 }));
   const f = await find(title, interactive);
   const remote = f ? await download(title, f, interactive) : [];
   const m = merge(local, remote);
-  if (m.push) await upload(title, f, m.merged, interactive);
+  if (m.push) await upload(title, f, m.merged, interactive, meta);
   return m.toLocal;
 }
 

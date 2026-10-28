@@ -169,3 +169,81 @@ export async function deleteSaves(area, entries, path) {
   await withStore(area, 'readwrite', store => gone.forEach(e => store.delete(e.key)));
   return gone;
 }
+
+// ---------- Google Drive sync (consdrive.js) ----------
+// A game's saves sync by name: game/<path> (anything the game wrote into its folder), and in the
+// prefix wine/drive_c/users/<user>/{AppData,Documents,Saved Games}/<path> or wine/drive_c/ProgramData/<path>
+// (not Microsoft's), temp and cache folders left out. Never system32, windows or the registry.
+
+export const SYNC_CAP = 20 * 1024 * 1024;
+const USER_FOLDERS = /^wine\/drive_c\/(?:users\/[^/]+\/(?:AppData|Documents|Saved Games)|ProgramData(?=\/(?!Microsoft\/)))\/(.+)$/;
+const NOT_SAVES = /^(?:temp|tmp)$|cache/i;
+const syncPrefix = (areas, area) => area === areas[0] ? 'game/' : 'wine/';
+
+export function isSyncedSave(name) {
+  const parts = savePathParts(name);
+  if (!parts || parts.join('/') !== name) return false;
+  if (parts[0] === 'game') return parts.length > 1;
+  const inUser = USER_FOLDERS.exec(name);
+  return !!inUser && !inUser[1].split('/').some(p => NOT_SAVES.test(p));
+}
+
+// The game's saves to sync, [{ path (sync name), data, mtime (ms) }], or only their size when
+// over SYNC_CAP: { size, files? }.
+export async function syncedSaves(title) {
+  const areas = saveAreas(title), picked = [];
+  for (const area of areas) {
+    const p = syncPrefix(areas, area);
+    picked.push(...(await listSaves(area)).filter(e => !e.dir && !e.link && isSyncedSave(p + e.path)).map(e => ({ area, e })));
+  }
+  const size = picked.reduce((n, { e }) => n + e.size, 0);
+  if (size > SYNC_CAP) return { size };
+  const files = [];
+  for (const area of areas) {
+    const p = syncPrefix(areas, area);
+    files.push(...(await readSaves(area, picked.filter(x => x.area === area).map(x => x.e))).map(f => ({ path: p + f.path, data: f.data, mtime: +f.mtime })));
+  }
+  return { size, files };
+}
+
+// Writes synced files [{ path (sync name), data, mtime }] in, the game stopped, where they're
+// newer than this browser's. Folders, links and paths under a local file are left alone, so one
+// odd file doesn't stop the rest. Resolves to how many were written.
+export async function writeSynced(title, files) {
+  const areas = saveAreas(title);
+  let written = 0;
+  for (const area of areas) {
+    const p = syncPrefix(areas, area), entries = await listSaves(area);
+    const byPath = new Map(entries.map(e => [e.path, e]));
+    const writes = files.filter(f => f.path.startsWith(p) && isSyncedSave(f.path)).map(f => ({ ...f, path: f.path.slice(p.length) })).filter(f => {
+      const local = byPath.get(f.path), parents = f.path.split('/').slice(0, -1);
+      if (local && (local.dir || local.link || local.modified >= f.mtime)) return false;
+      return !parents.some((_, i) => { const e = byPath.get(parents.slice(0, i + 1).join('/')); return e && !e.dir; });
+    });
+    if (writes.length) await writeSaves(area, writes, entries);
+    written += writes.length;
+  }
+  return written;
+}
+
+// Whether the game wrote a synced save after since (ms), and the newest write time seen: the
+// running engine's writes, read off the timestamp index without the files' contents.
+export async function savedSince(title, since) {
+  const areas = saveAreas(title);
+  let saved = false, at = since;
+  for (const area of areas) {
+    const p = syncPrefix(areas, area);
+    await withStore(area, 'readonly', store => {
+      const r = store.index('timestamp').openKeyCursor(IDBKeyRange.lowerBound(new Date(since), true));
+      r.onsuccess = () => {
+        const c = r.result;
+        if (!c) return;
+        at = Math.max(at, new Date(c.key).getTime());
+        const key = String(c.primaryKey);
+        if (key.startsWith(area.root + '/') && isSyncedSave(p + key.slice(area.root.length + 1).split('/').map(unescapeName).join('/'))) saved = true;
+        c.continue();
+      };
+    });
+  }
+  return { saved, at };
+}

@@ -1,7 +1,8 @@
 // VNBox: plays Windows visual novels on Wine in an emulated PC (VNBox, blankiekun's Boxedwine fork),
 // in a frame (vnbox/engine/boxedwine.html). The engine reads the game from this browser's private
 // storage a block at a time, so each game is copied there once and opens again from Recent games
-// without choosing it. Saves stay in this browser (IndexedDB). A text hook script (0xDC00's, in
+// without choosing it. Saves stay in this browser (IndexedDB), and with Google Drive sync on (consdrive.js,
+// shared with CONscripter) are copied to the visitor's Drive as the game saves them. A text hook script (0xDC00's, in
 // vnbox/hooks/) sends each line of dialogue to the text log beside the game, for Yomitan or the clipboard.
 
 import { h, icon, download, store, wait } from '../util.js';
@@ -9,7 +10,8 @@ import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
 import { msgbox, about } from '../dialogs.js';
 import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './conscripter.js';
-import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves } from './vnsaves.js';
+import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
+import * as drive from './consdrive.js';
 
 const RECENT = 'w95.vnbox.recent';
 const MAX_RECENT = 6;
@@ -22,6 +24,10 @@ const SIZES = ['640x480', '800x600', '1024x768', '1280x720'];
 // The screen a game too big for the 800x600 start runs on once, to learn its size (see fitted).
 const LEARN = '1920x1200';
 const MAX_LINES = 1000;
+// How often a running game's databases are checked for a new save to copy to Google Drive.
+const SAVE_POLL = 5000;
+const driveKey = title => 'vnbox:' + title;
+const hhmm = t => new Date(t).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 // The engine waits for the game's files with JSPI, which Chrome and Edge have (137 and later).
 const canRun = typeof WebAssembly === 'object' && typeof WebAssembly.Suspending === 'function';
 const canStore = !!(navigator.storage && navigator.storage.getDirectory && window.FileSystemFileHandle && 'createWritable' in FileSystemFileHandle.prototype);
@@ -218,7 +224,8 @@ function savesWindow(title, parent, onClosed) {
     });
   }
   async function remove() {
-    const b = await msgbox({ title: 'Save Files', icon: 'question', parent: win, buttons: ['&Yes', '&No'], text: `Delete ${selected}?\n\nA backup .zip of it is downloaded first.` });
+    const b = await msgbox({ title: 'Save Files', icon: 'question', parent: win, buttons: ['&Yes', '&No'], text: `Delete ${selected}?\n\nA backup .zip of it is downloaded first.` +
+      (drive.enabled() ? ' Saves synced with Google Drive come back from there the next time the game starts.' : '') });
     if (b !== 'Yes') return '';
     const touched = savesUnder(entries, selected);
     await backup(touched);
@@ -298,7 +305,8 @@ function open() {
       h('fieldset', { class: 'group cons-warn' }, h('legend', null, 'Good to know'),
         h('div', { class: 'cons-warn-row' }, icon('i-info'), h('p', null,
           'The first game downloads Wine (120 MB, once) and sets it up, which takes a few minutes. Games are slower than on Windows, and not every game runs. ',
-          h('b', null, 'Saves are kept only in this browser'), ': clearing site data erases them.')),
+          h('b', null, 'Saves are kept only in this browser'), ': clearing site data erases them.',
+          drive.available ? ' File > Sync with Google Drive copies them to your Drive as you play.' : '')),
         h('div', { class: 'cons-warn-row' }, icon('i-notepad'), h('p', null,
           'Japanese games can send their text to the ', h('b', null, 'text log'), ' beside the game, to look words up with Yomitan or copy them: choose ',
           h('b', null, 'Text > Text Hook'), ' while playing.')))));
@@ -308,7 +316,8 @@ function open() {
   const view = h('div', { class: 'cons-view' }, welcome);
   const statusText = h('span', null, 'Ready');
   const statusGame = h('span', { class: 'cons-size' }, '');
-  const status = h('div', { class: 'statusbar' }, statusText, statusGame);
+  const statusSync = h('span', { class: 'cons-saves link', hidden: true, onclick: () => game && syncSaves(game.title, { w: frame, interactive: true, report: true }) });
+  const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSync);
   const say = t => { statusText.textContent = t; };
   const idle = () => say(frame ? 'Playing ' + game.title : 'Ready');
   const error = text => msgbox({ title: 'VNBox', icon: 'error', parent: win, text });
@@ -418,17 +427,22 @@ function open() {
       // Japanese font names (ＭＳ ゴシック...) as jp.zip's fonts, no Mono/Gecko installs, full-rate sound,
       // and the game's window fills the screen, which takes its size, without Wine's title bar.
       'registry=jpfonts', 'wine-override=[nomono]', 'audioFreq=44100', 'fitWindow=true'];
-    frame = h('iframe', { class: 'cons-frame', title: g.title, src: ENGINE + 'boxedwine.html?' + q.join('&'), allow: 'fullscreen; autoplay', style: { visibility: 'hidden' } });
+    frame = h('iframe', { class: 'cons-frame', title: g.title, allow: 'fullscreen; autoplay', style: { visibility: 'hidden' } });
     const me = frame;
-    frame.addEventListener('load', () => {
-      const w = frame.contentWindow;
-      w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: FRAME_CSS }));
-      w.boxedwineText = line => { if (frame === me) addLine(line); };
-      const canvas = w.document.getElementById('canvas');
-      new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
-      frame.style.visibility = '';
-      frame.focus();
-    }, { once: true });
+    const start = () => {
+      if (frame !== me) return;
+      saveSeen = Date.now();
+      frame.src = ENGINE + 'boxedwine.html?' + q.join('&');
+      frame.addEventListener('load', () => {
+        const w = frame.contentWindow;
+        w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: FRAME_CSS }));
+        w.boxedwineText = line => { if (frame === me) addLine(line); };
+        const canvas = w.document.getElementById('canvas');
+        new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
+        frame.style.visibility = '';
+        frame.focus();
+      }, { once: true });
+    };
     clearLog();
     view.classList.add('playing');
     fsBtn.disabled = !canFull;
@@ -437,6 +451,14 @@ function open() {
     win.setTitle(g.title + ' - VNBox');
     statusGame.textContent = g.exe + ', ' + bytes(g.size);
     say('Playing ' + g.title);
+    // Newer saves from Google Drive go in before the engine reads its databases.
+    if (!drive.enabled()) start();
+    else {
+      say('Syncing saves with Google Drive...');
+      wait(100) // a frame just closed lets go of its databases
+        .then(() => syncSaves(g.title, { starting: true }))
+        .then(n => { if (frame === me) say(n ? `Loaded ${n} newer save file${n === 1 ? '' : 's'} from Google Drive` : 'Playing ' + g.title); start(); });
+    }
   }
 
   // Wine caps a new window at the screen plus its frame, so a game bigger than the 800x600 start comes
@@ -468,7 +490,12 @@ function open() {
     if (!frame) return true;
     const b = await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
       text: `Quit ${game.title}?\n\nAnything you haven't saved in the game will be lost.` });
-    return b === 'Yes';
+    if (b !== 'Yes') return false;
+    if (drive.enabled()) {
+      say('Copying saves to Google Drive...');
+      await watchSaves({ leaving: true });
+    }
+    return true;
   }
 
   function engineLog() {
@@ -481,6 +508,110 @@ function open() {
     game.res = res;
     setGame(game.title, { res });
     if (!quiet) say('Restart the game to use the new screen size');
+  }
+
+  // ---------- Google Drive sync ----------
+
+  let chain = Promise.resolve();
+  let saveSeen = 0;     // the newest write to the running game's databases looked at
+  let declined = null;  // the frame whose newer saves from Drive the visitor chose not to load
+
+  function showSync(text, title) {
+    statusSync.hidden = !drive.enabled();
+    statusSync.replaceChildren(icon('i-globe'), 'Saves: ' + text);
+    statusSync.title = title;
+  }
+  showSync('Google Drive', 'Saves are in this browser and synced with Google Drive. Click to sync now.');
+
+  // One sync at a time; resolves to how many newer save files from Drive were written.
+  // starting: the game is stopped, so newer saves from Drive go straight in.
+  // w: the frame playing, which has to restart to load them, so that's asked first.
+  // leaving: the game is being closed: only copy to Drive.
+  // interactive: from a click, so it may open Google's sign-in window, and errors are shown.
+  function syncSaves(title, opts = {}) {
+    if (!drive.enabled()) return Promise.resolve(0);
+    return chain = chain.then(() => runSync(title, opts));
+  }
+
+  async function runSync(title, { w, starting, leaving, interactive, report }) {
+    if (!starting && (!w || frame !== w)) return 0;
+    showSync('syncing...', 'Copying saves to and from Google Drive');
+    try {
+      const { size, files } = await syncedSaves(title);
+      if (!files) {
+        showSync('this browser', `The saves of ${title} are ${bytes(size)}, over the ${bytes(SYNC_CAP)} that sync with Google Drive. They stay in this browser.`);
+        return 0;
+      }
+      let job = drive.sync(driveKey(title), files, interactive, { engine: ENGINE_VERSION });
+      // Don't hold the game back long if Drive is slow; newer saves come next sync.
+      if (starting) job = Promise.race([job, wait(15000).then(() => { throw new drive.DriveError('Google Drive took too long to answer.', 'net'); })]);
+      const newer = await job;
+      showSync('Google Drive', `Saves are in this browser and synced with Google Drive, last at ${hhmm(Date.now())}. Click to sync now.`);
+      if (report) say('Synced with Google Drive');
+      if (starting) return newer.length ? await writeSynced(title, newer) : 0;
+      if (newer.length && !leaving && declined !== w && frame === w) {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+          text: `Your Google Drive has newer saves of ${title}, from playing somewhere else.\n\nLoad them and restart the game? Anything you haven't saved here will be lost. If you don't, each save file keeps whichever copy was saved last.` });
+        if (b === 'Yes' && frame === w) boot(game); else declined = w;
+      }
+    } catch (e) {
+      const signin = ['signin', 'popup', 'closed', 'denied'].includes(e.kind);
+      showSync(signin ? 'sign in to Drive' : 'not synced', e.message + ' Click to try again.');
+      if (leaving) {
+        msgbox({ title: 'Google Drive Sync', icon: 'warn',
+          text: `Your latest saves of ${title} weren't copied to Google Drive.\n\n${e.message}\n\nThey're safe in this browser, and are copied the next time you play ${title} here.` });
+      } else if (interactive && e.kind === 'popup') {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'warn', parent: win, buttons: ['OK', 'Cancel'],
+          text: 'The browser blocked the Google sign-in window. Click OK to open it.' });
+        if (b === 'OK') return runSync(title, { w, starting, interactive, report });
+      } else if (interactive && e.kind !== 'closed') {
+        msgbox({ title: 'Google Drive Sync', icon: 'error', parent: win, text: `${title} could not be synced with Google Drive.\n\n${e.message}` });
+      }
+    }
+    return 0;
+  }
+
+  // The engine writes the game's saves into its databases as it runs: a new one is copied at the next look.
+  async function watchSaves(opts) {
+    const w = frame;
+    if (!w || !w.src || !drive.enabled()) return;
+    const { saved, at } = await savedSince(game.title, saveSeen).catch(() => ({ saved: false, at: saveSeen }));
+    if (frame !== w) return;
+    saveSeen = at;
+    if (saved) return syncSaves(game.title, { w, ...opts });
+  }
+  const poll = setInterval(watchSaves, SAVE_POLL);
+  // Leaving the tab (or closing it) copies a save the last look missed, while there's time.
+  const onHide = () => { if (document.hidden) watchSaves(); };
+  document.addEventListener('visibilitychange', onHide);
+
+  async function driveOn() {
+    say('Signing in to Google...');
+    try {
+      await drive.connect();
+    } catch (e) {
+      idle();
+      if (e.kind === 'popup') {
+        const b = await msgbox({ title: 'Google Drive Sync', icon: 'warn', parent: win, buttons: ['OK', 'Cancel'],
+          text: 'The browser blocked the Google sign-in window. Click OK to open it.' });
+        return b === 'OK' && driveOn();
+      }
+      if (e.kind !== 'closed') error('Google Drive sync could not be turned on.\n\n' + e.message);
+      return;
+    }
+    showSync('Google Drive', 'Saves are in this browser and synced with Google Drive. Click to sync now.');
+    say('Google Drive sync is on');
+    if (frame) syncSaves(game.title, { w: frame, interactive: true, report: true });
+  }
+
+  async function driveOff() {
+    const b = await msgbox({ title: 'Google Drive Sync', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+      text: 'Turn off Google Drive sync, here and in CONscripter?\n\nSaves stay in this browser. The copies in your Google Drive stay there too, and turning sync on again brings them back.' });
+    if (b !== 'Yes') return;
+    await chain;
+    await drive.disconnect();
+    showSync('', '');
+    say('Google Drive sync is off');
   }
 
   // ---------- opening games ----------
@@ -556,10 +687,22 @@ function open() {
   }
 
   async function deleteSaves() {
+    const synced = drive.enabled();
     const b = await msgbox({ title: 'Delete Saves', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
-      text: `Delete every save of ${game.title} in this browser, and its Wine settings, then restart it?\n\nThis can't be undone.` });
+      text: `Delete every save of ${game.title} in this browser${synced ? ' and in your Google Drive' : ''}, and its Wine settings, then restart it?\n\nThis can't be undone.` });
     if (b !== 'Yes' || !frame) return;
     const g = game;
+    if (synced) {
+      say('Deleting the saves from Google Drive...');
+      try {
+        await chain;
+        await drive.remove(driveKey(g.title), true);
+      } catch (e) {
+        idle();
+        return msgbox({ title: 'Delete Saves', icon: 'error', parent: win,
+          text: `The saves of ${g.title} could not be deleted from Google Drive, so the ones in this browser were kept too.\n\n${e.message}` });
+      }
+    }
     stop('Deleting the saves...');
     await new Promise(r => setTimeout(r, 100)); // the closed frame lets go of its databases
     await deleteSaveDbs(g.title);
@@ -620,6 +763,9 @@ function open() {
       { label: '&Close Game', disabled: !frame, action: () => confirmQuit().then(ok => ok && stop('Ready')) },
       { label: '&Save Files...', disabled: !game, action: () => saveFiles(game) },
       { label: '&Games in This Browser...', action: gamesDialog },
+      ...(drive.available ? ['-',
+        { label: drive.enabled() ? 'Turn Off Google &Drive Sync...' : 'Sync with Google &Drive...', action: () => drive.enabled() ? driveOff() : driveOn() },
+        { label: 'S&ync Now', disabled: !frame || !drive.enabled(), action: () => syncSaves(game.title, { w: frame, interactive: true, report: true }) }] : []),
       '-',
       ...recentGames().map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
       ...(recentGames().length ? ['-'] : []),
@@ -686,12 +832,15 @@ function open() {
     width: 760, height: 560, minW: 320, minH: 260, route: 'vnbox',
     onClose: confirmQuit,
     onClosed: () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onHide);
       document.removeEventListener('fullscreenchange', leftFull);
       window.removeEventListener('message', onMessage);
       if (ownHook) URL.revokeObjectURL(ownHook.url);
       if (isFull()) document.exitFullscreen().catch(() => {});
     },
   });
+  drive.preload();
   return win;
 }
 
