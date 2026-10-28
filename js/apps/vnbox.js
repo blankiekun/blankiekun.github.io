@@ -8,10 +8,11 @@
 import { h, icon, download, store, wait } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
-import { msgbox, about } from '../dialogs.js';
+import { msgbox, about, inputbox } from '../dialogs.js';
 import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './conscripter.js';
 import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
 import * as drive from './consdrive.js';
+import * as anki from './consanki.js';
 import { tabbed } from './system.js';
 import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
 import { VERSIONS, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
@@ -27,6 +28,8 @@ const SIZES = ['640x480', '800x600', '1024x768', '1280x720'];
 // The screen a game too big for the 800x600 start runs on once, to learn its size (see fitted).
 const LEARN = '1920x1200';
 const MAX_LINES = 1000;
+// Anki mining keeps this many hooked lines, the newest KEPT_PICTURES with their screenshot (about 200 KB each).
+const KEPT_LINES = 500, KEPT_PICTURES = 30;
 // How often a running game's databases are checked for a new save to copy to Google Drive.
 const SAVE_POLL = 5000;
 const driveKey = title => 'vnbox:' + title;
@@ -480,6 +483,7 @@ function open() {
     logEmpty.remove();
     log.append(h('p', null, text));
     while (log.childElementCount > MAX_LINES) log.firstElementChild.remove();
+    if (!quiet && shots) keep(text);
     if (atEnd) log.scrollTop = log.scrollHeight;
     if (!quiet && clip && navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
   }
@@ -543,11 +547,97 @@ function open() {
     return g.hook ? new URL('vnbox/hooks/' + g.hook, location.href).href : null;
   }
 
+  // ---------- Anki mining ----------
+
+  // Cards added to Anki while playing (with Yomitan, from the text log) get the screen of the hooked
+  // line their sentence came from, through consanki.js (CONscripter's settings, so on there is on
+  // here). Ported from chimimouryou's overlay.js. shots: mining was on, with a text hook, when the
+  // game started, so the engine's WebGL keeps its last frame readable (a buffer copy per frame).
+  let kept = [], retake = null, shots = false, ankiStop = null, ankiError = '';
+
+  // Wine's frames go to the present canvas while it shows, else the game draws with GL on #canvas
+  // (VNBox's own activeCanvas test).
+  function screenshot() {
+    const w = frame && frame.contentWindow, d = w && w.document;
+    if (!d) return Promise.resolve(null);
+    const present = d.getElementById('boxedwine-webgl-canvas-0'), style = present && w.getComputedStyle(present);
+    const c = present && present.width && style.display !== 'none' && style.visibility !== 'hidden' ? present : d.getElementById('canvas');
+    return new Promise(resolve => c.toBlob(resolve, 'image/webp', 0.9));
+  }
+
+  function keep(text) {
+    // A line hooked again (the game's own backlog screen) keeps the screen it had the first time.
+    const earlier = kept.findLast(k => k.text === text && k.picture);
+    const line = { text, picture: earlier ? earlier.picture : screenshot() };
+    // The hook fires before the text is drawn: the screen at the next click or key is the line's.
+    retake = earlier ? null : line;
+    kept.push(line);
+    if (kept.length > KEPT_LINES) kept.shift();
+    const old = kept[kept.length - 1 - KEPT_PICTURES];
+    if (old) old.picture = null;
+  }
+  function retakeShot(e) {
+    // Modifier keys are Yomitan's scan keys, not the game's; held keys repeat.
+    if (!retake || e.repeat || /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
+    if (retake.picture) retake.picture = screenshot();
+    retake = null;
+  }
+
+  function ankiWatch() {
+    const on = !!(frame && shots);
+    if (on && !ankiStop) ankiStop = anki.watch(ankiNote, e => {
+      // Said once per kind of failure, not on every check.
+      if (e && e.message !== ankiError) say(e.message);
+      ankiError = e ? e.message : '';
+    });
+    else if (!on && ankiStop) { ankiStop(); ankiStop = null; ankiError = ''; }
+  }
+
+  async function ankiNote(note) {
+    const s = anki.settings(), line = kept[anki.lineFor(anki.noteSentence(note), kept.map(k => k.text))];
+    if (!line) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text`);
+    try {
+      say('Adding the screenshot to the Anki card...');
+      const filled = await anki.addMedia(note, { picture: (await line.picture) || (await screenshot()) });
+      say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : `Nothing added to the Anki card (its ${s.pictureField} field is missing or already filled)`);
+    } catch (e) {
+      say('Anki: ' + e.message);
+    }
+  }
+
+  function ankiToggle() {
+    const on = !anki.settings().on;
+    if (on && !anki.settings().tipped) { anki.set({ tipped: true }); ankiHelp(); }
+    anki.set({ on });
+    if (!on) shots = false;
+    else if (frame && !shots) say('Anki mining starts at the game\'s next start, with a text hook on');
+    ankiWatch();
+  }
+
+  async function ankiField(key, label) {
+    const v = await inputbox({ title: 'Anki Mining', parent: win, label, value: anki.settings()[key] });
+    if (v != null && v.trim()) anki.set({ [key]: v.trim() });
+  }
+
+  function ankiHelp() {
+    const origin = location.origin.replace(/[&<>]/g, '');
+    msgbox({ title: 'Connecting to AnkiConnect', icon: 'info', parent: win, html:
+      '<p>Cards you add to Anki while playing (with Yomitan on the text log, for example) get a screenshot of the game from when their sentence was shown.</p>' +
+      '<ol style="margin:6px 0;padding-left:20px;line-height:1.5">' +
+      '<li>In Anki, choose <b>Tools &gt; Add-ons &gt; Get Add-ons</b> and enter the code <b>2055492159</b> (AnkiConnect).</li>' +
+      '<li>Select AnkiConnect, click <b>Config</b>, and add this site to <code>webCorsOriginList</code>, exactly as shown (no slash at the end):<br><code>"webCorsOriginList": ["http://localhost", "' + origin + '"]</code></li>' +
+      '<li>Restart Anki and leave it open while you play.</li>' +
+      '<li>If the browser asks to let this site reach apps on your device (or local network), choose <b>Allow</b>.</li>' +
+      '<li>Your note type needs the fields named in Text &gt; Anki Settings (<b>Sentence</b> and <b>Picture</b> unless you change them). A filled field is left alone.</li></ol>' +
+      '<p>The card gets the screen of the hooked line its <b>Sentence</b> came from (the last 30 lines; older ones get the screen as it is now), even if you have clicked on since. Cards mined from anywhere else are left alone. Mining needs a text hook, and starts with the next start of the game.</p>' });
+  }
+
   // ---------- running a game ----------
 
   function stop(msg) {
     if (frame) frame.remove();
     frame = null;
+    ankiWatch();
     view.classList.remove('playing');
     fsBtn.disabled = true;
     if (isFull()) document.exitFullscreen().catch(() => {});
@@ -562,6 +652,8 @@ function open() {
     if (frame) frame.remove();
     game = g;
     errors = [];
+    kept = []; retake = null;
+    shots = anki.settings().on && !!hookUrl(g);
     const arg = (k, v) => k + '=' + encodeURIComponent(v);
     // The shell reads env= undecoded and splits it at the colon, so only the quotes are escaped.
     const hook = hookUrl(g);
@@ -580,9 +672,16 @@ function open() {
         const w = frame.contentWindow;
         w.document.head.append(Object.assign(w.document.createElement('style'), { textContent: FRAME_CSS }));
         w.boxedwineText = line => { if (frame === me) addLine(line); };
+        // Before Wine opens a window, so before the engine makes its WebGL context.
+        if (shots) {
+          const proto = w.HTMLCanvasElement.prototype, get = proto.getContext;
+          proto.getContext = function (type, attrs) { return get.call(this, type, /^webgl/.test(type) ? { ...attrs, preserveDrawingBuffer: true } : attrs); };
+          for (const type of ['mousedown', 'touchstart', 'keydown']) w.addEventListener(type, retakeShot, true);
+        }
         const canvas = w.document.getElementById('canvas');
         new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
         frame.style.visibility = '';
+        ankiWatch();
         frame.focus();
       }, { once: true });
     };
@@ -934,13 +1033,22 @@ function open() {
     ] },
     { label: '&Text', items: () => [
       { label: 'Text &Hook...', disabled: !game, action: chooseHook },
-      { label: 'Text &Cleanup...', disabled: !game, action: cleanup },
+      { label: 'Text Cl&eanup...', disabled: !game, action: cleanup },
       '-',
       { label: 'Show Text &Log', checked: showLog, action: toggleLog },
       { label: '&Copy Each Line to the Clipboard', checked: clip, action: () => { clip = !clip; store.set(CLIP, clip); } },
       '-',
       { label: '&Save Text Log...', disabled: !lines().length, action: () => download(game.title + ' text.txt', new Blob([lines().join('\n') + '\n'], { type: 'text/plain' })) },
       { label: 'C&lear Text Log', disabled: !lines().length, action: clearLog },
+      '-',
+      { label: '&Anki Mining', checked: anki.settings().on, action: ankiToggle },
+      { label: 'Anki Se&ttings', submenu: [
+        { label: 'Se&ntence Field...', action: () => ankiField('sentenceField', 'The note field with the mined sentence (picks the line):') },
+        { label: '&Picture Field...', action: () => ankiField('pictureField', 'The note field for the screenshot:') },
+        { label: 'AnkiConnect A&ddress...', action: () => ankiField('url', 'Where AnkiConnect listens:') },
+        '-',
+        { label: '&How to Connect AnkiConnect...', action: ankiHelp },
+      ] },
     ] },
     { label: '&Debug', items: () => [
       { label: 'Engine L&og', disabled: !frame, action: engineLog },
@@ -989,6 +1097,7 @@ function open() {
     onClose: confirmQuit,
     onClosed: () => {
       clearInterval(poll);
+      if (ankiStop) ankiStop();
       document.removeEventListener('visibilitychange', onHide);
       document.removeEventListener('fullscreenchange', leftFull);
       window.removeEventListener('message', onMessage);
