@@ -1,6 +1,7 @@
-// Desktop gadgets for Vista and 7: CPU Meter, Calendar and Slide Show, plus the gallery that adds
+// Desktop gadgets: CPU Meter, Calendar, Slide Show and the Moe Clock, plus the gallery that adds
 // them (and the Clock gadget, js/apps/clock.js). Vista docks them down the Sidebar on the right;
-// 7 lets them float on the desktop. Which ones are open is remembered for the next visit.
+// every other era lets them float on the desktop, skinned for its decade (css/apps.css).
+// Which ones are open is remembered for the next visit.
 
 import { h, icon, store, small } from '../util.js';
 import { createWindow, launch, all } from '../wm.js';
@@ -8,6 +9,8 @@ import { sample } from './sysmon.js';
 import { V } from '../version.js';
 
 const SIDEBAR = V.id === 'vista';
+// The Clock and CPU Meter gadgets are Vista and 7's own; other eras get the rest.
+const AERO = ['vista', '7'].includes(V.id);
 const KEY = 'w95.gadgets';
 const open = new Map();   // id -> window, in the order they were added
 
@@ -78,7 +81,9 @@ function calendar() {
 // ---------- Slide Show ----------
 
 // The site's own screenshots of chimimouryou; the CONscripter ones show other people's game art.
-const SLIDES = ['chimi-store.png', 'chimi-settings.png', 'chimi-reader.png', 'chimi-phone-store.png'];
+// The anime wallpapers come first, like the picture-frame widget on an anime desktop.
+const SLIDES = [...['shore', 'rooftop', 'lain', 'wired', 'konata'].map(f => `wallpapers/${f}.jpg`),
+  'chimi-store.png', 'chimi-settings.png', 'chimi-reader.png', 'chimi-phone-store.png'];
 
 function slideshow() {
   let i = 0;
@@ -89,9 +94,29 @@ function slideshow() {
   return gadget('slides', 'Slide Show', frame, 130, () => clearInterval(timer));
 }
 
+// ---------- Moe Clock ----------
+
+// The big time-and-date text anime desktops put over the wallpaper, dated the Japanese way.
+const WEEKDAYS = '日月火水木金土';
+export const jpDate = d => `${d.getMonth() + 1}月${d.getDate()}日 (${WEEKDAYS[d.getDay()]})`;
+console.assert(jpDate(new Date(2026, 9, 28)) === '10月28日 (水)', 'moe clock: 28 Oct 2026 is a Wednesday');
+
+function moeClock() {
+  const time = h('div', { class: 'gd-moe-t' }), date = h('div', { class: 'gd-moe-d', lang: 'ja' });
+  const body = h('div', { class: 'gd gd-moe', role: 'timer', 'aria-label': 'Clock' }, time, date);
+  function tick() {
+    const now = new Date();
+    time.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    date.textContent = jpDate(now);
+  }
+  const timer = setInterval(tick, 1000);
+  tick();
+  return gadget('moe', 'Moe Clock', body, 100, () => clearInterval(timer));
+}
+
 // ---------- Docking, the gallery, and remembering ----------
 
-const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow };
+const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock };
 
 // Vista's Sidebar: a translucent strip down the right, with the gadgets stacked in it. In 7 a new
 // gadget starts at the right under the others, then floats wherever it's dragged.
@@ -134,10 +159,11 @@ async function add(id) {
 }
 
 export function reopen() {
-  if (SIDEBAR || V.id === '7') store.get(KEY, []).filter(id => MAKERS[id]).forEach(add);
+  store.get(KEY, []).filter(id => MAKERS[id]).forEach(add);
 }
 
-const LIST = [['clock', 'Clock', 'i-clock'], ['cpu', 'CPU Meter', 'i-sysmon'], ['calendar', 'Calendar', null], ['slides', 'Slide Show', 'i-viewer']];
+const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true]]
+  .filter(g => g[3]);
 
 function gallery() {
   const tile = ([id, name, ic]) => h('button', { class: 'gd-tile', type: 'button', onclick: () => add(id) },

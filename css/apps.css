@@ -1121,12 +1121,29 @@ body.dragging-files iframe { pointer-events: none; }
 .gd-slide img { width: 100%; height: 100%; object-fit: contain; }
 @media (prefers-reduced-motion: no-preference) { .gd-slide img { animation: gd-fade .8s; } }
 @keyframes gd-fade { from { opacity: 0; } }
+/* Moe Clock: big text straight on the wallpaper (Vista and 7: glass-white, like Rainmeter on Aero) */
+.gd-moe { background: none; box-shadow: none; gap: 2px; text-shadow: 0 1px 3px #000c, 0 0 8px #0006; cursor: default; }
+.gd-moe-t { font: 300 40px/1 "Segoe UI Light", "Segoe UI", var(--font-ui); font-variant-numeric: tabular-nums; }
+.gd-moe-d { font-size: 13px; letter-spacing: .1em; }
+/* The decades before gadgets: a PC-98 game's status window for 1.0-3.1, a beveled
+   LCD like a 9x tray clock, Samurize's dark strip for XP, bare thin Rainmeter text for 8-11. */
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd { border-radius: 0; background: #000; color: #5ff; box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #f5f, inset 0 0 0 6px #000; font-family: var(--font-mono, monospace); text-shadow: none; }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-moe-t { font: bold 34px/1 var(--font-mono, monospace); }
+html:is([data-win="1.0"], [data-win="2.0"], [data-win="3.1"]) .gd-moe-d { color: #ff5; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .gd { border-radius: 0; background: var(--face); color: #000; box-shadow: var(--raised, inset -1px -1px #000, inset 1px 1px #fff); text-shadow: none; padding: 4px; }
+html:is([data-win="95"], [data-win="98"], [data-win="me"], [data-win="2000"]) .gd-moe-t { align-self: stretch; text-align: center; background: #000; color: #3f3; box-shadow: inset 1px 1px #808080, inset -1px -1px #fff; font: bold 32px/1.15 var(--font-mono, monospace); }
+html[data-win="xp"] .gd { border-radius: 4px; background: linear-gradient(#000a, #0008); box-shadow: 0 0 0 1px #fff4; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-moe-t { font-size: 46px; font-weight: 200; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .gd-moe { align-items: flex-start; text-shadow: 0 1px 4px #0009; }
+/* 8-11: no frame round the gadgets; the title bar to drag one by shows on hover */
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget { border-color: transparent; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:is([data-win="8"], [data-win="10"], [data-win="11"]) .win.gadget:not(:hover, :focus-within) > .titlebar { opacity: 0; }
 /* Vista's Sidebar: a dark glass strip down the right of the desktop, under the windows */
 .sidebar { position: absolute; top: 0; right: 0; bottom: 0; width: 170px; background: linear-gradient(90deg, #0000, #0007 14px, #0005); border-left: 1px solid #fff2; }
 @media (max-width: 640px), (max-height: 420px) { .sidebar { display: none; } }
 .gd-gallery { padding: 10px; font: 12px var(--font-ui); }
 .gd-gallery p { margin: 0 0 8px; }
-.gd-tiles { display: grid; grid-template-columns: repeat(4, 84px); gap: 6px; }
+.gd-tiles { display: grid; grid-template-columns: repeat(5, 84px); gap: 6px; }
 .gd-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border: 1px solid transparent; border-radius: 3px; background: none; font: inherit; cursor: var(--hand); }
 .gd-tile:hover, .gd-tile:focus-visible { border-color: #7eb4ea; background: #e5f3fb; }
 .gd-tile svg, .gd-cal-ico { width: 32px; height: 32px; }
