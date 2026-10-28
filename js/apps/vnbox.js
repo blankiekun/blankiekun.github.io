@@ -34,6 +34,9 @@ const LEARN = '1920x1200';
 const MAX_LINES = 1000;
 // Anki mining keeps this many hooked lines, the newest KEPT_PICTURES with their screenshot (about 200 KB each).
 const KEPT_LINES = 500, KEPT_PICTURES = 30;
+// and the newest KEPT_SOUNDS with the game's sound from the click that brought them (cons/soundtap.js
+// cuts a line's at 20 s, up to about 4 MB).
+const KEPT_SOUNDS = 10;
 // How often a running game's databases are checked for a new save to copy to Google Drive.
 const SAVE_POLL = 5000;
 const driveKey = title => 'vnbox:' + title;
@@ -761,13 +764,18 @@ function open() {
   function keep(text) {
     // A line hooked again (the game's own backlog screen) keeps the screen it had the first time.
     const earlier = kept.findLast(k => k.text === text && k.picture);
-    const line = { text, picture: earlier ? earlier.picture : screenshot() };
+    const line = earlier ? { text, picture: earlier.picture, audio: earlier.audio } : { text, picture: screenshot() };
     // The hook fires before the text is drawn: the screen at the next click or key is the line's.
     retake = earlier ? null : line;
+    // and the sound from the click that brought it to the next.
+    const w = frame && frame.contentWindow;
+    if (!earlier && w && w.recordLine) w.recordLine(line);
     kept.push(line);
     if (kept.length > KEPT_LINES) kept.shift();
     const old = kept[kept.length - 1 - KEPT_PICTURES];
     if (old) old.picture = null;
+    const quiet = kept[kept.length - 1 - KEPT_SOUNDS];
+    if (quiet) quiet.audio = undefined;
   }
   function retakeShot(e) {
     // Modifier keys are Yomitan's scan keys, not the game's; held keys repeat.
@@ -790,9 +798,11 @@ function open() {
     const s = anki.settings(), line = kept[anki.lineFor(anki.noteSentence(note), kept.map(k => k.text))];
     if (!line) return say(`Left the Anki card alone: its ${s.sentenceField} field isn't from ${game.title}'s recent text`);
     try {
-      say('Adding the screenshot to the Anki card...');
-      const filled = await anki.addMedia(note, { picture: (await line.picture) || (await screenshot()) });
-      say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : `Nothing added to the Anki card (its ${s.pictureField} field is missing or already filled)`);
+      say('Adding the screenshot and sound to the Anki card...');
+      const w = frame && frame.contentWindow;
+      const audio = s.audio && w && w.lineSound ? await w.lineSound(line) : null;
+      const filled = await anki.addMedia(note, { picture: (await line.picture) || (await screenshot()), audio });
+      say(filled.length ? 'Added to the Anki card: ' + filled.join(', ') : `Nothing added to the Anki card (its ${s.pictureField} and ${s.audioField} fields are missing or already filled)`);
     } catch (e) {
       say('Anki: ' + e.message);
     }
@@ -881,6 +891,9 @@ function open() {
           proto.getContext = function (type, attrs) { return get.call(this, type, /^webgl/.test(type) ? { ...attrs, preserveDrawingBuffer: true } : attrs); };
           // Taps reach the game as mousedowns (frameControls).
           for (const type of ['mousedown', 'keydown']) w.addEventListener(type, retakeShot, true);
+          // The game's sound, for each line's: CONscripter's tap, which records once recordLines is set.
+          if (anki.settings().audio) w.document.head.append(Object.assign(w.document.createElement('script'),
+            { src: new URL('cons/soundtap.js', location.href).href, onload: () => { w.recordLines = true; } }));
         }
         const canvas = w.document.getElementById('canvas');
         if (!inst) new w.MutationObserver(() => fitted(me, canvas.width, canvas.height)).observe(canvas, { attributes: true, attributeFilter: ['width', 'height'] });
@@ -1377,7 +1390,12 @@ function open() {
       { label: 'Anki Se&ttings', submenu: [
         { label: 'Se&ntence Field...', action: () => ankiField('sentenceField', 'The note field with the mined sentence (picks the line):') },
         { label: '&Picture Field...', action: () => ankiField('pictureField', 'The note field for the screenshot:') },
+        { label: 'A&udio Field...', action: () => ankiField('audioField', 'The note field for the line\'s sound:') },
         { label: 'AnkiConnect A&ddress...', action: () => ankiField('url', 'Where AnkiConnect listens:') },
+        { label: 'Add Line &Sound', checked: anki.settings().audio, action: () => {
+          anki.set({ audio: !anki.settings().audio });
+          if (frame && shots) say('The line sound setting is used from the game\'s next start');
+        } },
         '-',
         { label: '&How to Connect AnkiConnect...', action: ankiHelp },
       ] },
