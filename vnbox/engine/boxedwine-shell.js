@@ -56,6 +56,14 @@
         ["win95", "win98", "winme", "win2k", "winxp", "win7", "win10"].forEach(function(version) {
             REGISTRY_PRESETS[version] = 'reg add "HKCU\\Software\\Wine" /v Version /t REG_SZ /d ' + version + ' /f';
         });
+        // registry=jpfonts maps the Windows Japanese font names (ＭＳ ゴシック, MS UI Gothic and so
+        // on) to jp.zip's IPA fonts. Japanese games ask for them by name, and some check that
+        // they got them (GetTextFace) and stop when they did not. jp.zip carries the file, which also
+        // turns off the Wine services a VN never needs (vn/build-jp-overlay.sh), for prefixes made
+        // before jp.zip carried a trimmed system.reg. jp.zip's wineboot imports it once per version
+        // (vn/wine/wineboot-import-jp-fonts.patch), so the preset runs nothing: "cmd /c reg import"
+        // before every game cost about 2 s.
+        REGISTRY_PRESETS.jpfonts = [];
         // wine-override=[name,...] adds these to WINEDLLOVERRIDES
         let WINE_OVERRIDE_PRESETS = {
             nomono: "mscoree,mshtml=" // skip the Wine Mono and Gecko installs
@@ -505,8 +513,8 @@
             var audioFreq = getParameter("audioFreq");
             if (!allowParameterOverride()) {
                 audioFreq = DEFAULT_AUDIO_FREQ;
-            } else if (audioFreq == "22050") {
-                audioFreq = 22050;
+            } else if (audioFreq == "22050" || audioFreq == "44100") {
+                audioFreq = parseInt(audioFreq);
             } else if (audioFreq == "11025" || audioFreq == "") {
                 audioFreq = DEFAULT_AUDIO_FREQ;
             } else {
@@ -1423,11 +1431,7 @@
             } else {
                 console.log(message);
             }
-            var output = document.getElementById('output');
-            if (output) {
-                output.value += message + "\n";
-                output.scrollTop = output.scrollHeight;
-            }
+            appendOutput(message);
         }
         function setHostFolderStatus(message, isError) {
             if (message) {
@@ -1523,9 +1527,10 @@
                 refreshHostFolderFromHost(reason);
             }, 0);
         }
+        // Watches the host folder; resolves false when there is no observer, and polling has to stand in for it.
         async function startHostFolderObserver() {
             if (typeof FileSystemObserver !== "function" || !Config.hostFolderHandle) {
-                return;
+                return false;
             }
             try {
                 hostFolderRefreshObserver = new FileSystemObserver(function(records) {
@@ -1536,6 +1541,7 @@
                                 hostFolderRefreshObserver.disconnect();
                             }
                             hostFolderRefreshObserver = null;
+                            startHostFolderPolling();
                             return;
                         }
                     }
@@ -1543,13 +1549,24 @@
                 });
                 await hostFolderRefreshObserver.observe(Config.hostFolderHandle, {recursive: true});
                 logHostFolderMessage("Watching D: folder for host changes", false);
+                return true;
             } catch (e) {
                 hostFolderRefreshObserver = null;
                 logHostFolderMessage("Host folder change observer is unavailable; using periodic refresh", false);
+                return false;
             }
         }
-        function startHostFolderRefresh() {
+        // Each poll walks the whole host folder, so it only runs without a working observer.
+        function startHostFolderPolling() {
             if (!Config.hostFolderMounted || hostFolderRefreshTimer) {
+                return;
+            }
+            hostFolderRefreshTimer = setInterval(function() {
+                refreshHostFolderFromHost("poll");
+            }, HOST_FOLDER_REFRESH_INTERVAL_MS);
+        }
+        function startHostFolderRefresh() {
+            if (!Config.hostFolderMounted || hostFolderRefreshTimer || hostFolderRefreshObserver) {
                 return;
             }
             if (!hostFolderRefreshEventsConfigured) {
@@ -1563,10 +1580,11 @@
                     }
                 }, false);
             }
-            hostFolderRefreshTimer = setInterval(function() {
-                refreshHostFolderFromHost("poll");
-            }, HOST_FOLDER_REFRESH_INTERVAL_MS);
-            startHostFolderObserver();
+            startHostFolderObserver().then(function(watching) {
+                if (!watching) {
+                    startHostFolderPolling();
+                }
+            });
         }
         function stopHostFolderRefresh() {
             if (hostFolderRefreshTimer) {
@@ -1938,6 +1956,10 @@
                 params.push("-audioFreq");
                 params.push("" + Config.audioFreq);
             }
+            // the game fills the screen without a title bar (XWindow::fitToScreen)
+            if (getParameter("fitWindow") == "true") {
+                params.push("-fitWindow");
+            }
             if (Config.disableHideCursor) {
                 params.push("-disableHideCursor");
             }
@@ -1998,12 +2020,13 @@
             } else {
                 params.push("/bin/wine");
                 if (Config.registryCommands.length > 0) {
-                    // cmd /c reg add ... && reg add ... && <program>
+                    // cmd /c reg add ... & reg add ... & <program>: & so a failed one (a .reg missing
+                    // from an older overlay) leaves the setting out instead of not starting the game
                     params.push("cmd");
                     params.push("/c");
                     for (let i = 0; i < Config.registryCommands.length; i++) {
                         params.push(...Config.registryCommands[i]);
-                        params.push("&&");
+                        params.push("&");
                     }
                 }
                 if(Config.Program.length > 0 && !Config.loadDesktop){
@@ -2129,10 +2152,7 @@
             //text = text.replace(/>/g, "&gt;");
             //text = text.replace('\n', '<br>', 'g');
             console.log(text);
-            if (element) {
-              element.value += text + "\n";
-              element.scrollTop = element.scrollHeight; // focus on bottom
-            }
+            appendOutput(text);
           };
         })(),
         printErr: function(text) {
@@ -2141,11 +2161,7 @@
             dump(text + '\n'); // fast, straight to the real console
           } else {
 			console.error(text);
-            var element = document.getElementById('output');
-            if (element) {
-              element.value += text + "\n";
-              element.scrollTop = element.scrollHeight;
-            }
+            appendOutput(text);
           }
         },
         boxedwinePresentFrame: (function() {
@@ -2362,6 +2378,24 @@ function createFile(dir, name, buf) {
         console.log("Unable to create file:" + dir + "/" + name + "  error:" + e);
     }
 }
+// The log textarea shows the last OUTPUT_KEPT_LINES lines, rewritten at most every 250 ms:
+// appending each line copied the whole, ever-growing log and forced a layout per line.
+var OUTPUT_KEPT_LINES = 200;
+var outputLines = [];
+var outputFlushTimer = null;
+function appendOutput(text) {
+    if (!document.getElementById('output')) return;
+    outputLines.push(text);
+    if (outputLines.length > 2 * OUTPUT_KEPT_LINES) outputLines.splice(0, outputLines.length - OUTPUT_KEPT_LINES);
+    if (!outputFlushTimer) outputFlushTimer = setTimeout(flushOutput, 250);
+}
+function flushOutput() {
+    outputFlushTimer = null;
+    var element = document.getElementById('output');
+    if (outputLines.length > OUTPUT_KEPT_LINES) outputLines.splice(0, outputLines.length - OUTPUT_KEPT_LINES);
+    element.value = outputLines.join("\n") + "\n";
+    element.scrollTop = element.scrollHeight;
+}
 function toggleConsole() {
     var el = document.getElementById('showConsole');
     var console = document.getElementById('output');
@@ -2551,24 +2585,27 @@ async function importJitModulesFromBuffer(bytes) {
                     dataStart + cSize <= bytes.length) {
                 var fn  = dec.decode(bytes.subarray(pos + 30, pos + 30 + fnLen));
                 var cacheKey = parseWasmJitCacheKey(fn);
+                // deflated data is inflated into a new buffer, so a view is enough; stored data is
+                // kept (and may go to IndexedDB, which would clone a view's whole buffer), so copy it
+                var entryData = method === 8 ? bytes.subarray(dataStart, dataStart + cSize) : null;
                 if (cacheKey) {
                     entries.push({
                         key:       cacheKey.key,
                         eip:       cacheKey.eip,
                         blockHash: cacheKey.blockHash,
                         method:    method,
-                        data:      bytes.slice(dataStart, dataStart + cSize)
+                        data: entryData || bytes.slice(dataStart, dataStart + cSize)
                     });
                 } else if (fn === 'boxedwine-jit-grouped-manifest.json') {
                     manifests.push({
                         method: method,
-                        data: bytes.slice(dataStart, dataStart + cSize)
+                        data: entryData || bytes.slice(dataStart, dataStart + cSize)
                     });
                 } else if (fn.indexOf('groups/') === 0 && fn.toLowerCase().endsWith('.wasm')) {
                     groupModules.push({
                         path: fn,
                         method: method,
-                        data: bytes.slice(dataStart, dataStart + cSize)
+                        data: entryData || bytes.slice(dataStart, dataStart + cSize)
                     });
                 }
             }
@@ -3358,4 +3395,41 @@ async function createZip(items) {
   end.setUint32(12, directorySize, true);
   end.setUint32(16, offset, true);
   return new Blob(parts.concat(directory, [new Uint8Array(end.buffer)]), { type: "application/zip" });
+}
+
+// Movies a game plays through DirectShow (MPEG-1 program streams), which VNBox's quartz hands to
+// the page through /dev/vnbox-movie (devmovie.cpp): vnbox-movie.js decodes and draws them, loaded
+// with vnbox-movie-decoder.js from this file's folder on the first movie. URL parameter movies=0: off, so
+// quartz builds its usual graph. Returns open: 1 taken, -1 not; status: 1 ended (or failed), 0 not.
+var vnboxMovieBase = document.currentScript ? new URL(".", document.currentScript.src).href : "";
+var vnboxMovieLoad = null, vnboxMovieQueue = [];
+
+// The movie file as a Blob, from its Emscripten FS node (the lazy game folder's File in jspi mode).
+function vnboxMovieBlob(path) {
+    var node;
+    try { node = FS.lookupPath(path).node; } catch (e) { return null; }
+    if (node.lazyFile === undefined || node.lazyCopied) return node.contents ? new Blob([node.contents.subarray(0, node.usedBytes)]) : null;
+    if (node.lazyBytes) return new Blob([node.lazyBytes]);
+    return typeof lazyFiles !== "undefined" && lazyFiles[node.lazyFile] || null; // sab mode: the worker has the File
+}
+
+function boxedwineMovie(id, cmd, arg) {
+    if (cmd === "open") console.log("[movie] open " + arg);
+    if (typeof vnboxMovieCommand === "function") return vnboxMovieCommand(id, cmd, arg);
+    if (cmd === "open") {
+        if (new URLSearchParams(location.search).get("movies") === "0" || !vnboxMovieBlob(arg)) return -1;
+        vnboxMovieLoad = vnboxMovieLoad || ["vnbox-movie-decoder.js", "vnbox-movie.js"].reduce((done, name) => done.then(() => new Promise((resolve, reject) => {
+            var script = document.createElement("script");
+            script.src = vnboxMovieBase + name;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("could not load " + name));
+            document.head.appendChild(script);
+        })), Promise.resolve()).then(() => {
+            vnboxMovieQueue.forEach(c => vnboxMovieCommand(c[0], c[1], c[2]));
+            vnboxMovieQueue = null;
+        }, error => { vnboxReport("movie", error); vnboxMovieLoad = "failed"; });
+    }
+    if (cmd === "status") return vnboxMovieLoad === "failed" ? 1 : 0;
+    if (vnboxMovieQueue) vnboxMovieQueue.push([id, cmd, arg]);
+    return 1;
 }
