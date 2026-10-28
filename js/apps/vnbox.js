@@ -55,6 +55,7 @@ const FRAME_CSS = `body { background: #000; color: #c0c0c0; font: 12px sans-seri
 #dropzone { padding: 0; }
 div.emscripten_border { border: 0; }
 canvas { outline: none; } /* it takes focus (tabindex) for the game's keys: no ring around the game */
+div.emscripten_border > canvas:not(.emscripten) { z-index: 2; } /* a movie (vnbox-movie.js) over the WebGL canvas (z-index 1), which stays visible and black while it plays */
 body { touch-action: none; } /* taps are the game's left button (frameControls), never a pan or zoom */
 #vnb-pad { position: fixed; z-index: 2; width: 18px; height: 18px; margin: -9px 0 0 -9px; border: 2px solid #fff; border-radius: 50%; outline: 1px solid #000; pointer-events: none; }
 #vnb-pad[hidden] { display: none; }`;
