@@ -51,8 +51,21 @@ export const WALLPAPERS = {
   'Hero': { url: 'linear-gradient(100deg, transparent 52%, rgba(120, 200, 255, .5) 58%, transparent 66%), radial-gradient(ellipse 30% 45% at 62% 50%, #7cc8ff, #1a73d9 45%, transparent 70%), linear-gradient(#001a40, #003b86)', size: 'cover', repeat: 'no-repeat' },
   'Bloom': { url: 'radial-gradient(ellipse 30% 40% at 50% 58%, #e4f0ff, #3b82f6 45%, transparent 70%), radial-gradient(ellipse 50% 30% at 50% 70%, rgba(0, 70, 200, .5), transparent 70%), linear-gradient(#d5e6ff, #8fb6f2)', size: 'cover', repeat: 'no-repeat' },
   // Anime pictures in each era's style (img/wallpapers/, see THIRD-PARTY.txt).
-  ...Object.fromEntries([['Rooftop', 'rooftop'], ['Sunset Shore', 'shore'], ['Lain', 'lain'], ['Wired', 'wired'], ['Peeking', 'konata']]
-    .map(([name, file]) => [name, { url: `url("${new URL(`../../img/wallpapers/${file}.jpg`, import.meta.url)}")`, size: 'cover', repeat: 'no-repeat' }])),
+  ...Object.fromEntries([
+    // PC-98 CG for 1.0-3.1
+    ['Rooftop', 'rooftop.jpg'], ['Sunset Shore', 'shore.jpg'], ['Starlight Lady', 'pc98-starlight-lady.png'], ['Shade Reader', 'pc98-shade-reader.png'],
+    ['Moonlit Swings', 'pc98-moonlit-swings.png'], ['Autumn Leaves', 'pc98-autumn-leaves.png'], ['Rainy Room', 'dan98-bedroom-blues.jpg'],
+    // late-90s cel anime for 95-Me
+    ['Lain', 'lain.jpg'], ['Wired', 'wired.jpg'], ['Wired Crash', 'lain-win98-bsod.jpg'], ['Ed and Ein', 'bebop-ed-ein-sunset.jpg'], ['Bebop Alley', 'bebop-alley-crew.jpg'],
+    ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['Moon Guardians', 'sailor-moon-night.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'],
+    // 2000s moe for 2000 and XP
+    ['Peeking', 'konata.jpg'], ['Akiba Crossing', 'lucky-star-akiba.jpg'], ['SOS Brigade', 'haruhi-sos-brigade.jpg'], ['Chii Autumn', 'chobits-chii-autumn.jpg'], ['Snow Town', 'kanon-winter.jpg'],
+    // Vista and 7
+    ['Miku Error', 'miku-window-error.jpg'], ['Light Music', 'k-on-band.jpg'], ['Snow Umbrella', 'toradora-snow.jpg'], ['Magica Quintet', 'madoka-quintet.jpg'],
+    ['Clannad Road', 'clannad-road.jpg'], ['Lab Members', 'steins-gate-lab.jpg'],
+    // 8-11
+    ['Violet Meadow', 'violet-meadow.jpg'], ['Suga Stairs', 'your-name-stairs.jpg'], ['Sunshine Girl', 'weathering-sky.jpg'], ['Harbor Band', 'bocchi-harbor.jpg'], ['Journey On', 'frieren-journey.jpg'],
+  ].map(([name, file]) => [name, { url: `url("${new URL(`../../img/wallpapers/${file}`, import.meta.url)}")`, size: 'cover', repeat: 'no-repeat' }])),
 };
 
 const SCHEMES = {
