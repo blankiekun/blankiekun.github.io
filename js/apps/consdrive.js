@@ -120,7 +120,7 @@ async function call(url, opts, tok) {
   if (!r.ok) {
     let msg = '';
     try { msg = (await r.json()).error.message; } catch {}
-    throw new DriveError(msg || `Google Drive answered ${r.status}.`, r.status === 404 ? 'gone' : 'drive');
+    throw Object.assign(new DriveError(msg || `Google Drive answered ${r.status}.`, r.status === 404 ? 'gone' : 'drive'), { status: r.status });
   }
   return r;
 }

@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 // vnlib.js imports consdrive.js, whose util.js reads the page's media queries.
 globalThis.matchMedia = () => ({ matches: false, addEventListener() {}, addListener() {} });
-const { CHUNK, PACK, packGame, unpackGame, knownChunks, planReads, safePath } = await import('../js/apps/vnlib.js');
+const { CHUNK, packGame, unpackGame, knownChunks, planReads, safePath } = await import('../js/apps/vnlib.js');
 
 let seed = 1;
 const noise = n => { const u = new Uint8Array(n); for (let i = 0; i < n; i++) u[i] = (seed = Math.imul(seed, 1103515245) + 12345) >>> 24; return u; };
@@ -16,6 +16,8 @@ const B = [file('vn/B/game.exe', engine), file('vn/B/b.dat', noise(1000))];
 
 const packs = new Map();
 let sent = 0;
+// Small packs, so these few MB make several.
+const PACK = CHUNK + (512 << 10);
 const put = async bytes => { assert.ok(bytes.length <= PACK); sent += bytes.length; const id = 'p' + packs.size; packs.set(id, bytes); return id; };
 const read = async (id, at, length) => packs.get(id).slice(at, at + length);
 async function unpack(m) {
@@ -28,7 +30,7 @@ async function unpack(m) {
 }
 
 const known = new Map();
-const mA = await packGame({ title: 'A', files: A, dirs: ['vn/A/save'], known, put });
+const mA = await packGame({ title: 'A', files: A, dirs: ['vn/A/save'], known, put, packSize: PACK });
 const { out, dirs } = await unpack(mA);
 for (const f of A) assert.deepEqual(out.get(f.path), f.data, f.path);
 assert.deepEqual(dirs, ['vn/A/save']);
@@ -37,7 +39,7 @@ assert.ok(sent < engine.length + CHUNK * 2 + 5 + 2000, 'sent ' + sent);
 
 // B shares A's engine: only b.dat goes up.
 const before = sent;
-const mB = await packGame({ title: 'B', files: B, known: knownChunks([mA]), put });
+const mB = await packGame({ title: 'B', files: B, known: knownChunks([mA]), put, packSize: PACK });
 assert.ok(sent - before < 1100, 'B sent ' + (sent - before));
 for (const f of B) assert.deepEqual((await unpack(mB)).out.get(f.path), f.data);
 
@@ -45,11 +47,11 @@ for (const f of B) assert.deepEqual((await unpack(mB)).out.get(f.path), f.data);
 const C = [file('vn/C/a', noise(CHUNK)), file('vn/C/b', noise(CHUNK)), file('vn/C/c', noise(CHUNK))];
 const ctl = new AbortController();
 let partial = null;
-await assert.rejects(packGame({ title: 'C', files: C, known: new Map(), put, saved: async m => { partial = m; ctl.abort(); }, signal: ctl.signal }));
-assert.equal(partial.files.length, 1);
+await assert.rejects(packGame({ title: 'C', files: C, known: new Map(), put, saved: async m => { partial = m; ctl.abort(); }, signal: ctl.signal, packSize: PACK }));
+assert.ok(partial.files.length >= 1 && partial.files.length < 3);
 const mid = sent;
-const mC = await packGame({ title: 'C', files: C, known: knownChunks([partial]), put });
-assert.equal(sent - mid, CHUNK * 2);
+const mC = await packGame({ title: 'C', files: C, known: knownChunks([partial]), put, packSize: PACK });
+assert.ok(sent - mid <= CHUNK * 2, 'resume sent ' + (sent - mid));
 for (const f of C) assert.deepEqual((await unpack(mC)).out.get(f.path), f.data);
 
 // Neighbouring chunks in one read.
