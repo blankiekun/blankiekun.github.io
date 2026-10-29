@@ -851,7 +851,7 @@ const ERA = ['1.0', '2.0', '3.1'].includes(V.id) ? { name: '3.1', map: { 'Defaul
   : { name: '95', map: FULL_MAP };
 const STOCK_MAP = ERA.map, STOCK_NAME = 'blankiekun ' + ERA.name + ' Default';
 // The moe rice's sparkly scheme, the default from 95 on; 3.1 and older keep their beeps.
-const KIRA_MAP = { 'Default sound': 'Pyon', 'Asterisk': 'Kira', 'Critical Stop': 'Chord', 'Exclamation': 'Pyon', 'Question': 'Kira', 'Start Windows': 'Music Box', 'Exit Windows': 'Chimes', 'Empty Recycle Bin': 'Recycle' };
+export const KIRA_MAP = { 'Default sound': 'Pyon', 'Asterisk': 'Kira', 'Critical Stop': 'Chord', 'Exclamation': 'Pyon', 'Question': 'Kira', 'Start Windows': 'Music Box', 'Exit Windows': 'Chimes', 'Empty Recycle Bin': 'Recycle' };
 const [DEFAULT_NAME, DEFAULT_MAP] = ERA.name === '3.1' ? [STOCK_NAME, STOCK_MAP] : ['Kirakira', KIRA_MAP];
 const SCHEMES = { 'No Sounds': {}, [STOCK_NAME]: STOCK_MAP, 'Kirakira': KIRA_MAP };
 // shortcut: a saved scheme is kept as is, so it stays when the era changes; upgrade by tagging it with its version.

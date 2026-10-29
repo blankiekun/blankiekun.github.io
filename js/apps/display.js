@@ -5,7 +5,7 @@ import { h, store } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { msgbox } from '../dialogs.js';
 import { screenSaverTab, setScreenSaver, loadScreenSaver, SAVERS } from './screensaver.js';
-import { setSoundMap } from './control.js';
+import { setSoundMap, KIRA_MAP } from './control.js';
 import { V } from '../version.js';
 
 const KEY = 'w95.display';
@@ -287,7 +287,9 @@ function open(arg) {
 // Plus!-style themes made from what's already here: one pick sets the colours,
 // wallpaper, pattern, event sounds and screen saver together.
 const THEMES = {
-  'Windows Default': { scheme: V.scheme, color: V.desktop, wallpaper: V.wallpaper, pattern: '(None)', saver: 'flying', sounds: null },
+  'Windows Default': { scheme: V.nt ? 'Windows Classic' : 'Windows Standard', color: V.desktop, wallpaper: V.wallpaper, pattern: '(None)', saver: 'flying', sounds: null },
+  // The moe rice this version boots with: its pastel scheme, anime wallpaper and Kirakira sounds.
+  'Moe Desktop': { scheme: V.scheme, color: V.desktop, wallpaper: V.wallpaper, pattern: '(None)', saver: 'flying', sounds: KIRA_MAP },
   'Inside Your Computer': { scheme: 'Slate', color: '#3a5070', wallpaper: '(None)', pattern: 'Circuits', saver: 'pipes',
     sounds: { 'Default sound': 'Ding', 'Asterisk': 'Chord', 'Critical Stop': 'Chord', 'Exclamation': 'Ding', 'Start Windows': 'The blankiekun Sound', 'Exit Windows': 'Tada', 'Empty Recycle Bin': 'Recycle' } },
   'Mystery': { scheme: 'Storm', color: '#000000', wallpaper: '(None)', pattern: '(None)', saver: 'mystify',
