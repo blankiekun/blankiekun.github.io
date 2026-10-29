@@ -52,8 +52,11 @@ function keepToken(t) {
 const fresh = (ms = 0) => token && token.exp > Date.now() + ms ? token.value : null;
 export const signedIn = () => !!fresh();
 
-// Opens Google's window. Popup blockers let it through only just after a click.
-async function signIn(prompt) {
+// Opens Google's window. Popup blockers let it through only just after a click, and only once: requests
+// running together (an upload's packs) share one window.
+let signing = null;
+const signIn = prompt => signing ||= openSignIn(prompt).finally(() => { signing = null; });
+async function openSignIn(prompt) {
   const oauth = await loadGis();
   return new Promise((resolve, reject) => {
     const a = account();
