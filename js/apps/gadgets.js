@@ -454,11 +454,11 @@ async function add(id) {
 
 // What each era puts on the desktop the first time it boots; ids not built yet are skipped.
 const ERA_GADGETS = {
-  '1.0': ['vn'], '2.0': ['vn'], '3.1': ['vn', 'moe'],
-  '95': ['pet', 'moe'], '98': ['pet', 'moe'], 'me': ['pet', 'moe'],
-  '2000': ['mascot', 'moe'], 'xp': ['mascot', 'moe'],
-  'vista': ['clock', 'cpu', 'weather'], '7': ['clock', 'cpu', 'weather'],
-  '8': ['kanji', 'moe'], '10': ['kanji', 'moe'], '11': ['kanji', 'moe'],
+  '1.0': ['vn', 'moe'], '2.0': ['vn', 'moe'], '3.1': ['vn', 'moe', 'kanji'],
+  '95': ['pet', 'moe', 'slides', 'mascot'], '98': ['pet', 'moe', 'kanji', 'mascot'], 'me': ['pet', 'moe', 'mascot'],
+  '2000': ['moe', 'calendar', 'mascot'], 'xp': ['moe', 'weather', 'slides', 'mascot'],
+  'vista': ['clock', 'cpu', 'weather', 'slides', 'mascot'], '7': ['clock', 'cpu', 'weather', 'mascot'],
+  '8': ['kanji', 'moe', 'weather', 'mascot'], '10': ['kanji', 'moe', 'mascot'], '11': ['kanji', 'moe', 'weather', 'mascot'],
 };
 const ERA_KEY = 'w95.gadgets.era';
 
