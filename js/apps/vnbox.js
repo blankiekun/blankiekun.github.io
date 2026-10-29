@@ -12,6 +12,7 @@ import { msgbox, about, inputbox } from '../dialogs.js';
 import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './conscripter.js';
 import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
 import * as drive from './consdrive.js';
+import * as vnlib from './vnlib.js';
 import * as anki from './consanki.js';
 import { watchGamepads } from './vnpad.js';
 import { lunaSuggestion } from './vnhooks.js';
@@ -26,6 +27,8 @@ const MAX_RECENT = 6;
 const SHOW_LOG = 'w95.vnbox.log';
 const CLIP = 'w95.vnbox.clip';
 const FOLD = 'w95.vnbox.fold';  // touch screens: Menu / Skip buttons folded away
+const UPLOAD = 'w95.vnbox.upload';    // this device uploads its games to the Drive library
+const LIBRARY = 'w95.vnbox.library';  // the Drive library as last read, shown before signing in
 // The engine release in vnbox/engine/; tools/update-vnbox.sh (run by VNBox's update-site workflow) bumps it.
 const ENGINE_VERSION = 'v0.2.5';
 const ENGINE = 'vnbox/engine/';
@@ -598,8 +601,11 @@ function open() {
   const dropBox = h('div', { class: 'cons-drop' }, icon('i-folder-open'),
     h('b', null, 'Drag a game folder or .zip here'),
     h('span', null, 'the one with the game\'s .exe in it'));
-  const recentRows = h('div', { class: 'cons-recent-list' });
-  const recentBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Recent games'), recentRows);
+  // Every game here and in the Google Drive library (vnlib.js), as cards; a card opens the game's page.
+  const grid = h('div', { class: 'vnb-grid' });
+  const upBox = h('input', { type: 'checkbox', onchange: () => setUpload(upBox.checked) });
+  const libBox = h('fieldset', { class: 'group cons-recent' }, h('legend', null, 'Your games'),
+    drive.available ? h('label', { class: 'cons-check' }, upBox, 'Upload games to Google Drive, to play them on any device') : null, grid);
   // Games whose saves are in Google Drive but not linked to a game here (from another computer):
   // Link... picks the game they're the saves of.
   const driveRows = h('div', { class: 'cons-recent-list' });
@@ -614,13 +620,13 @@ function open() {
       if (n !== driveShown) return;
       driveBox.hidden = false;
       driveRows.replaceChildren(e.kind === 'signin'
-        ? h('button', { class: 'cons-recent-item', type: 'button', onclick: () => drive.signInAgain().then(showDrive, () => {}) },
+        ? h('button', { class: 'cons-recent-item', type: 'button', onclick: () => drive.signInAgain().then(showRecent, () => {}) },
           icon('i-info'), h('span', { class: 'cons-recent-name' }, 'Sign in to Google to see the games saved in your Drive'))
         : h('span', { class: 'cons-recent-at' }, e.message));
       return;
     }
     if (n !== driveShown) return;
-    const linked = new Set(recentGames().map(r => r.drive || r.title));
+    const linked = new Set([...recentGames(), ...libShown()].map(r => r.drive || r.title));
     const rest = games.filter(g => !linked.has(g.title));
     driveBox.hidden = !rest.length;
     driveRows.replaceChildren(...rest.map(g => h('div', { class: 'cons-kept-item' }, icon('i-folder'),
@@ -646,25 +652,9 @@ function open() {
 
   function showRecent() {
     showDrive();
-    const list = recentGames();
-    recentBox.hidden = !list.length;
-    recentRows.replaceChildren(...list.map(r => {
-      const row = h('button', { class: 'cons-recent-item', type: 'button', onclick: () => openRecent(r), title: 'Play ' + r.title },
-        icon('i-folder'), h('span', { class: 'cons-recent-name' }, r.title), h('span', { class: 'cons-recent-at' }, when(r.at)));
-      row.addEventListener('contextmenu', e => {
-        e.preventDefault(); e.stopPropagation();
-        openMenu([
-          { label: '&Play', action: () => openRecent(r) },
-          { label: '&Save Files...', action: () => saveFiles(r) },
-          { label: 'Pro&gram...', action: () => chooseProgram(r) },
-          { label: '&Remove from This Browser', action: () => removeGame(r) },
-        ], { x: e.clientX, y: e.clientY });
-      });
-      return row;
-    }));
+    refreshLib();
+    paintGrid();
   }
-  showRecent();
-
   const can = canRun && canStore;
   const welcome = h('div', { class: 'cons-welcome' },
     h('div', { class: 'cons-side', 'aria-hidden': 'true' },
@@ -672,7 +662,7 @@ function open() {
       h('span', null, 'VN', h('b', null, 'Box'))),
     h('div', { class: 'cons-main' },
       h('h2', null, 'Welcome to VNBox'),
-      h('p', null, 'VNBox plays Windows visual novels in the browser, on Wine in an emulated PC. Open a game folder, or a .zip of one, from your computer to start. The game is copied into this browser and never leaves this computer.'),
+      h('p', null, 'VNBox plays Windows visual novels in the browser, on Wine in an emulated PC. Open a game folder, or a .zip of one, from your computer to start. The game is copied into this browser, and stays on this computer unless you upload it to your Google Drive.'),
       can ? null : h('div', { class: 'cons-warn-row' }, icon('i-warn'),
         h('p', null, h('b', null, 'This browser can\'t run VNBox. '), 'It needs Chrome or Edge, version 137 or later.')),
       dropBox,
@@ -680,7 +670,7 @@ function open() {
         h('button', { class: 'btn default', type: 'button', disabled: !can, onclick: openPicked }, h('span', { html: 'Open <u>F</u>older...' })),
         h('button', { class: 'btn', type: 'button', disabled: !can, onclick: openZip }, h('span', { html: 'Open <u>Z</u>ip...' })),
         h('button', { class: 'btn', type: 'button', onclick: () => launch('help', 'VNBox') }, h('span', { html: '<u>H</u>elp' }))),
-      recentBox,
+      libBox,
       driveBox,
       h('fieldset', { class: 'group cons-warn' }, h('legend', null, 'Good to know'),
         h('div', { class: 'cons-warn-row' }, icon('i-info'), h('p', null,
@@ -1201,7 +1191,7 @@ function open() {
       return;
     }
     showSync('Google Drive', 'Saves are in this browser and synced with Google Drive. Click to sync now.');
-    showDrive();
+    showRecent();
     say('Google Drive sync is on');
     if (frame) syncSaves(game.title, { w: frame, interactive: true, report: true });
   }
@@ -1211,11 +1201,248 @@ function open() {
       text: 'Turn off Google Drive sync, here and in CONscripter?\n\nSaves stay in this browser. The copies in your Google Drive stay there too, and turning sync on again brings them back.' });
     if (b !== 'Yes') return;
     await chain;
+    for (const j of jobs.values()) j.ctl.abort();
     await drive.disconnect();
     showSync('', '');
-    showDrive();
+    showRecent();
     say('Google Drive sync is off');
   }
+
+  // ---------- the library: games here and in Google Drive (vnlib.js) ----------
+
+  // lib: the games in Drive as last read. jobs: uploads and downloads under way, by title:
+  // { kind: 'up' | 'down', done, total, ctl, started, ended }. failed: why a title's last one stopped.
+  let lib = store.get(LIBRARY, []), upOn = store.get(UPLOAD, false), shown = null, live = null, libRead = 0;
+  const jobs = new Map(), failed = new Map(), badges = new Map();
+  const libShown = () => drive.enabled() ? lib : [];
+  const inLib = title => libShown().find(e => e.title === title);
+  const localGame = title => recentGames().find(r => r.title === title);
+  const pct = j => Math.floor(j.done / (j.total || 1) * 100);
+
+  function badge(title) {
+    const j = jobs.get(title), e = inLib(title), local = !!localGame(title), f = failed.get(title);
+    if (j) return !j.started ? 'Waiting to upload' : `${j.kind === 'up' ? 'Uploading' : 'Downloading'} ${pct(j)}%`;
+    if (f) return f.kind === 'up' ? 'Not uploaded' : 'Download stopped';
+    if (local) return e ? (e.done ? 'Here and in Drive' : 'Upload unfinished') : 'On this device';
+    return e.done ? 'In Google Drive' : 'Upload unfinished';
+  }
+
+  // What can be done with a game, for its page and its card's right-click (long-press on Android) menu; the first is the main one.
+  function actions(title) {
+    const r = localGame(title), e = inLib(title), j = jobs.get(title), out = [];
+    if (j && j.kind === 'down') out.push({ label: 'Stop Download', run: () => j.ctl.abort() });
+    else if (r) out.push({ label: 'Play', run: () => openRecent(r) });
+    else if (e && e.done) out.push({ label: `Download and Play (${bytes(e.size)})`, disabled: !can, run: () => fetchGame(e) });
+    else out.push({ label: 'Not fully uploaded yet', disabled: true });
+    if (r && drive.available) {
+      if (j && j.kind === 'up') out.push({ label: 'Stop Upload', run: () => j.ctl.abort() });
+      else if (!e || !e.done) out.push({ label: 'Upload to Google Drive', run: () => { setGame(title, { noUpload: undefined }); uploadGame(title, true); } });
+    }
+    if (r) out.push({ label: 'Save Files...', run: () => saveFiles(r) }, { label: 'Program...', run: () => chooseProgram(r) },
+      { label: 'Remove from This Device...', run: () => removeGame(r) });
+    if (e && !j) out.push({ label: 'Delete from Google Drive...', run: () => deleteFromDrive(title) });
+    return out;
+  }
+
+  function paintGrid() {
+    upBox.checked = upOn;
+    const titles = [...new Set([...recentGames(), ...libShown()].map(g => g.title))];
+    libBox.hidden = !titles.length;
+    badges.clear();
+    grid.replaceChildren(...titles.map(t => {
+      const b = h('span', { class: 'vnb-badge' }, badge(t));
+      badges.set(t, b);
+      const card = h('button', { class: 'vnb-card', type: 'button', title: t, onclick: () => details(t) },
+        icon('i-vnbox'), h('span', { class: 'vnb-card-name' }, t), b);
+      card.addEventListener('contextmenu', e => {
+        e.preventDefault(); e.stopPropagation();
+        openMenu([{ label: '&Details', action: () => details(t) }, '-', ...actions(t).map(a => ({ label: a.label, disabled: a.disabled, action: a.run }))], { x: e.clientX, y: e.clientY });
+      });
+      return card;
+    }));
+  }
+
+  // A game's page, in place of the welcome page: what it is, where it is, and every action as a button (no right-click on touch).
+  const onDetails = () => !!shown && !!view.querySelector(':scope > .vnb-details');
+  function details(title) {
+    const r = localGame(title), e = inLib(title), j = jobs.get(title), f = failed.get(title);
+    if (!r && !e) return back();
+    shown = title;
+    live = null;
+    let meter = null;
+    if (j) {
+      const bar = h('i'), count = h('p', { class: 'cons-recent-at' });
+      meter = h('div', null, h('div', { class: 'cp-prog', role: 'progressbar', 'aria-label': badge(title), 'aria-valuemin': 0, 'aria-valuemax': 100 }, bar), count);
+      live = { title, bar, count };
+    }
+    const where = [r && `On this device, last played ${when(r.at)}`, e && (e.done ? 'In your Google Drive' : 'Upload to Google Drive unfinished')].filter(Boolean);
+    const page = h('div', { class: 'vnb-details' },
+      h('div', null, h('button', { class: 'btn', type: 'button', onclick: back }, '< Back')),
+      h('div', { class: 'vnb-head' }, icon('i-vnbox'), h('div', null, h('h2', null, title),
+        h('p', null, bytes((r || e).size || 0) + ' - ' + where.join('; ')))),
+      meter,
+      f ? h('div', { class: 'cons-warn-row' }, icon('i-warn'), h('p', null, (f.kind === 'up' ? 'The last upload stopped: ' : 'The last download stopped: ') + f.message)) : null,
+      h('div', { class: 'vnb-acts' }, ...actions(title).map((a, i) => h('button', { class: i ? 'btn' : 'btn default', type: 'button', disabled: a.disabled, onclick: a.run }, a.label))));
+    page.addEventListener('keydown', ev => { if (ev.key === 'Escape') back(); });
+    view.replaceChildren(page);
+    paint(title);
+    page.querySelector('.vnb-acts .btn:not(:disabled)')?.focus();
+  }
+  function back() {
+    const t = shown;
+    shown = live = null;
+    view.replaceChildren(welcome);
+    if (t) [...grid.children].find(c => c.title === t)?.focus();
+  }
+  // Progress, in place (a new page would take the focus away).
+  function paint(title) {
+    const b = badges.get(title), j = jobs.get(title);
+    if (b) b.textContent = badge(title);
+    if (!j || !live || live.title !== title) return;
+    live.bar.style.width = pct(j) + '%';
+    live.count.textContent = j.started ? `${bytes(j.done)} of ${bytes(j.total)} (${pct(j)}%)` : 'Waiting for the uploads before it';
+  }
+  function changed(title) {
+    paintGrid();
+    if (onDetails() && shown === title) details(title);
+  }
+
+  // Reads the library from Drive, when signed in (or from a click), and uploads what this device should.
+  async function refreshLib(interactive) {
+    if (!drive.enabled() || !(interactive || drive.signedIn())) return;
+    const n = ++libRead;
+    try {
+      const games = await vnlib.library(interactive);
+      if (n !== libRead) return;
+      lib = games;
+      store.set(LIBRARY, lib);
+    } catch { return; }
+    paintGrid();
+    if (onDetails()) details(shown);
+    if (upOn) for (const r of recentGames()) if (!r.noUpload && !(inLib(r.title) || {}).done) uploadGame(r.title);
+  }
+
+  // One upload at a time, in the background. interactive: from a click, so it may sign in.
+  let upChain = Promise.resolve();
+  function uploadGame(title, interactive) {
+    if (jobs.has(title) || !localGame(title) || !drive.enabled() && !interactive) return;
+    failed.delete(title);
+    const j = { kind: 'up', done: 0, total: localGame(title).size || 0, ctl: new AbortController(), started: false };
+    jobs.set(title, j);
+    changed(title);
+    j.ended = upChain = upChain.then(() => runUpload(title, j, interactive));
+  }
+  async function runUpload(title, j, interactive) {
+    const r = localGame(title);
+    try {
+      if (!r || j.ctl.signal.aborted) return;
+      j.started = true;
+      changed(title);
+      if (!drive.enabled()) await driveOn();
+      if (!drive.enabled()) return;
+      lib = await vnlib.uploadGame(r, { interactive, signal: j.ctl.signal, progress: (n, t) => { j.done = n; j.total = t; paint(title); } });
+      store.set(LIBRARY, lib);
+      say(`${title} is in your Google Drive`);
+    } catch (e) {
+      if (!j.ctl.signal.aborted) {
+        failed.set(title, { kind: 'up', message: e.message });
+        say(`${title} wasn't uploaded: ${e.message}`);
+      }
+    } finally {
+      jobs.delete(title);
+      changed(title);
+    }
+  }
+  // A game just added to this device.
+  const added = title => { if (upOn) uploadGame(title); };
+
+  // The upload switch, for this device only (a phone on mobile data shouldn't send GBs).
+  async function setUpload(on) {
+    if (!on) {
+      upOn = false;
+      store.set(UPLOAD, false);
+      for (const j of jobs.values()) if (j.kind === 'up') j.ctl.abort();
+      paintGrid();
+      return say('Games on this device are no longer uploaded to Google Drive');
+    }
+    if (!drive.enabled()) await driveOn();
+    if (!drive.enabled()) return paintGrid();
+    await refreshLib(true);
+    const todo = recentGames().filter(r => !(inLib(r.title) || {}).done);
+    if (todo.length) {
+      const free = await vnlib.driveFree(true).catch(() => null);
+      const size = todo.reduce((n, r) => n + (r.size || 0), 0);
+      const b = await msgbox({ title: 'Upload Games', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+        text: `Upload the ${todo.length === 1 ? 'game' : todo.length + ' games'} on this device (${bytes(size)}) to your Google Drive?` +
+          (free == null || free === Infinity ? '' : ` Your Drive has ${bytes(free)} free.`) +
+          `\n\nThey go up in the background while VNBox is open, and can then be played on any device signed in to the same Google account. Games you add from now on go up too.` });
+      if (b !== 'Yes') return paintGrid();
+    }
+    upOn = true;
+    store.set(UPLOAD, true);
+    for (const r of todo) { setGame(r.title, { noUpload: undefined }); uploadGame(r.title); }
+    paintGrid();
+    say('Games on this device upload to Google Drive');
+  }
+
+  // Downloads a game from the library into this browser, then plays it.
+  async function fetchGame(e) {
+    if (jobs.has(e.title)) return;
+    const c = navigator.connection;
+    if (c && (c.saveData || c.type === 'cellular') && await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+      text: `This device seems to be on mobile data. Download ${e.title} (${bytes(e.size)}) anyway?` }) !== 'Yes') return;
+    await keepStorage();
+    const s = navigator.storage, { usage = 0, quota = 0 } = s.estimate ? await s.estimate().catch(() => ({})) : {};
+    if (quota && e.size > (quota - usage) * 0.9) return error(`There's no room in this browser for ${e.title} (${bytes(e.size)}). Remove a game you've finished from this device, or free some disk space.`);
+    failed.delete(e.title);
+    const j = { kind: 'down', done: 0, total: e.size, ctl: new AbortController(), started: true };
+    jobs.set(e.title, j);
+    changed(e.title);
+    // A phone that locks its screen pauses the page.
+    const lock = navigator.wakeLock ? await navigator.wakeLock.request('screen').catch(() => null) : null;
+    let ok = false;
+    try {
+      await vnlib.downloadGame(e, { interactive: true, signal: j.ctl.signal, progress: (n, t) => { j.done = n; j.total = t; paint(e.title); } });
+      remember(Object.fromEntries(['title', 'size', 'exe', 'hook', 'res', 'discs', 'drive'].filter(k => e[k] !== undefined).map(k => [k, e[k]])));
+      setGame(e.title, { tuning: e.tuning || '', cleanup: e.cleanup });
+      ok = true;
+    } catch (err) {
+      if (!j.ctl.signal.aborted) {
+        failed.set(e.title, { kind: 'down', message: err.message });
+        error(`${e.title} could not be downloaded.\n\n${err.message}\n\nWhat came in is kept: Download and Play goes on from there.`);
+      }
+    } finally {
+      jobs.delete(e.title);
+      if (lock) lock.release().catch(() => {});
+      changed(e.title);
+    }
+    if (!ok) return;
+    if (frame) say(`${e.title} is ready to play`);
+    else openRecent(localGame(e.title));
+  }
+
+  async function deleteFromDrive(title) {
+    const local = !!localGame(title);
+    const b = await msgbox({ title: 'VNBox', icon: 'warn', parent: win, buttons: ['&Yes', '&No'],
+      text: `Delete ${title} from your Google Drive?\n\n` + (local ? 'The copy on this device stays. ' : 'Devices that have it keep their copy. ') + 'Its saves in your Drive stay too.' });
+    if (b !== 'Yes') return;
+    // Kept out of the upload switch's uploads until uploaded by hand.
+    if (local) setGame(title, { noUpload: true });
+    say(`Deleting ${title} from Google Drive...`);
+    try {
+      await vnlib.deleteGame(title, true);
+      lib = lib.filter(e => e.title !== title);
+      store.set(LIBRARY, lib);
+      say(`Deleted ${title} from Google Drive`);
+    } catch (e) {
+      idle();
+      error(`${title} could not be deleted from Google Drive.\n\n${e.message}`);
+    }
+    failed.delete(title);
+    changed(title);
+  }
+
+  showRecent();
 
   // ---------- opening games ----------
 
@@ -1285,6 +1512,7 @@ function open() {
     if (link && link !== g.title) g.drive = link;
     delete g.files;
     remember(g);
+    added(g.title);
     boot(g);
   }
 
@@ -1384,6 +1612,7 @@ function open() {
       }
       const ready = { title: g.title, exe: moved.exe, size: (discs ? g.size : 0) + moved.size, hook: '', ...(discs && { discs }) };
       remember(ready);
+      added(ready.title);
       showRecent();
       boot(ready);
     } catch (e) {
@@ -1424,12 +1653,17 @@ function open() {
   }
 
   async function removeGame(r) {
+    const e = inLib(r.title);
     const b = await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
-      text: `Remove ${r.title} from this browser?\n\nIts saves are kept, and come back if you open its folder again.` });
+      text: `Remove ${r.title} from this browser?\n\n` + (e && e.done ? 'It stays in your Google Drive, to download again. Its saves are kept.'
+        : 'Its saves are kept, and come back if you open its folder again.') });
     if (b !== 'Yes') return;
+    const j = jobs.get(r.title);
+    if (j) { j.ctl.abort(); await j.ended; }
     if (frame && game.title === r.title) stop('Ready');
     forget(r.title);
     showRecent();
+    changed(r.title);
   }
 
   async function deleteSaves() {
@@ -1532,7 +1766,8 @@ function open() {
       { label: '&Games in This Browser...', action: gamesDialog },
       ...(drive.available ? ['-',
         { label: drive.enabled() ? 'Turn Off Google &Drive Sync...' : 'Sync with Google &Drive...', action: () => drive.enabled() ? driveOff() : driveOn() },
-        { label: 'S&ync Now', disabled: !frame || !drive.enabled(), action: () => syncSaves(game.title, { w: frame, interactive: true, report: true }) }] : []),
+        { label: 'S&ync Now', disabled: !frame || !drive.enabled(), action: () => syncSaves(game.title, { w: frame, interactive: true, report: true }) },
+        { label: '&Upload Games to Google Drive', checked: upOn, action: () => setUpload(!upOn) }] : []),
       '-',
       ...recentGames().map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
       ...(recentGames().length ? ['-'] : []),
@@ -1635,8 +1870,10 @@ function open() {
   const win = createWindow({
     app: 'vnbox', title: 'VNBox', icon: 'i-vnbox', body: root,
     width: 760, height: 560, minW: 320, minH: 260, route: 'vnbox',
-    onClose: confirmQuit,
+    onClose: async () => (await confirmQuit()) && (!jobs.size || await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
+      text: 'Stop the uploads and downloads under way?\n\nThey go on from where they were the next time.' }) === 'Yes'),
     onClosed: () => {
+      for (const j of jobs.values()) j.ctl.abort();
       clearInterval(poll);
       padStop();
       if (ankiStop) ankiStop();
