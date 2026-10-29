@@ -1266,6 +1266,20 @@ html[data-win] .sn-win .tbtn.x svg { width: 8px; height: 8px; filter: none; }
 }
 .vnb-progress { box-sizing: border-box; width: min(360px, 100%); margin: 40px auto; padding: 0 16px; display: flex; flex-direction: column; gap: 6px; }
 .vnb-progress p { margin: 0; }
+.vnb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 2px; background: var(--paper); box-shadow: var(--sunken); padding: 4px; max-height: 280px; overflow: auto; }
+.vnb-card { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; min-height: 44px; padding: 6px 4px; border: 0; background: none; color: var(--ink); font: inherit; text-align: center; }
+.vnb-card svg { width: 32px; height: 32px; flex: none; }
+.vnb-card-name { max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.vnb-badge { color: var(--shadow); font-size: 11px; }
+.vnb-card:hover, .vnb-card:focus-visible { background: var(--select); color: var(--select-ink); outline: 0; }
+.vnb-card:hover .vnb-badge, .vnb-card:focus-visible .vnb-badge { color: inherit; }
+.vnb-details { flex: 1; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+.vnb-details p { margin: 0; line-height: 1.4; }
+.vnb-head { display: flex; gap: 10px; align-items: flex-start; }
+.vnb-head > svg { width: 48px; height: 48px; flex: none; }
+.vnb-head h2 { margin: 0 0 4px; font: bold 16px var(--font-ui); overflow-wrap: anywhere; }
+.vnb-acts { display: flex; flex-direction: column; align-items: stretch; gap: 6px; max-width: 320px; }
+@media (pointer: coarse) { .vnb-acts .btn, .vnb-details > div > .btn { min-height: 44px; } }
 .vnb-dlg { width: 420px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; }
 .vnb-dlg p { margin: 0; }
 .vnb-list { width: 100%; }

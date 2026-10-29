@@ -10,8 +10,8 @@ import { GOOGLE_CLIENT_ID } from '../config.js';
 import { store } from '../util.js';
 
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-const API = 'https://www.googleapis.com/drive/v3';
-const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
+export const API = 'https://www.googleapis.com/drive/v3';
+export const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 const ON = 'w95.cons.drive';            // { email } while sync is on
 const TOKEN = 'w95.cons.drive.token';   // in sessionStorage: { value, exp }
 
@@ -126,7 +126,7 @@ async function call(url, opts, tok) {
 }
 
 // One try, and once more after a sign-in if the token turned out to be dead.
-async function api(url, opts = {}, interactive = false) {
+export async function api(url, opts = {}, interactive = false) {
   try {
     return await call(url, opts, await getToken(interactive));
   } catch (e) {
@@ -135,7 +135,7 @@ async function api(url, opts = {}, interactive = false) {
   }
 }
 
-const keyOf = async title => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(title)))]
+export const keyOf = async title => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(title)))]
   .slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
 
 // What we last read or wrote for each game: { id, version, files }. While the version
@@ -158,10 +158,10 @@ async function find(title, interactive) {
   return (await r.json()).files[0] || null;
 }
 
-async function gzip(text) {
+export async function gzip(text) {
   return new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).blob();
 }
-async function gunzip(buf) {
+export async function gunzip(buf) {
   return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
 }
 function b64(u8) {
@@ -186,6 +186,13 @@ async function download(title, f, interactive) {
   return files;
 }
 
+// A new file in the app's folder, in one request (Drive takes files up to 5 MB this way): resolves to the response.
+export function createFile(meta, body, interactive, fields = 'id,version') {
+  const b = 'cons' + Math.random().toString(36).slice(2);
+  const multi = new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({ parents: ['appDataFolder'], ...meta })}\r\n--${b}\r\nContent-Type: ${meta.mimeType}\r\n\r\n`, body, `\r\n--${b}--`]);
+  return api(`${UPLOAD}/files?uploadType=multipart&fields=${fields}`, { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body: multi }, interactive);
+}
+
 async function upload(title, f, files, interactive, meta) {
   const body = await gzip(JSON.stringify({ v: 1, game: title, at: Date.now(), ...meta,
     files: files.map(x => ({ path: x.path, mtime: x.mtime, data: b64(x.data) })) }));
@@ -193,10 +200,7 @@ async function upload(title, f, files, interactive, meta) {
   if (f) {
     r = await api(`${UPLOAD}/files/${f.id}?uploadType=media&fields=id,version`, { method: 'PATCH', headers: { 'Content-Type': 'application/gzip' }, body }, interactive);
   } else {
-    const meta = { name: title + ' saves.json.gz', parents: ['appDataFolder'], mimeType: 'application/gzip', appProperties: { game: await keyOf(title) } };
-    const b = 'cons' + Math.random().toString(36).slice(2);
-    const multi = new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/gzip\r\n\r\n`, body, `\r\n--${b}--`]);
-    r = await api(`${UPLOAD}/files?uploadType=multipart&fields=id,version`, { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body: multi }, interactive);
+    r = await createFile({ name: title + ' saves.json.gz', mimeType: 'application/gzip', appProperties: { game: await keyOf(title) } }, body, interactive);
   }
   const done = await r.json();
   cache.set(title, { id: done.id, version: done.version, files });
