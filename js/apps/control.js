@@ -141,7 +141,8 @@ function progress(parent, title, text) {
 // ---------- Mouse ----------
 
 const MKEY = 'w95.mouse';
-const MDEF = { dblclick: 500, trails: 0, left: false, speed: 5, scheme: 'Windows Standard' };
+// From 95 on, a first visit gets the moe rice's pink pointers.
+const MDEF = { dblclick: 500, trails: 0, left: false, speed: 5, scheme: ['1.0', '2.0', '3.1'].includes(V.id) ? 'Windows Standard' : 'Sakura' };
 const mouseSettings = () => ({ ...MDEF, ...(store.get(MKEY, null) || {}) });
 
 // The double-click time in milliseconds (Win95's default is 500).
@@ -193,6 +194,8 @@ function setTrails(n) {
   trail = { stop() { removeEventListener('pointermove', move); document.removeEventListener('mouseout', leave); cancelAnimationFrame(raf); ghosts.forEach(g => g.remove()); } };
 }
 setTrails(mouseSettings().trails);
+const setCursors = scheme => { document.documentElement.dataset.cursors = scheme === 'Sakura' ? 'sakura' : ''; };
+setCursors(mouseSettings().scheme);
 
 function mouseArt(left) {
   const P = left ? 'R' : 'L';
@@ -228,7 +231,7 @@ const POINTERS = [
   ['Horizontal Resize', 'var(--ew)', '↔'], ['Diagonal Resize 1', 'var(--nwse)', '⤡'], ['Diagonal Resize 2', 'var(--nesw)', '⤢'],
   ['Move', 'var(--move)', '✥'], ['Alternate Select', 'var(--up)', '↑'],
 ];
-const POINTER_SCHEMES = ['(None)', 'Windows Standard', 'Animated hourglasses'];
+const POINTER_SCHEMES = ['(None)', 'Windows Standard', 'Animated hourglasses', 'Sakura'];
 
 function mouse() {
   const draft = mouseSettings();
@@ -315,7 +318,7 @@ function mouse() {
   p = propsDialog({
     app: 'mouse', title: 'Mouse Properties', icon: 'i-mouse', cls: 'cp-mouseprops',
     names: ['Buttons', 'Pointers', 'Motion'], panels: [buttons, pointers, motion],
-    apply() { store.set(MKEY, draft); setTrails(draft.trails); },
+    apply() { store.set(MKEY, draft); setTrails(draft.trails); setCursors(draft.scheme); },
   });
   return p.win;
 }

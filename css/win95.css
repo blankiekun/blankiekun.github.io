@@ -52,6 +52,24 @@
   --up: url(../img/cursors/up.svg) 4 0, default;
   --hand: url(../img/cursors/hand.svg) 5 0, pointer;
 }
+/* The Sakura pointer scheme (Mouse Properties): the same pointers in pink. */
+:root[data-cursors="sakura"] {
+  --arrow: url(../img/cursors/sakura/arrow.svg) 0 0, default;
+  --ibeam: url(../img/cursors/sakura/ibeam.svg) 3 8, text;
+  --busy: url(../img/cursors/sakura/busy.svg) 0 0, progress;
+  --wait: url(../img/cursors/sakura/wait.svg) 6 10, wait;
+  --ns: url(../img/cursors/sakura/ns.svg) 4 9, ns-resize;
+  --ew: url(../img/cursors/sakura/ew.svg) 9 4, ew-resize;
+  --nwse: url(../img/cursors/sakura/nwse.svg) 7 7, nwse-resize;
+  --nesw: url(../img/cursors/sakura/nesw.svg) 7 7, nesw-resize;
+  --move: url(../img/cursors/sakura/move.svg) 9 9, move;
+  --help: url(../img/cursors/sakura/help.svg) 0 0, help;
+  --cross: url(../img/cursors/sakura/cross.svg) 9 9, crosshair;
+  --pen: url(../img/cursors/sakura/pen.svg) 0 17, default;
+  --no: url(../img/cursors/sakura/no.svg) 10 10, not-allowed;
+  --up: url(../img/cursors/sakura/up.svg) 4 0, default;
+  --hand: url(../img/cursors/sakura/hand.svg) 5 0, pointer;
+}
 html { cursor: var(--arrow); }
 a:any-link { cursor: var(--hand); }
 /* Firefox gives form controls their own cursor: default, which skips the inherited arrow */
