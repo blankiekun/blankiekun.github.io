@@ -39,32 +39,41 @@ function patternUrl(bits) {
 const CLOUDS = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='s' x2='0' y2='1'><stop offset='0' stop-color='#2c5fd6'/><stop offset='1' stop-color='#a4c6fb'/></linearGradient><filter id='b' x='-50%' y='-50%' width='200%' height='200%'><feGaussianBlur stdDeviation='12'/></filter></defs><rect width='800' height='600' fill='url(#s)'/><g fill='#fff' filter='url(#b)'><ellipse cx='150' cy='120' rx='120' ry='38'/><ellipse cx='220' cy='100' rx='70' ry='40'/><ellipse cx='610' cy='90' rx='150' ry='36'/><ellipse cx='560' cy='70' rx='60' ry='34'/><ellipse cx='260' cy='450' rx='200' ry='48'/><ellipse cx='330' cy='420' rx='90' ry='46'/><ellipse cx='680' cy='400' rx='130' ry='40'/><ellipse cx='480' cy='280' rx='80' ry='22' opacity='.7'/><ellipse cx='90' cy='300' rx='70' ry='20' opacity='.6'/></g></svg>`;
 const SETUP = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600' preserveAspectRatio='xMidYMid slice'><defs><linearGradient id='g' x2='0' y2='1'><stop offset='0' stop-color='#0000a8'/><stop offset='1' stop-color='#000010'/></linearGradient></defs><rect width='800' height='600' fill='url(#g)'/><text x='40' y='90' font-family='Arial Black, Arial, sans-serif' font-style='italic' font-weight='900' font-size='54' fill='#fff'>blankiekun<tspan fill='#ff4040' font-size='30' dy='-22'>95</tspan></text></svg>`;
 const RIVETS = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'><rect width='32' height='32' fill='#2050a8'/><path fill='#5080d8' d='M0 0h32v1H0zM0 0h1v32H0z'/><path fill='#103070' d='M0 31h32v1H0zM31 0h1v32h-1z'/><path fill='#80a8f0' d='M4 4h2v1H4zM4 4h1v2H4zM26 4h2v1h-2zM26 4h1v2h-1zM4 26h2v1H4zM4 26h1v2H4zM26 26h2v1h-2zM26 26h1v2h-1z'/><path fill='#082050' d='M6 5h1v2H5V6h1zM28 5h1v2h-2V6h1zM6 27h1v2H5v-1h1zM28 27h1v2h-2v-1h1z'/></svg>`;
-// Anime pictures in each era's style (img/wallpapers/, see THIRD-PARTY.txt), grouped by era.
+// Anime pictures for each version's moe rice (img/wallpapers/, see THIRD-PARTY.txt), one set per version;
+// a version shuffles through the set its default wallpaper is in.
 const ERAS = [
-  // PC-98 CG for 1.0-3.1
-  [
-    ['Rooftop', 'rooftop.jpg'], ['Sunset Shore', 'shore.jpg'], ['Starlight Lady', 'pc98-starlight-lady.png'], ['Shade Reader', 'pc98-shade-reader.png'],
-    ['Moonlit Swings', 'pc98-moonlit-swings.png'], ['Autumn Leaves', 'pc98-autumn-leaves.png'], ['Rainy Room', 'dan98-bedroom-blues.jpg'],
-  ],
-  // late-90s cel anime for 95-Me
-  [
-    ['Lain', 'lain.jpg'], ['Wired', 'wired.jpg'], ['Wired Crash', 'lain-win98-bsod.jpg'], ['Ed and Ein', 'bebop-ed-ein-sunset.jpg'], ['Bebop Alley', 'bebop-alley-crew.jpg'],
-    ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'], ['Me-tan', 'me-tan.jpg'],
-  ],
-  // 2000s moe for 2000 and XP
-  [
-    ['Peeking', 'konata.jpg'], ['Akiba Crossing', 'lucky-star-akiba.jpg'], ['SOS Brigade', 'haruhi-sos-brigade.jpg'], ['Chii Autumn', 'chobits-chii-autumn.jpg'], ['Snow Town', 'kanon-winter.jpg'],
-    ['2000-tan', '2000-tan.jpg'], ['XP-tan', 'xp-tan.jpg'], ['Bliss Midnight', 'bliss-midnight.jpg'],
-  ],
-  // Vista and 7
-  [
-    ['Miku Error', 'miku-window-error.jpg'], ['Light Music', 'k-on-band.jpg'], ['Snow Umbrella', 'toradora-snow.jpg'], ['Magica Quintet', 'madoka-quintet.jpg'],
-    ['Clannad Road', 'clannad-road.jpg'], ['Lab Members', 'steins-gate-lab.jpg'], ['Nanami', 'nanami-seven.jpg'],
-  ],
-  // 8-11
-  [
-    ['Violet Meadow', 'violet-meadow.jpg'], ['Suga Stairs', 'your-name-stairs.jpg'], ['Sunshine Girl', 'weathering-sky.jpg'], ['Harbor Band', 'bocchi-harbor.jpg'], ['Journey On', 'frieren-journey.jpg'], ['Touko', 'touko-win10.jpg'],
-  ],
+  // 1.0 and 2.0: PC-98 CG
+  [['Rooftop', 'rooftop.jpg'], ['Starlight Lady', 'pc98-starlight-lady.png'], ['Shade Reader', 'pc98-shade-reader.png'], ['Moonlit Swings', 'pc98-moonlit-swings.png'], ['Autumn Leaves', 'pc98-autumn-leaves.png']],
+  // 3.1: PC-98 and 16bit Sensation
+  [['Sunset Shore', 'shore.jpg'], ['Rainy Room', 'dan98-bedroom-blues.jpg'], ['3.1-tan', '31-tan.jpg'], ['Neon Street', 'pc98-neon-street.jpg'], ['Rance Studio', '16bit-rance-studio.jpg'],
+    ['Konoha Street', '16bit-konoha-street.jpg'], ['PC-98 Friends', '16bit-pc98-friends.jpg'], ["Rika's Tank", 'touhou-rika-tank.jpg'], ['Marisa Night', 'touhou-marisa-night.jpg']],
+  // 95: Lain, Eva and 95-tan
+  [['Wired', 'wired.jpg'], ['Wired Crash', 'lain-win98-bsod.jpg'], ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['OS-tan Family', 'ostan-family.jpg'],
+    ['95-tan Kimono', '95-tan-kimono.jpg'], ['95-tan Umbrella', '95-tan-umbrella.jpg'], ['Lain at DOS', 'lain-dos.jpg'], ['Lain Video Call', 'lain-video-call.jpg'], ['Otaku Couch', 'otaku-couch.jpg'], ['Triple Baka', 'triple-baka.jpg']],
+  // 98: Lain and Cardcaptor Sakura
+  [['Lain', 'lain.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'], ['OS-tan Family', 'ostan-family.jpg'], ['Sakura Wings', 'ccs-wings.jpg'], ['Sakura Dream', 'ccs-dream.jpg'],
+    ['Sakura Konbini', 'ccs-konbini.jpg'], ['Manga Crowd', 'manga-crowd.jpg']],
+  // Me: Me-tan, Bebop and Di Gi Charat
+  [['Ed and Ein', 'bebop-ed-ein-sunset.jpg'], ['Bebop Alley', 'bebop-alley-crew.jpg'], ['Me-tan', 'me-tan.jpg'], ['Me-tan Desktop', 'me-tan-desktop.jpg'], ['OS-tan Family', 'ostan-family.jpg'],
+    ['Moe Party', 'moe-party.jpg'], ['Vending Machines', 'digi-vending.jpg']],
+  // 2000: 2K-tan and Key
+  [['Snow Town', 'kanon-winter.jpg'], ['2000-tan', '2000-tan.jpg'], ['2K-tan Help', '2k-tan-help.jpg'], ['Chii Autumn', 'chobits-chii-autumn.jpg'], ['Key Heroines', 'key-heroines.jpg'], ['Bishoujo All-Stars', 'bishoujo-allstars.jpg']],
+  // XP: peak 2000s moe
+  [['Peeking', 'konata.jpg'], ['Akiba Crossing', 'lucky-star-akiba.jpg'], ['SOS Brigade', 'haruhi-sos-brigade.jpg'], ['XP-tan', 'xp-tan.jpg'], ['Bliss Midnight', 'bliss-midnight.jpg'],
+    ['Lucky Vega', 'lucky-vega.jpg'], ['Bocchi Star', 'bocchi-star.jpg'], ['Lucky Seinfeld', 'lucky-seinfeld.jpg'], ['Couch Potatoes', 'couch-potatoes.jpg']],
+  // Vista: Miku and Vista-tan
+  [['Miku Error', 'miku-window-error.jpg'], ['Lab Members', 'steins-gate-lab.jpg'], ['Vista-tan', 'vista-tan.jpg'], ['Miku Visor', 'miku-visor.jpg'], ['Miku LightSong', 'miku-lightsong.jpg'], ['Miku Station', 'miku-station.jpg']],
+  // 7: Nanami and late-2000s anime
+  [['Light Music', 'k-on-band.jpg'], ['Snow Umbrella', 'toradora-snow.jpg'], ['Magica Quintet', 'madoka-quintet.jpg'], ['Clannad Road', 'clannad-road.jpg'], ['Nanami', 'nanami-seven.jpg'],
+    ['Nanami Glass', 'nanami-glass.jpg'], ['Nanami Splash', 'nanami-splash.jpg'], ['Nanami Harmony', 'nanami-harmony.jpg']],
+  // 8.1: the Madobe sisters
+  [['Violet Meadow', 'violet-meadow.jpg'], ['Yuu and Ai', 'madobe-yuu-ai.jpg'], ['Madobe Picnic', 'madobe-picnic.jpg'], ['Madobe Shopping', 'madobe-shopping.jpg'], ['Madobe Sweets', 'madobe-sweets.jpg']],
+  // 10: Touko and Shinkai
+  [['Suga Stairs', 'your-name-stairs.jpg'], ['Sunshine Girl', 'weathering-sky.jpg'], ['Touko', 'touko-win10.jpg'], ['Nanami to Touko', 'nanami-touko.jpg'], ['Mitsuha', 'mitsuha.jpg'], ['Comet Night', 'comet-night.jpg'],
+    ['Hammer Time', 'hammer-time.jpg'], ['Flan at the PC', 'flan-pc.jpg'], ['Streamer Room', 'streamer-room.jpg'], ['Hospital Visit', 'hospital-visit.jpg']],
+  // 11: Ichika, Frieren and Bocchi
+  [['Journey On', 'frieren-journey.jpg'], ['Harbor Band', 'bocchi-harbor.jpg'], ['Ichika Bloom', 'ichika-bloom.jpg'], ['Ichika Desk', 'ichika-desk.jpg'], ['Frieren Ruins', 'frieren-ruins.jpg'],
+    ['Bocchi and Kita', 'bocchi-kita.jpg'], ['Kessoku Band', 'kessoku-band.jpg']],
 ];
 export const WALLPAPERS = {
   '(None)': null,
