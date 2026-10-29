@@ -134,6 +134,7 @@ function renderIcons() {
   ICONS.forEach((it, i) => iconsEl.append(makeIcon(it, i)));
   for (const n of desktopFolder().children.filter(n => !hidden(n))) { const it = fileIcon(n); ICONS.push(it); iconsEl.append(makeIcon(it, ICONS.length)); }
   arrange();
+  if (V.id === '7' && !small.matches) scatter();
 }
 
 // Keeps the visitor's icons in step with the Desktop folder; new ones go in the next free spot.
@@ -182,6 +183,23 @@ function arrange(order = ICONS) {
     place(it);
   });
   moved = false;
+}
+// 7's moe desktop: icons strewn over the left of the screen, the same spots every visit, one per cell.
+// They count as moved, so a resize leaves them be; Arrange Icons puts them back in columns.
+function scatter() {
+  const cols = Math.max(1, Math.floor(desktopEl.clientWidth * .7 / CELL_W)), rows = Math.max(1, Math.floor((desktopEl.clientHeight - 8) / CELL_H));
+  const cells = [...Array(cols * rows).keys()];
+  let seed = 7;
+  const r = () => (seed = Math.imul(seed, 48271) % 2147483647) / 2147483647;
+  for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+  ICONS.forEach((it, i) => {
+    if (i >= cells.length) return;   // more icons than cells: the rest keep their column spot
+    it.x = 4 + Math.floor(cells[i] / rows) * CELL_W + Math.round(r() * 16 - 8);
+    it.y = 6 + (cells[i] % rows) * CELL_H + Math.round(r() * 12 - 6);
+    it.x = Math.max(0, it.x); it.y = Math.max(0, it.y);
+    place(it);
+  });
+  moved = true;
 }
 function place(it) { it.el.style.left = it.x + 'px'; it.el.style.top = it.y + 'px'; }
 
