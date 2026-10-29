@@ -97,7 +97,15 @@ const SCHEMES = {
   'Spruce': { face: '#a2c8a9', title: '#2b7556', desktop: '#005034' },
   'Storm': { face: '#c0c0c0', title: '#800080', desktop: '#000000' },
   'Wheat': { face: '#d6d5a8', title: '#808000', desktop: '#808040' },
+  // Pastel moe schemes, each era's default from 3.1 to 2000 (js/version.js).
+  'Sakura': { face: '#f2d4dc', title: '#c8507a', desktop: '#e8a0b4' },
+  'Lavender': { face: '#dcd4ee', title: '#6a54b0', desktop: '#8a78c8' },
+  'Mint': { face: '#cfe8d8', title: '#2a8a68', desktop: '#5aa888' },
+  'Me-tan Green': { face: '#d8e4c8', title: '#3a8a3a', desktop: '#3a6ea5' },
+  'Miku Teal': { face: '#cce8e8', title: '#1a9a9a', desktop: '#137a7f' },
+  'Wired': { face: '#c8c4d0', title: '#4a2a6a', desktop: '#1a1028' },
 };
+console.assert(SCHEMES[V.scheme], 'this version\'s default scheme exists');
 
 export const COLORS = ['#008080', '#000000', '#808080', '#c0c0c0', '#800000', '#ff0000', '#808000', '#ffff00',
   '#008000', '#00ff00', '#004040', '#00ffff', '#000080', '#0000ff', '#800080', '#ff00ff', '#3a6ea5', '#a28d68'];
