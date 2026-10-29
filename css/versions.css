@@ -1172,3 +1172,25 @@ body.task-viewing #windows > .win { visibility: hidden; }
   @keyframes charm-in { from { transform: translateX(100%); } }
   @keyframes charm-fade { from { opacity: 0; } }
 }
+
+/* ---------- 7: the cluttered moe desktop (gadgets.js opens the clutter, desktop.js scatters the icons) ---------- */
+/* Lavender glass and taskbar instead of 7's blue; Vista keeps its own */
+html[data-win="7"] { --title: #9a72cf !important; --title-off: #c9b6e3 !important; --select: #a77be0 !important; }
+[data-win="7"] .win { background: var(--streaks), linear-gradient(90deg, #ffffff66, #0000001a, #ffffff33), rgba(168, 128, 218, .62); }
+[data-win="7"] .win:not(.active) { background: var(--streaks), linear-gradient(90deg, #ffffff66, #0000001a, #ffffff33), rgba(214, 196, 236, .55); }
+[data-win="7"] .taskbar { background: rgba(78, 42, 118, .6); }
+/* Explorer: pastel bars, the pixel font, and a washed-out picture in the corner of the file pane */
+[data-win="7"] .ex-new { font-family: "DotGothic16", var(--font-ui); color: #5a3d86; }
+[data-win="7"] .ex-navrow { background: linear-gradient(#f3ecfb, #e0d2f2); }
+[data-win="7"] .ex-cmd { background: linear-gradient(#fbf8fe, #eee5f8 50%, #e4d8f3 51%, #ebe1f7); border-bottom-color: #b9a6d6; color: #5a3d86; }
+[data-win="7"] .ex-cbtn:hover { border-color: #b99de0; background: linear-gradient(#fdfbff, #f1e8fd 50%, #e6d6fb 51%, #eee2fd); }
+[data-win="7"] :is(.ex-addr, .ex-search) { border-color: #b39cd4; }
+[data-win="7"] .ex-side { background: #faf6fe; }
+[data-win="7"] .ex-det { background: linear-gradient(#fbf8fe, #ece2f7); border-top-color: #b9a6d6; color: #5a3d86; }
+[data-win="7"] .ex-new .ex-list { background: linear-gradient(90deg, #fff 0 25%, #fff0 55%), linear-gradient(#fff 0 10%, #fff0 40%), linear-gradient(#fdfaff66, #fdfaff66),
+  url(../img/wallpapers/eva-rei-umbrella.jpg) right bottom / auto 70% no-repeat, #fff; }
+/* Konata dances loose on the desktop: no frame, and the title bar to drag her by only on hover */
+[data-win="7"] .win.gd-konata-win { border-color: transparent; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+[data-win="7"] .win.gd-konata-win:not(:hover, :focus-within) > .titlebar { opacity: 0; }
+.gd-konata { flex: 1; display: flex; align-items: flex-end; justify-content: center; }
+.gd-konata img { width: 180px; height: 180px; }

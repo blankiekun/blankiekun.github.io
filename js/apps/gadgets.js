@@ -407,9 +407,17 @@ function weather() {
   return gadget('weather', 'Weather', body, 178, () => clearInterval(timer));
 }
 
+// ---------- Konata ----------
+
+// The dancing chibi from Lucky Star's opening (img/konata.gif, see THIRD-PARTY.txt), loose on 7's moe desktop.
+function konata() {
+  const img = h('img', { src: new URL('../../img/konata.gif', import.meta.url).href, alt: 'Konata dancing', draggable: false });
+  return createWindow({ app: 'gadgets', title: 'Konata', icon: 'i-programs', body: h('div', { class: 'gd-konata' }, img), className: 'gadget gd-konata-win', width: 190, height: 210, resizable: false, taskbar: false });
+}
+
 // ---------- Docking, the gallery, and remembering ----------
 
-const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, kanji: kanjiOfTheDay, pet: pocketPet, vn: visualNovel, weather, mascot };
+const MAKERS = { clock: () => launch('clock'), cpu: cpuMeter, calendar, slides: slideshow, moe: moeClock, kanji: kanjiOfTheDay, pet: pocketPet, vn: visualNovel, weather, mascot, konata };
 
 // Vista's Sidebar: a translucent strip down the right, with the gadgets stacked in it. In 7 a new
 // gadget starts at the right under the others, then floats wherever it's dragged.
@@ -421,15 +429,18 @@ function restack(added) {
     sidebar.hidden = !open.size;
   } else if (!added) return;
   if (small.matches) return;
-  const right = document.getElementById('windows').clientWidth;
-  let y = 10;
+  const area = document.getElementById('windows');
+  // A column that runs out of height starts another to its left.
+  let right = area.clientWidth, y = 10, col = 0;
   for (const w of open.values()) {
     if (w.mascot) continue;   // she walks about on her own
+    if (y > 10 && y + w.el.offsetHeight > area.clientHeight) { right -= col + 10; y = 10; col = 0; }
     if (SIDEBAR || w === added) {
       w.el.style.left = right - w.el.offsetWidth - 10 + 'px';
       w.el.style.top = y + 'px';
     }
     y += w.el.offsetHeight + 8;
+    col = Math.max(col, w.el.offsetWidth);
   }
 }
 
@@ -457,7 +468,8 @@ const ERA_GADGETS = {
   '1.0': ['vn'], '2.0': ['vn'], '3.1': ['vn', 'moe'],
   '95': ['pet', 'moe'], '98': ['pet', 'moe'], 'me': ['pet', 'moe'],
   '2000': ['mascot', 'moe'], 'xp': ['mascot', 'moe'],
-  'vista': ['clock', 'cpu', 'weather'], '7': ['clock', 'cpu', 'weather'],
+  // 7 is the cluttered moe desktop: every gadget out at once.
+  'vista': ['clock', 'cpu', 'weather'], '7': ['clock', 'calendar', 'cpu', 'weather', 'slides', 'vn', 'pet', 'konata', 'mascot'],
   '8': ['kanji', 'moe'], '10': ['kanji', 'moe'], '11': ['kanji', 'moe'],
 };
 const ERA_KEY = 'w95.gadgets.era';
@@ -468,9 +480,16 @@ export function reopen() {
   const here = LIST.map(g => g[0]);
   // A version switch reloads the page; show that era's gadgets instead of the last era's.
   (fresh ? ERA_GADGETS[V.id] || [] : store.get(KEY, [])).filter(id => MAKERS[id] && here.includes(id)).forEach(add);
+  if (fresh && V.id === '7' && !small.matches) {
+    // The moe desktop's other clutter: Computer open, and a to-do note in the bottom left if there are no notes yet.
+    if (!store.get(NOTES, []).length) store.set(NOTES, [{ id: Date.now(), colour: 'purple', text: 'TO-DO\n- dust figures\n- sort through drawers\n- CLEAN LAPTOP', x: 16, y: Math.max(10, innerHeight - 290), w: 190, h: 170 }]);
+    launch('stickynotes');
+    launch('mycomputer');
+  }
 }
+const NOTES = 'w95.notes';   // js/apps/stickynotes.js
 
-const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['kanji', 'Kanji of the Day', 'i-charmap', true], ['pet', 'Pocket Pet', 'i-game', true], ['vn', 'Visual Novel', 'i-book', true], ['weather', 'Weather', () => wxIcon('sun'), true], ['mascot', 'Desktop Mascot', sprite, true]]
+const LIST = [['clock', 'Clock', 'i-clock', AERO], ['cpu', 'CPU Meter', 'i-sysmon', AERO], ['calendar', 'Calendar', null, true], ['slides', 'Slide Show', 'i-viewer', true], ['moe', 'Moe Clock', 'i-clock', true], ['kanji', 'Kanji of the Day', 'i-charmap', true], ['pet', 'Pocket Pet', 'i-game', true], ['vn', 'Visual Novel', 'i-book', true], ['weather', 'Weather', () => wxIcon('sun'), true], ['mascot', 'Desktop Mascot', sprite, true], ['konata', 'Konata', 'i-programs', V.id === '7']]
   .filter(g => g[3]);
 
 function gallery() {
