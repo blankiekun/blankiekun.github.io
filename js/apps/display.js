@@ -49,7 +49,7 @@ const ERAS = [
   // late-90s cel anime for 95-Me
   [
     ['Lain', 'lain.jpg'], ['Wired', 'wired.jpg'], ['Wired Crash', 'lain-win98-bsod.jpg'], ['Ed and Ein', 'bebop-ed-ein-sunset.jpg'], ['Bebop Alley', 'bebop-alley-crew.jpg'],
-    ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['Moon Guardians', 'sailor-moon-night.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'], ['Me-tan', 'me-tan.jpg'],
+    ['Tokyo-3 Dusk', 'eva-misato-car.jpg'], ['Rei in Rain', 'eva-rei-umbrella.jpg'], ['Tenchi Road', 'tenchi-abbey-road.jpg'], ['Me-tan', 'me-tan.jpg'],
   ],
   // 2000s moe for 2000 and XP
   [
