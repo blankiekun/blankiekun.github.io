@@ -5,6 +5,7 @@
 import { h, reducedMotion } from '../util.js';
 import { activeWindow } from '../wm.js';
 import { openMenu } from '../menu.js';
+import { V } from '../version.js';
 
 export const SW = 32;   // sprite size on screen: 16x16 pixels drawn at 2x
 
@@ -69,7 +70,19 @@ export function step(s, b, r) {
 // ---------- The sprite ----------
 
 // Original pixel art, one character per pixel: outline, hair, skin, eyes, white, blush, mouth, dress, ribbon, shoes.
-const INK = { o: '#2b1d2e', h: '#8a5cc7', s: '#ffe0c8', e: '#3a2350', w: '#fff', p: '#ff9fb0', m: '#c0405a', d: '#2f4a8a', r: '#e0303a', f: '#5a2a1a' };
+const BASE = { o: '#2b1d2e', h: '#8a5cc7', s: '#ffe0c8', e: '#3a2350', w: '#fff', p: '#ff9fb0', m: '#c0405a', d: '#2f4a8a', r: '#e0303a', f: '#5a2a1a' };
+// Each era's OS-tan, recoloured from the same frames: hair, dress, ribbon.
+const TANS = {
+  '3.1': ['3.1-tan', '#8c8c8c', '#404040', '#000080'], '95': ['95-tan', '#6b3e1f', '#b04a5a', '#2050a8'],
+  '98': ['98-tan', '#1a2a6a', '#3060c0', '#e0303a'], 'me': ['Me-tan', '#3a9a4a', '#6a3a2a', '#f4f4f4'],
+  '2000': ['2K-tan', '#3a7ad8', '#2a3a6a', '#d8b040'], 'xp': ['XP-tan', '#202024', '#2a5ac0', '#3cb043'],
+  'vista': ['Vista-tan', '#c8c8d8', '#1a1a2a', '#40a0e0'], '7': ['Nanami', '#6a3a24', '#2a4a9a', '#30a0e0'],
+  '8': ['Yuu', '#d89040', '#4a2a7a', '#20a0c0'], '10': ['Touko', '#2a3050', '#1a70d0', '#f4f4f4'], '11': ['11-tan', '#a0c8ff', '#4a6ad8', '#ff9fb0'],
+};
+const tan = TANS[V.id];
+const INK = tan ? { ...BASE, h: tan[1], d: tan[2], r: tan[3] } : BASE;
+export const TAN = tan ? tan[0] : 'Desktop mascot';
+console.assert(!tan || INK.h === tan[1], 'mascot: era palette recolours her hair');
 const HEAD = ['.....oooooo.....', '...oohhhhhhoo...', '..ohhhhhhhhhho..', '.ohhhhhhhhhhhho.', '.ohhhhshhshhhho.', '.ohssssssssssho.'];
 const EYES = ['.ohsewsssswesho.', '.ohseesssseesho.'], SLEEPY = ['.ohssssssssssho.', '.ohseesssseesho.'];
 const FACE = ['.ohpsssmmssspho.', '..ohssssssssho..'], OPEN = ['.ohpsssmmssspho.', '..ohsssmmsssho..'];
@@ -114,7 +127,7 @@ function bounds() {
 
 export function mascot() {
   const pic = sprite();
-  const el = h('div', { class: 'mascot', role: 'img', tabindex: '0', 'aria-label': 'Desktop mascot', title: 'Drag to pick her up. Right-click to dismiss.' }, pic);
+  const el = h('div', { class: 'mascot', role: 'img', tabindex: '0', 'aria-label': TAN, title: `${tan ? TAN + '. ' : ''}Drag to pick her up. Right-click to dismiss.` }, pic);
   let s = { mode: 'fall', x: innerWidth / 2 - SW / 2 | 0, y: SW, vy: 0, dir: 1, t: 0 }, n = 0, shown = 'sit';
   function draw() {
     const f = s.mode === 'drag' || s.mode === 'fall' ? 'dangle' : s.mode === 'sit' ? 'sit' : (s.mode === 'climb' ? s.x + s.y : n) >> 2 & 1 ? 'walk2' : 'walk1';

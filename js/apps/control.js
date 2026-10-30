@@ -141,7 +141,8 @@ function progress(parent, title, text) {
 // ---------- Mouse ----------
 
 const MKEY = 'w95.mouse';
-const MDEF = { dblclick: 500, trails: 0, left: false, speed: 5, scheme: 'Windows Standard' };
+// From 95 on, a first visit gets the moe rice's pink pointers.
+const MDEF = { dblclick: 500, trails: 0, left: false, speed: 5, scheme: ['1.0', '2.0', '3.1'].includes(V.id) ? 'Windows Standard' : 'Sakura' };
 const mouseSettings = () => ({ ...MDEF, ...(store.get(MKEY, null) || {}) });
 
 // The double-click time in milliseconds (Win95's default is 500).
@@ -193,6 +194,8 @@ function setTrails(n) {
   trail = { stop() { removeEventListener('pointermove', move); document.removeEventListener('mouseout', leave); cancelAnimationFrame(raf); ghosts.forEach(g => g.remove()); } };
 }
 setTrails(mouseSettings().trails);
+const setCursors = scheme => { document.documentElement.dataset.cursors = scheme === 'Sakura' ? 'sakura' : ''; };
+setCursors(mouseSettings().scheme);
 
 function mouseArt(left) {
   const P = left ? 'R' : 'L';
@@ -228,7 +231,7 @@ const POINTERS = [
   ['Horizontal Resize', 'var(--ew)', '↔'], ['Diagonal Resize 1', 'var(--nwse)', '⤡'], ['Diagonal Resize 2', 'var(--nesw)', '⤢'],
   ['Move', 'var(--move)', '✥'], ['Alternate Select', 'var(--up)', '↑'],
 ];
-const POINTER_SCHEMES = ['(None)', 'Windows Standard', 'Animated hourglasses'];
+const POINTER_SCHEMES = ['(None)', 'Windows Standard', 'Animated hourglasses', 'Sakura'];
 
 function mouse() {
   const draft = mouseSettings();
@@ -315,7 +318,7 @@ function mouse() {
   p = propsDialog({
     app: 'mouse', title: 'Mouse Properties', icon: 'i-mouse', cls: 'cp-mouseprops',
     names: ['Buttons', 'Pointers', 'Motion'], panels: [buttons, pointers, motion],
-    apply() { store.set(MKEY, draft); setTrails(draft.trails); },
+    apply() { store.set(MKEY, draft); setTrails(draft.trails); setCursors(draft.scheme); },
   });
   return p.win;
 }
@@ -846,13 +849,16 @@ const ERA = ['1.0', '2.0', '3.1'].includes(V.id) ? { name: '3.1', map: { 'Defaul
   : ['xp', 'vista', '7'].includes(V.id) ? { name: 'XP', map: FULL_MAP, pitch: 1.122, soft: 0.02 }
   : ['8', '10', '11'].includes(V.id) ? { name: '8', map: FULL_MAP, pitch: 1.26, soft: 0.04 }
   : { name: '95', map: FULL_MAP };
-const DEFAULT_MAP = ERA.map, DEFAULT_NAME = 'blankiekun ' + ERA.name + ' Default';
-const SCHEMES = { 'No Sounds': {}, [DEFAULT_NAME]: DEFAULT_MAP };
+const STOCK_MAP = ERA.map, STOCK_NAME = 'blankiekun ' + ERA.name + ' Default';
+// The moe rice's sparkly scheme, the default from 95 on; 3.1 and older keep their beeps.
+export const KIRA_MAP = { 'Default sound': 'Pyon', 'Asterisk': 'Kira', 'Critical Stop': 'Chord', 'Exclamation': 'Pyon', 'Question': 'Kira', 'Start Windows': 'Music Box', 'Exit Windows': 'Chimes', 'Empty Recycle Bin': 'Recycle' };
+const [DEFAULT_NAME, DEFAULT_MAP] = ERA.name === '3.1' ? [STOCK_NAME, STOCK_MAP] : ['Kirakira', KIRA_MAP];
+const SCHEMES = { 'No Sounds': {}, [STOCK_NAME]: STOCK_MAP, 'Kirakira': KIRA_MAP };
 // shortcut: a saved scheme is kept as is, so it stays when the era changes; upgrade by tagging it with its version.
 const soundSettings = () => ({ scheme: DEFAULT_NAME, map: DEFAULT_MAP, custom: {}, ...(store.get(SKEY, null) || {}) });
 
-// Desktop Themes swap the whole set of event sounds; null puts the default ones back.
-export function setSoundMap(map) { store.set(SKEY, { ...soundSettings(), scheme: map ? '' : DEFAULT_NAME, map: map || DEFAULT_MAP }); }
+// Desktop Themes swap the whole set of event sounds; null puts the stock ones back.
+export function setSoundMap(map) { store.set(SKEY, { ...soundSettings(), scheme: map ? '' : STOCK_NAME, map: map || STOCK_MAP }); }
 
 let actx = null, playing = null;
 
@@ -937,6 +943,26 @@ const SYNTH = {
     [1244.5, 1568, 1864.7, 2489].forEach((n, i) => bell(c, out, t + 1.35 + i * 0.13, n, 1.4, 0.06));
     return 3.5;
   },
+  // Kirakira: a quick run of tiny bells.
+  'Kira'(c, out, t) { [2093, 2637, 3136, 4186].forEach((f, i) => bell(c, out, t + i * 0.05, f, 0.6, 0.12)); return 0.85; },
+  // A bouncy blip that slides up.
+  'Pyon'(c, out, t) {
+    const o = c.createOscillator(), g = c.createGain(), p = ERA.pitch || 1;
+    o.type = 'sine';
+    o.frequency.setValueAtTime(620 * p, t);
+    o.frequency.exponentialRampToValueAtTime(1500 * p, t + 0.11);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.3, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o.connect(g).connect(out);
+    o.start(t); o.stop(t + 0.35);
+    return 0.35;
+  },
+  // A music-box phrase on the pentatonic scale for startup.
+  'Music Box'(c, out, t) {
+    [1318.5, 1568, 1760, 2093, 1760, 1568, 2093, 2637].forEach((f, i) => bell(c, out, t + i * 0.17, f, i === 7 ? 1.4 : 0.8, 0.16));
+    return 2.6;
+  },
   'Recycle'(c, out, t) {
     // Crumpled paper: a burst of short crackles.
     const dur = 0.7;
@@ -954,8 +980,9 @@ const SYNTH = {
     return dur;
   },
 };
-const LENGTHS = { 'Ding': 0.9, 'Chord': 1.3, 'Chimes': 1.8, 'Tada': 1.8, 'The blankiekun Sound': 3.5, 'Recycle': 0.7 };
-const SOUND_NAMES = ['(None)', 'The blankiekun Sound', 'Chimes', 'Chord', 'Ding', 'Recycle', 'Tada'];
+const LENGTHS = { 'Ding': 0.9, 'Chord': 1.3, 'Chimes': 1.8, 'Tada': 1.8, 'The blankiekun Sound': 3.5, 'Recycle': 0.7, 'Kira': 0.85, 'Pyon': 0.35, 'Music Box': 2.6 };
+const SOUND_NAMES = ['(None)', 'The blankiekun Sound', 'Chimes', 'Chord', 'Ding', 'Kira', 'Music Box', 'Pyon', 'Recycle', 'Tada'];
+console.assert(Object.values(KIRA_MAP).every(n => SYNTH[n] && LENGTHS[n]), 'every Kirakira sound exists');
 
 function volume() {
   const v = store.get('w95.volume', { level: 0.8, mute: false }) || {};
