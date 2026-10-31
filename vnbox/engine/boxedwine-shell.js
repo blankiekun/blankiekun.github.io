@@ -172,7 +172,7 @@
             Config.rootZipFile = getRootZipFile("root"); //MANUAL:"base.zip";
             Config.extraZipFiles = getZipFileList("overlay"); //MANUAL:"dlls.zip;fonts.zip";
             Config.appZipFile = getAppZipFile("app"); //MANUAL:"chomp.zip";
-            Config.lazyApp = new URLSearchParams(location.search).get("lazy") || ""; // "opfs:vn/albatross": game folder read lazily (lazyfs.js)
+            Config.lazyApp = vnboxParam("lazy") || ""; // "opfs:vn/albatross": game folder read lazily (lazyfs.js)
             let cdrom = getCDRom("cdrom"); //MANUAL:{files: ["disc1.iso", "disc2.iso"], drive: "e"}
             Config.cdromISOFiles = cdrom.files;
             Config.cdromDrive = cdrom.drive;
@@ -873,7 +873,7 @@
         }
         // jspi builds read zips on demand from an OPFS copy (lazyfs.js); others load them whole.
         function loadZipFile(pathPrefix, filename, callback) {
-            if (typeof boxedwineJspiReads === "undefined" || new URLSearchParams(location.search).has("wholezips")) { // wholezips: compare
+            if (typeof boxedwineJspiReads === "undefined") {
                 loadFile(pathPrefix, filename, (bytes) => { createFile("/", filename, bytes); callback(); });
                 return;
             }
@@ -3512,20 +3512,20 @@ async function createZip(items) {
 var vnboxMovieBase = document.currentScript ? new URL(".", document.currentScript.src).href : "";
 var vnboxMovieLoad = null, vnboxMovieQueue = [];
 
-// The movie file as a Blob, from its Emscripten FS node (the lazy game folder's File in jspi mode).
+// The movie file as a Blob, from its Emscripten FS node (a lazy game folder's File, in either mode).
 function vnboxMovieBlob(path) {
     var node;
     try { node = FS.lookupPath(path).node; } catch (e) { return null; }
     if (node.lazyFile === undefined || node.lazyCopied) return node.contents ? new Blob([node.contents.subarray(0, node.usedBytes)]) : null;
     if (node.lazyBytes) return new Blob([node.lazyBytes]);
-    return typeof lazyFiles !== "undefined" && lazyFiles[node.lazyFile] || null; // sab mode: the worker has the File
+    return node.lazyBlob || typeof lazyFiles !== "undefined" && lazyFiles[node.lazyFile] || null; // lazyBlob: sab mode, the worker's File
 }
 
 function boxedwineMovie(id, cmd, arg) {
     if (cmd === "open") console.log("[movie] open " + arg);
     if (typeof vnboxMovieCommand === "function") return vnboxMovieCommand(id, cmd, arg);
     if (cmd === "open") {
-        if (new URLSearchParams(location.search).get("movies") === "0" || !vnboxMovieBlob(arg)) return -1;
+        if (vnboxParam("movies") === "0" || !vnboxMovieBlob(arg)) return -1;
         vnboxMovieLoad = vnboxMovieLoad || ["vnbox-movie-decoder.js", "vnbox-movie.js"].reduce((done, name) => done.then(() => new Promise((resolve, reject) => {
             var script = document.createElement("script");
             script.src = vnboxMovieBase + name;
