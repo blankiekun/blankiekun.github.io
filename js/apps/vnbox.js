@@ -30,7 +30,7 @@ const FOLD = 'w95.vnbox.fold';  // touch screens: Menu / Skip buttons folded awa
 const UPLOAD = 'w95.vnbox.upload';    // this device uploads its games to the Drive library
 const LIBRARY = 'w95.vnbox.library';  // the Drive library as last read, shown before signing in
 // The engine release in vnbox/engine/; tools/update-vnbox.sh (run by VNBox's update-site workflow) bumps it.
-const ENGINE_VERSION = 'v0.2.6';
+const ENGINE_VERSION = 'v0.2.7';
 const ENGINE = 'vnbox/engine/';
 const SIZES = ['640x480', '800x600', '1024x768', '1280x720'];
 // The screen a game too big for the 800x600 start runs on once, to learn its size (see fitted).
