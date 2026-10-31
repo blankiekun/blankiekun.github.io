@@ -47,9 +47,6 @@ p { margin: 0; }
 .proj span { color: #404040; font-size: 13px; }
 .proj .go { display: flex; gap: 14px; }
 .proj .go a { font-size: 14px; }
-.me { border: 2px solid #000; background: #ffffe0; font-size: 15px; }
-.me th, .me td { border: 1px solid #808080; padding: 4px 8px; text-align: left; vertical-align: top; }
-.me th { background: #000080; color: #ffff00; font: bold 13px Arial, sans-serif; white-space: nowrap; }
 .news { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 footer { text-align: center; font-size: 13px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 @media (max-width: 620px) {
@@ -60,7 +57,7 @@ footer { text-align: center; font-size: 13px; display: flex; flex-direction: col
   .main, .layout { display: contents; }
   .page > *, .nav, .main > * { order: 5; }
   .page > h1, .page > .sub { order: 0; }
-  .main > h2:nth-of-type(2), .projects { order: 1; }
+  .main > p:first-child, .main > h2:nth-of-type(2), .projects { order: 1; }
   .pipe, .pipe tbody, .pipe tr, .pipe td { display: block; width: 100%; }
   .pipe td.arr { width: 100%; padding: 2px 0; text-align: center; transform: rotate(90deg); }
 }
@@ -130,22 +127,30 @@ body { transition: rotate 1s, scale 2s; }
       </nav>
 
       <div class="main">
-        <p>Hi, I'm <b>blank</b>! I live in the States, I'm learning Japanese, and I read a <i>lot</i> of visual novels.
-          I also make three open-source projects for reading them, and they fit together.
-          <b>chimimouryou</b> is a self-hosted reader for your Calibre library.
-          <b>CONscripter</b> is the visual novel engine it uses to play games in the browser.
-          <b>conscripter-convert</b> turns games made with other engines into games CONscripter can play.</p>
+        <p>hi im <b>blank</b> and im working on a few projects related to japanese<br>
+          feel free to reach out<br>
+          discord: blankiekun<br>
+          twitter: <a href="https://x.com/blankiekun">blankiekun</a></p>
 
         <h2>About Me</h2>
-        <table class="me">
-          <tr><th scope="row">Name</th><td>blank (blankiekun)</td></tr>
-          <tr><th scope="row">Location</th><td>USA</td></tr>
-          <tr><th scope="row">Speaks</th><td>English, and Japanese (still learning!)</td></tr>
-          <tr><th scope="row">Favourite VNs</th><td lang="ja">ひぐらし, うみねこ, 俺つば, CROSS&dagger;CHANNEL, マブラブ, すば日々</td></tr>
-          <tr><th scope="row">Now reading</th><td><span lang="ja">最果てのイマ</span>, which conscripter-convert can now play from start to end</td></tr>
-          <tr><th scope="row">Favourite food</th><td>Cookie dough</td></tr>
-        </table>
-        <p>If you're learning Japanese or you love visual novels too, come say hi on <a href="https://x.com/blankiekun">Twitter (@blankiekun)</a>. I post in English and Japanese.</p>
+        <h3>Learning Japanese</h3>
+        <p>ive been learning japanese for ~6 years and have been in the ajatt/immersion learning community for a while</p>
+
+        <h3>Visual novels</h3>
+        <p>my favorite vns:</p>
+        <ul>
+          <li>oretsuba-instant classic, ou jacksons prose is some of the best in any medium and the story is very well written personal #1</li>
+          <li>cross channel-hard to talk about without spoilers, romeo is an insanely good writer and everyone should read him!!</li>
+          <li>ahoudori/kagerou-hard works but very well written if you can read japanese definitely give them a try</li>
+          <li>higurashi/umineko,manosaba, subahibi,muvluv are also some of my favorites</li>
+        </ul>
+
+        <h3>What I make</h3>
+        <ul>
+          <li><b>chimimouryou</b> is a fork of ttu reader with some more features that i wanted in the original</li>
+          <li><b>vnbox</b> allows you to play vns on any device with a browser</li>
+          <li><b>CONscripter</b> and <b>CONscripter convert</b> were sideprojects to test agentic reverse engineering and I was able to port a few VNs to a completely new engine, I'd like to focus on VNs that came out on a console and never got a PC release for now.</li>
+        </ul>
 
         <h2>My Projects</h2>
         <div class="projects">
