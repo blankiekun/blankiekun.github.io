@@ -117,8 +117,10 @@ async function copyDiscs(discs, progress) {
     for (const p of discFolder(disc).split('/')) d = await d.getDirectoryHandle(p, { create: true });
     for (const f of disc.files) {
       const there = await d.getFileHandle(f.name).then(h => h.getFile()).catch(() => null);
-      if (!there || there.size !== f.size) await f.stream().pipeTo(await (await d.getFileHandle(f.name, { create: true })).createWritable());
-      progress(done += f.size);
+      // Counted as it streams: a disc image is one file of several GB.
+      if (!there || there.size !== f.size) await f.stream().pipeThrough(new TransformStream({ transform: (chunk, c) => { progress(done += chunk.byteLength); c.enqueue(chunk); } }))
+        .pipeTo(await (await d.getFileHandle(f.name, { create: true })).createWritable());
+      else progress(done += f.size);
     }
   }
 }
