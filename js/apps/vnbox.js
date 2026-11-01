@@ -20,7 +20,7 @@ import { DISC_DRIVE, SETUP_FOLDER, DISC_FILE, INSTALLER_NAMES, discsOf, discFold
   installerKind, silentArgs, installDir, discPrograms, installedPrograms, moveInstalled } from './vninstall.js';
 import { tabbed } from './system.js';
 import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
-import { VERSIONS, OVERRIDES, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
+import { VERSIONS, OVERRIDES, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText, engineOptions, numberValue } from './vntuning.js';
 
 const RECENT = 'w95.vnbox.recent';
 const SHOW_LOG = 'w95.vnbox.log';
@@ -417,9 +417,16 @@ function installDialog({ title, programs, kindOf, protection, from }, parent) {
 }
 
 // Game > Tuning: a game's VNBox settings and Wine fixes (vntuning.js). Resolves to its new tuning, or null.
-function tuningDialog(g, parent) {
+// The engine's list of its tuning options (null when this engine has none: releases before VNBox PR #84).
+let optionsJson = null;
+const engineOptionsJson = () => optionsJson ||= fetch(ENGINE + 'vnbox-options.json').then(r => r.ok ? r.json() : null).catch(() => null);
+
+// engine: the parsed vnbox-options.json, or null.
+function tuningDialog(g, parent, engine) {
   return new Promise(resolve => {
     const pairs = tuningPairs(g.tuning), c = compatFromTuning(pairs);
+    // VNBox's options get their own tab; a knob here it also lists is left to the tab.
+    const eOpts = engineOptions(engine), own = KNOBS.filter(k => !eOpts.some(o => o.name === k[0]));
     const valueOf = ([key, , initial]) => { const p = pairs.find(x => keyOf(x) === key); return p ? p.slice(key.length + 1) : initial; };
     const select = (options, value) => h('select', { class: 'field' }, ...options.map(([v, t]) => h('option', { value: v, selected: v === value }, t)));
     const mn = label => label.replace(/&(.)/, '<u>$1</u>');
@@ -433,14 +440,31 @@ function tuningDialog(g, parent) {
       return [t, h('label', { class: 'vnb-tune-area' }, h('span', { html: mn(label) }), t)];
     };
 
-    const knobs = KNOBS.map(k => {
+    const knobs = own.map(k => {
       const [, label, , options, onOff] = k;
       if (options) { const el = select(options, valueOf(k)); return { k, get: () => el.value, el: row(label, el) }; }
       const [box, el] = check(label, valueOf(k) === onOff[0]);
       return { k, get: () => onOff[box.checked ? 0 : 1], el };
     });
     const extra = h('input', { class: 'field', spellcheck: false, autocomplete: 'off', placeholder: 'e.g. safe-memory=true&disableHideCursor=true',
-      value: pairs.filter(p => !KNOBS.some(k => k[0] === keyOf(p)) && !COMPAT_KEYS.has(keyOf(p))).join('&') });
+      value: pairs.filter(p => !own.some(k => k[0] === keyOf(p)) && !eOpts.some(o => o.name === keyOf(p)) && !COMPAT_KEYS.has(keyOf(p))).join('&') });
+    // get(): the value to send, or null for a number out of range.
+    const eng = eOpts.map(o => {
+      const saved = pairs.find(p => keyOf(p) === o.name), v = saved ? saved.slice(o.name.length + 1) : o.initial;
+      let el, get;
+      if (o.type === 'bool') {
+        const [box, l] = check(o.label, v === o.urlValues.true);
+        el = l; get = () => o.urlValues[box.checked];
+      } else if (o.type === 'choice') {
+        const sel = select(o.choices.map(x => [String(x.value), x.label + (x.experimental ? ' (experimental)' : '')]), v);
+        el = row(o.label + ':', sel); get = () => sel.value;
+      } else {
+        const n = h('input', { class: 'field', type: 'number', min: o.min, max: o.max, step: o.type === 'int' ? 1 : 'any', value: v });
+        el = row(o.label + ':', n); get = () => numberValue(o, n.value);
+      }
+      return { o, get, el: h('div', { class: 'vnb-opt' }, el, h('p', { class: 'dp-note vnb-opt-note' }, o.description)) };
+    });
+    const groups = [...new Set(eOpts.map(o => o.group))];
     const renderer = select([['', 'Default (OpenGL)'], ['gl', 'OpenGL'], ['gdi', 'GDI']], c.renderer);
     const version = select([['', 'Default (10)'], ...VERSIONS.map(v => [v, 'Windows ' + ({ winme: 'ME', win2k: '2000', winxp: 'XP' }[v] || v.slice(3))])], c.version);
     const [movies, moviesEl] = check('Play &movies (DirectShow). Off lets a game that hangs on its opening movie skip it', c.movies);
@@ -452,11 +476,13 @@ function tuningDialog(g, parent) {
     const panels = [
       h('div', { class: 'dp-panel' }, ...knobs.map(x => x.el),
         row('E&xtra:', extra), h('p', { class: 'dp-note' }, 'Extra settings go into VNBox\'s address as typed (a=b&c=d). The game, program and hook can\'t be changed here.')),
+      ...(eng.length ? [h('div', { class: 'dp-panel vnb-opts' }, ...groups.map(gr => h('fieldset', { class: 'group' }, h('legend', null, gr),
+        ...eng.filter(x => x.o.group === gr).map(x => x.el))))] : []),
       h('div', { class: 'dp-panel' }, h('p', { class: 'dp-note' }, 'Wine fixes for a game that won\'t start, shows nothing or stops at a movie. The renderer, Windows version and registry values stay in this game\'s Wine setup after you set them back: pick the other value to undo them.'),
         row('Re&nderer:', renderer), row('&Windows version:', version), moviesEl, row('&Virtual desktop:', desktop), dllsEl, regEl, envEl),
     ];
     const { finish, show } = dialogOf(resolve);
-    const form = h('form', { class: 'dlg vnb-dlg vnb-tune' }, tabbed(['Settings', 'Compatibility'], panels),
+    const form = h('form', { class: 'dlg vnb-dlg vnb-tune' }, tabbed(['Settings', ...(eng.length ? ['VNBox'] : []), 'Compatibility'], panels),
       h('div', { class: 'btns right' },
         h('button', { class: 'btn', type: 'button', onclick: () => { extra.value = ''; finish(''); } }, h('span', { html: 'Reset <u>A</u>ll' })),
         h('button', { class: 'btn default', type: 'submit' }, 'OK'),
@@ -464,11 +490,13 @@ function tuningDialog(g, parent) {
     form.addEventListener('submit', e => {
       e.preventDefault();
       const rows = { dlls: rowsFromText('dlls', dlls.value), registry: rowsFromText('registry', reg.value), env: rowsFromText('env', env.value) };
-      const bad = [...Object.values(rows).flatMap(x => x.bad), ...(desktop.value.trim() && !validDesktop(desktop.value.trim()) ? [desktop.value] : [])];
+      const bad = [...Object.values(rows).flatMap(x => x.bad), ...(desktop.value.trim() && !validDesktop(desktop.value.trim()) ? [desktop.value] : []),
+        ...eng.filter(x => x.get() == null).map(x => `${x.o.label}: ${x.o.min} to ${x.o.max}`)];
       if (bad.length) return msgbox({ title: 'Tuning', icon: 'error', parent: d, text: 'These aren\'t valid, so nothing was changed yet:\n\n' + bad.join('\n') });
       const compat = { renderer: renderer.value, version: version.value, movies: movies.checked, desktop: desktop.value.trim(),
         dlls: rows.dlls.rows, registry: rows.registry.rows, env: rows.env.rows };
-      finish([...knobs.filter(x => x.get() !== x.k[2]).map(x => `${x.k[0]}=${x.get()}`), ...compatParams(compat),
+      finish([...knobs.filter(x => x.get() !== x.k[2]).map(x => `${x.k[0]}=${x.get()}`),
+        ...eng.filter(x => x.get() !== x.o.initial).map(x => `${x.o.name}=${x.get()}`), ...compatParams(compat),
         extra.value.trim().replace(/^[?&]+|&+$/g, '')].filter(Boolean).join('&'));
     });
     const d = show(form, { title: 'Tuning - ' + g.title, parent });
@@ -1132,7 +1160,7 @@ function open() {
   }
 
   async function tune() {
-    const t = await tuningDialog(game, win);
+    const t = await tuningDialog(game, win, await engineOptionsJson());
     if (t == null || t === (game.tuning || '')) return;
     game.tuning = t;
     setGame(game.title, { tuning: t });
