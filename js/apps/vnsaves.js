@@ -121,7 +121,7 @@ export async function readSaves(area, entries) {
   const reqs = await withStore(area, 'readonly', store => files.map(e => store.get(e.key)));
   return files.flatMap((e, i) => {
     const v = reqs[i].result;
-    return v && v.contents ? [{ path: e.path, data: new Uint8Array(v.contents), mtime: new Date(e.modified) }] : [];
+    return v && v.contents ? [{ path: e.path, data: v.contents, mtime: new Date(e.modified) }] : [];
   });
 }
 
@@ -206,7 +206,7 @@ export async function syncedSaves(title) {
       };
     });
     for (const [path, { result: v }] of reqs) {
-      if (v && v.contents && !isDir(v.mode) && !isLink(v.mode)) files.push({ path, data: new Uint8Array(v.contents), mtime: new Date(v.timestamp).getTime() });
+      if (v && v.contents && !isDir(v.mode) && !isLink(v.mode)) files.push({ path, data: v.contents, mtime: new Date(v.timestamp).getTime() });
     }
   }
   const size = files.reduce((n, f) => n + f.data.byteLength, 0);
