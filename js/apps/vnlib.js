@@ -255,7 +255,7 @@ async function setEntry(title, entry, interactive) {
 const manifestOf = (id, interactive) => id ? readJson(id, interactive).catch(e => { if (e.kind === 'gone') return null; throw e; }) : null;
 
 // The record fields a game keeps in the library, so it plays the same on another device.
-const KEPT = ['title', 'size', 'exe', 'hook', 'res', 'tuning', 'cleanup', 'discs', 'drive'];
+const KEPT = ['title', 'size', 'exe', 'hook', 'hooked', 'res', 'tuning', 'cleanup', 'discs', 'drive'];
 
 // The files of a game's copy in this browser, and its empty folders.
 async function gameFiles(rec) {

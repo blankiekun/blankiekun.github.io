@@ -54,6 +54,17 @@ eq(clean('新しいページ。', 'a'), '新しいページ。');
 eq(clean('あ', 'c'), 'あ');
 eq(clean('あい', 'c'), 'あい');
 
+const redraw = hookCleaner({});
+eq(redraw('「だって、もう子供じゃないもん」\n'), '「だって、もう子供じゃないもん」\n');
+eq(redraw('「だって、もう子供じゃないもん」あずさ'), 'あずさ');
+eq(redraw('「だって、もう子供じゃないもん」あずさ　満面の笑顔で言うのだ。'), 'あずさ　満面の笑顔で言うのだ。');
+eq(redraw('次のページ'), '次のページ');
+eq(redraw('次のページです'), '次のページです');
+const resent = hookCleaner({});
+assert.deepEqual(['満面の笑顔で言うのだ。', '忍「…………」', '満面の笑顔で言うのだ。忍「…………」', 'あずさ「……だ、黙るの？」',
+  '「…………」忍あずさ「……だ、黙るの？」', '忍「あ、いや」', '「……だ、黙るの？」あずさ忍「あ、いや」'].map(l => resent(l)).filter(Boolean),
+  ['満面の笑顔で言うのだ。', '忍「…………」', 'あずさ「……だ、黙るの？」', '忍「あ、いや」']);
+
 const recent = hookCleaner({ recentLines: true, recentSize: 2, markup: true });
 eq(recent('一行目', 'a'), '一行目');
 eq(recent('一行目', 'b'), '一行目');

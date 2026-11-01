@@ -15,7 +15,7 @@ import * as drive from './consdrive.js';
 import * as vnlib from './vnlib.js';
 import * as anki from './consanki.js';
 import { watchGamepads } from './vnpad.js';
-import { lunaSuggestion } from './vnhooks.js';
+import { hookSuggestion } from './vnhooks.js';
 import { DISC_DRIVE, SETUP_FOLDER, DISC_FILE, INSTALLER_NAMES, discsOf, discFolder, discPath, discSize, listDisc, autorunProgram, copyProtection,
   installerKind, silentArgs, installDir, discPrograms, installedPrograms, moveInstalled } from './vninstall.js';
 import { tabbed } from './system.js';
@@ -77,7 +77,7 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 
 // ---------- games in this browser ----------
 
-// [{ title, at, size, exe, hook, res, discs, drive }], newest first: every game here until it's removed.
+// [{ title, at, size, exe, hook, hooked, res, discs, drive }], newest first (hooked: the hook was picked, by hand or by autoHook): every game here until it's removed.
 // Each one has a copy of its files in the site's private storage (the origin private file system), in vn/<title>, where the engine reads them;
 // a game installed from discs keeps their images in vn-discs/ (vninstall.js), for games that check for them.
 const recentGames = () => store.get(RECENT, []);
@@ -611,7 +611,7 @@ function padMove(w, dx, dy, ms) {
 // ---------- the window ----------
 
 function open() {
-  let game = null;   // what's loaded: { title, size, exe, hook, res }
+  let game = null, booting = null;   // what's loaded: { title, size, exe, hook, res }
   let frame = null;  // the running engine
   let errors = [];   // what the engine reported, for Debug > Engine Log
   let ownHook = null; // a hook script picked from a file this visit: { name, url }
@@ -818,8 +818,8 @@ function open() {
   async function chooseHook() {
     if (!game) return;
     const list = await hooks();
-    // The LunaHook engine whose files the game has, first in the list.
-    const fits = lunaSuggestion(list, await gameFileNames(game.title), game.exe);
+    // The script that fits the game (by program, title or files), first in the list.
+    const fits = hookSuggestion(list, { exe: game.exe, names: [game.title], files: await gameFileNames(game.title) });
     const items = [['', '(None)'], ...(ownHook ? [['file', ownHook.name + ' (from your computer)']] : []),
       ...list.filter(([f]) => f === fits).map(([f, n]) => [f, n + ' (fits this game)']), ...list.filter(([f]) => f !== fits)];
     const pick = await listDialog({ title: 'Text Hook', parent: win, filter: true, items, value: game.hook || fits || '',
@@ -830,7 +830,7 @@ function open() {
     game.hook = pick;
     // Off at first: a hook is what fills it.
     if (pick && !showLog) toggleLog();
-    setGame(game.title, { hook: pick === 'file' ? '' : pick });
+    setGame(game.title, { hook: pick === 'file' ? '' : pick, hooked: true });
     boot(game);
   }
   // shortcut: a script from the visitor's computer lasts this visit and can't require() other files; keep its text if people use it
@@ -839,6 +839,15 @@ function open() {
     if (!f) return null;
     if (ownHook) URL.revokeObjectURL(ownHook.url);
     return ownHook = { name: f.name, url: URL.createObjectURL(new Blob([f], { type: 'text/javascript' })) };
+  }
+  // A game's first start picks the hook that fits it (hookSuggestion) and saves it, once: Text > Text Hook changes it.
+  async function autoHook(g) {
+    const list = await hooks();
+    if (!list.length) return; // index.json didn't load: try again next start
+    g.hook = hookSuggestion(list, { exe: g.exe, names: [g.title], files: await gameFileNames(g.title) }) || '';
+    g.hooked = true;
+    setGame(g.title, { hook: g.hook, hooked: true });
+    if (g.hook && !showLog) toggleLog();
   }
   function hookUrl(g) {
     if (g.hook === 'file') return ownHook && ownHook.url;
@@ -967,6 +976,12 @@ function open() {
   }
 
   function boot(g) {
+    // booting: a game waiting on autoHook, dropped if another starts meanwhile.
+    if (!g.install && !g.hook && !g.hooked) {
+      booting = g;
+      return autoHook(g).finally(() => { g.hooked = true; if (booting === g && win.el.isConnected) boot(g); });
+    }
+    booting = null;
     if (frame) frame.remove();
     game = g;
     // An upload under way stops for the game, and goes on from where it was once the game is closed.
@@ -1439,7 +1454,7 @@ function open() {
       // Like uploads, it waits while a game plays (reads already asked for still come in).
       await vnlib.downloadGame(e, { interactive: true, signal: j.ctl.signal, pause: () => noGame(j.ctl.signal),
         progress: (n, t) => { j.done = n; j.total = t; paint(e.title); } });
-      remember(Object.fromEntries(['title', 'size', 'exe', 'hook', 'res', 'discs', 'drive'].filter(k => e[k] !== undefined).map(k => [k, e[k]])));
+      remember(Object.fromEntries(['title', 'size', 'exe', 'hook', 'hooked', 'res', 'discs', 'drive'].filter(k => e[k] !== undefined).map(k => [k, e[k]])));
       setGame(e.title, { tuning: e.tuning || '', cleanup: e.cleanup });
       ok = true;
     } catch (err) {
@@ -1548,7 +1563,7 @@ function open() {
     } catch (e) {
       return copyFailed(`${g.title} could not be copied into this browser.`, e);
     }
-    Object.assign(g, { hook: old ? old.hook : '', res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
+    Object.assign(g, { hook: old ? old.hook : '', hooked: old && old.hooked, res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
     // Linked from a game's saves in Drive (linkDrive).
     if (link && link !== g.title) g.drive = link;
     delete g.files;

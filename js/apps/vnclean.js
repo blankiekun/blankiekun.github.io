@@ -173,17 +173,26 @@ export function cleanHookLine(line, cleanup) {
 
 // The whole chain as clean(line, threadId): '' for a line to drop. Each thread keeps its own recent lines.
 export function hookCleaner(cleanup) {
-  const recent = new Map(), last = new Map();
+  // finished: the thread's last finished line (ends at lineEnd), the page text a new line starts with.
+  const recent = new Map(), finished = new Map(), last = new Map();
   const size = cleanup.recentSize || DEFAULT_RECENT;
   return (line, threadId = '') => {
     let text = cleanHookLine(line, cleanup);
     if (text && filterOn(cleanup, 'newOnly')) {
-      const previous = last.get(threadId) || '';
-      last.set(threadId, text);
-      // shortcut: only a finished previous line counts, so a typewriter sent one fire per
-      // character isn't cut to single characters; a game redrawing mid-sentence would need more.
-      if (lineEnd.test(previous) && text.length > previous.length && text.startsWith(previous))
-        text = text.slice(previous.length).trim();
+      const previous = finished.get(threadId) || '';
+      const full = text.trimEnd();
+      const continues = !!previous && full.startsWith(previous);
+      const before = last.get(threadId) || '';
+      last.set(threadId, full);
+      // The line just sent again behind the end of the one before it (忍「…」, then
+      // 満面の笑顔で言うのだ。忍「…」): nothing new.
+      if (before.length > 1 && full.length > before.length && full.endsWith(before)) return '';
+      // Kept while a game redraws the new line in pieces (あ。い, あ。いう), so each piece is cut too.
+      if (lineEnd.test(full)) finished.set(threadId, full);
+      else if (!continues) finished.delete(threadId);
+      // Only a finished line counts, so a typewriter sending one fire per character isn't cut to
+      // single characters.
+      if (continues && full.length > previous.length) text = full.slice(previous.length).trim();
     }
     if (!text || !cleanup.recentLines) return text;
     const seen = recent.get(threadId) || [];
