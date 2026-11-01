@@ -117,8 +117,10 @@ async function copyDiscs(discs, progress) {
     for (const p of discFolder(disc).split('/')) d = await d.getDirectoryHandle(p, { create: true });
     for (const f of disc.files) {
       const there = await d.getFileHandle(f.name).then(h => h.getFile()).catch(() => null);
-      if (!there || there.size !== f.size) await f.stream().pipeTo(await (await d.getFileHandle(f.name, { create: true })).createWritable());
-      progress(done += f.size);
+      // Counted as it streams: a disc image is one file of several GB.
+      if (!there || there.size !== f.size) await f.stream().pipeThrough(new TransformStream({ transform: (chunk, c) => { progress(done += chunk.byteLength); c.enqueue(chunk); } }))
+        .pipeTo(await (await d.getFileHandle(f.name, { create: true })).createWritable());
+      else progress(done += f.size);
     }
   }
 }
@@ -379,7 +381,7 @@ function installDialog({ title, programs, kindOf, protection, from }, parent) {
     const name = h('input', { class: 'field', value: title, spellcheck: false, 'aria-label': 'Name' });
     const sel = h('select', { class: 'field vnb-list', size: Math.min(8, Math.max(3, programs.length)), 'aria-label': 'Installer' },
       ...programs.map((p, i) => h('option', { value: p, selected: !i }, p)));
-    const silent = h('input', { type: 'checkbox', checked: true });
+    const silent = h('input', { type: 'checkbox' });
     const silentRow = h('label', { class: 'cons-check', hidden: true }, silent, h('span'));
     let kind;
     async function pick() {
@@ -967,6 +969,7 @@ function open() {
     ankiWatch();
     view.classList.remove('playing');
     fsBtn.disabled = true;
+    finBtn.remove();
     if (isFull()) document.exitFullscreen().catch(() => {});
     showRecent();
     view.replaceChildren(welcome);
@@ -1046,12 +1049,13 @@ function open() {
     clearLog();
     view.classList.add('playing');
     fsBtn.disabled = !canFull;
+    if (inst) fsBtn.after(finBtn); else finBtn.remove();
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     view.replaceChildren(h('div', { class: 'vnb-play' }, frame, log));
     win.setTitle(g.title + ' - VNBox');
     statusGame.textContent = inst ? '' : g.exe + ', ' + bytes(g.size);
     say(!inst ? 'Playing ' + g.title : inst.quiet ? `Installing ${g.title} quietly: the installer shows no window, and VNBox goes on by itself when it's done`
-      : `Installing ${g.title}: VNBox goes on when the installer closes, or choose File > Finish Install`);
+      : `Installing ${g.title}: VNBox goes on when the installer closes, or press Finish Install`);
     // Newer saves from Google Drive go in before the engine reads its databases.
     if (!drive.enabled() || inst) start();
     else {
@@ -1884,6 +1888,8 @@ function open() {
   ]);
   const fsBtn = h('button', { class: 'cons-fs', type: 'button', title: 'Full Screen', disabled: true, onclick: fullScreen }, icon('i-max'), 'Full Screen');
   bar.append(fsBtn);
+  // Beside Full Screen while an installer runs (cons-sync: still shown on touch screens while playing).
+  const finBtn = h('button', { class: 'cons-fs cons-sync', type: 'button', title: 'Finish Install', onclick: () => finishInstall() }, 'Finish Install');
 
   // In full screen: point at (or click) the top edge for the menu bar.
   const hot = h('div', { class: 'cons-hot', 'aria-hidden': 'true' });
