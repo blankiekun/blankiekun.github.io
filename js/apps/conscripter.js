@@ -355,7 +355,9 @@ export function makeZip(files) {
 
 // Reads the zip a slice at a time, so a game of a few GB doesn't have to fit in memory:
 // stored files are slices of the zip itself, deflated ones are unpacked once into Blobs.
-export async function readZip(zip) {
+// lazy: deflated ones are { size, stream() } instead, unpacked as they're read, so nothing is unpacked twice.
+// shortcut: lazy files have only size and stream() (all VNBox's copy reads); give them more if another caller wants it
+export async function readZip(zip, lazy = false) {
   const tail = await zip.slice(Math.max(0, zip.size - 65557)).arrayBuffer(), t = new DataView(tail);
   let e = tail.byteLength - 22;
   while (e >= 0 && t.getUint32(e, true) !== 0x06054b50) e--;
@@ -372,12 +374,12 @@ export async function readZip(zip) {
   for (let i = 0, p = 0; i < count; i++) {
     const flags = v.getUint16(p + 8, true), method = v.getUint16(p + 10, true);
     const nlen = v.getUint16(p + 28, true), xlen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true);
-    let csize = v.getUint32(p + 20, true), lo = v.getUint32(p + 42, true);
+    let csize = v.getUint32(p + 20, true), usize = v.getUint32(p + 24, true), lo = v.getUint32(p + 42, true);
     // Sizes and offsets past 4 GB are 0xffffffff here, with the real ones in the Zip64 extra field.
     for (let x = p + 46 + nlen, end = x + xlen; x + 4 <= end; x += 4 + v.getUint16(x + 2, true)) {
       if (v.getUint16(x, true) !== 1) continue;
       let q = x + 4;
-      if (v.getUint32(p + 24, true) === 0xffffffff) q += 8; // the unpacked size, not needed
+      if (usize === 0xffffffff) { usize = Number(v.getBigUint64(q, true)); q += 8; }
       if (csize === 0xffffffff) { csize = Number(v.getBigUint64(q, true)); q += 8; }
       if (lo === 0xffffffff) lo = Number(v.getBigUint64(q, true));
     }
@@ -387,7 +389,10 @@ export async function readZip(zip) {
     const lh = new DataView(await zip.slice(lo, lo + 30).arrayBuffer());
     const start = lo + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
     let file = zip.slice(start, start + csize);
-    if (method === 8) file = await new Response(file.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+    if (method === 8) {
+      const packed = file, stream = () => packed.stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      file = lazy ? { size: usize, stream } : await new Response(stream()).blob();
+    }
     out.push({ path, file });
   }
   return out;
@@ -407,12 +412,12 @@ function withSaveStr(f) {
 }
 
 // A picked or dropped .zip becomes the files in it, under a folder named after the zip.
-export async function unzipAll(list) {
+export async function unzipAll(list, lazy = false) {
   const out = [];
   for (const f of list) {
     if (!/\.zip$/i.test(f.path)) { out.push(f); continue; }
     const dir = f.path.replace(/\.zip$/i, '/');
-    for (const z of await readZip(f.file)) out.push({ path: dir + z.path, file: z.file });
+    for (const z of await readZip(f.file, lazy)) out.push({ path: dir + z.path, file: z.file });
   }
   return out;
 }

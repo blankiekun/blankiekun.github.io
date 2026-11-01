@@ -308,7 +308,8 @@ function visualNovel() {
     onclick: next, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); } } },
     h('p', { class: 'gd-vn-msg', lang: 'ja' }, text, more), live);
   if (reducedMotion.matches) st = vnAdvance(st, VN_LINES);
-  const timer = setInterval(() => { st = vnType(st, VN_LINES); draw(); }, 60);
+  // A finished line isn't drawn again: it would redo the page's layout 16 times a second for nothing.
+  const timer = setInterval(() => { const n = vnType(st, VN_LINES); if (n.shown !== st.shown) { st = n; draw(); } }, 60);
   say(); draw();
   return gadget('vn', 'Visual Novel', body, 120, () => clearInterval(timer));
 }

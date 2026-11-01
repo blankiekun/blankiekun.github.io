@@ -297,8 +297,8 @@ export async function uploadGame(rec, { progress, signal, interactive } = {}) {
 }
 
 // Writes a game from the library into this browser. A stopped download goes on where it was: files already
-// there whole are kept.
-export async function downloadGame(entry, { progress, signal, interactive } = {}) {
+// there whole are kept. pause(): awaited before each read (VNBox waits while a game plays).
+export async function downloadGame(entry, { progress, signal, interactive, pause } = {}) {
   const m = await manifestOf(entry.manifest, interactive);
   if (!m || m.title !== entry.title) throw new Error(`${entry.title} isn't whole in your Google Drive anymore.`);
   const opfs = await navigator.storage.getDirectory();
@@ -311,7 +311,7 @@ export async function downloadGame(entry, { progress, signal, interactive } = {}
   const name = path => path.slice(path.lastIndexOf('/') + 1);
   const total = m.files.reduce((n, f) => n + f[1], 0);
   await unpackGame(m, {
-    read: (id, at, length) => retried(async () => new Uint8Array(await (await api(`${API}/files/${id}?alt=media`, { headers: { Range: `bytes=${at}-${at + length - 1}` } })).arrayBuffer()), signal),
+    read: async (id, at, length) => (pause && await pause(), retried(async () => new Uint8Array(await (await api(`${API}/files/${id}?alt=media`, { headers: { Range: `bytes=${at}-${at + length - 1}` } })).arrayBuffer()), signal)),
     open: async path => (await (await parent(path)).getFileHandle(name(path), { create: true })).createWritable(),
     mkdir: dirOf,
     skip: async (path, size) => (await (await parent(path)).getFileHandle(name(path)).then(h => h.getFile()).catch(() => null))?.size === size,

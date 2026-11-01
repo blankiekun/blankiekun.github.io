@@ -949,6 +949,10 @@ function open() {
   function stop(msg) {
     if (frame) frame.remove();
     frame = null;
+    // Mining's screenshots and sounds were made in the frame: kept, they'd keep its whole engine in memory.
+    kept = []; waiting = [];
+    // The page never sees input inside the frame, so it would think nobody is there.
+    win.opts.noScreenSaver = false;
     freeUploads();
     unskip();
     ankiWatch();
@@ -970,6 +974,7 @@ function open() {
     unskip();
     errors = [];
     kept = []; waiting = [];
+    win.opts.noScreenSaver = true;
     // g.install: an installer running ({ p, w, args, quiet }, see install), with no hook, tuning or sync.
     const inst = g.install;
     const hook = inst ? null : hookUrl(g);
@@ -1431,7 +1436,9 @@ function open() {
     const lock = navigator.wakeLock ? await navigator.wakeLock.request('screen').catch(() => null) : null;
     let ok = false;
     try {
-      await vnlib.downloadGame(e, { interactive: true, signal: j.ctl.signal, progress: (n, t) => { j.done = n; j.total = t; paint(e.title); } });
+      // Like uploads, it waits while a game plays (reads already asked for still come in).
+      await vnlib.downloadGame(e, { interactive: true, signal: j.ctl.signal, pause: () => noGame(j.ctl.signal),
+        progress: (n, t) => { j.done = n; j.total = t; paint(e.title); } });
       remember(Object.fromEntries(['title', 'size', 'exe', 'hook', 'res', 'discs', 'drive'].filter(k => e[k] !== undefined).map(k => [k, e[k]])));
       setGame(e.title, { tuning: e.tuning || '', cleanup: e.cleanup });
       ok = true;
@@ -1521,7 +1528,7 @@ function open() {
     if (setupOnly) { idle(); return install({ folder: g }); }
     if (!g && list.some(f => /\.zip$/i.test(f.path))) {
       say('Unpacking...');
-      try { g = findGame(await unzipAll(list)); } catch { idle(); return error('That zip could not be read. It may be damaged, or not really a .zip file.'); }
+      try { g = findGame(await unzipAll(list, true)); } catch { idle(); return error('That zip could not be read. It may be damaged, or not really a .zip file.'); }
     }
     if (!g) {
       idle();
