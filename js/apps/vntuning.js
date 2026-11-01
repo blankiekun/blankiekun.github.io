@@ -102,3 +102,23 @@ export function rowsFromText(kind, text) {
   const lines = text.split('\n').filter(l => l.trim()), k = ROWS[kind];
   return { rows: lines.map(k.parse).filter(k.valid), bad: lines.filter(l => !k.valid(k.parse(l))) };
 }
+
+// VNBox's own options, from vnbox-options.json next to the engine (VNBox's docs/VNBox-Options.md):
+// the ones Game > Tuning shows, in the file's group order, each with initial = its value when
+// unset. Experimental ones are left out (Extra keeps them). [] for a file it doesn't know.
+// OURS: what boot() sends that isn't VNBox's default.
+const OURS = { fitWindow: 'true' };
+export const urlValue = (o, v) => o.type === 'bool' ? o.urlValues[v] : String(v);
+export function engineOptions(json) {
+  if (!json || json.schema !== 1 || !Array.isArray(json.options)) return [];
+  const groups = json.groups || [];
+  return json.options.filter(o => !o.experimental).map(o => ({ ...o, initial: OURS[o.name] ?? urlValue(o, o.default) }))
+    .sort((a, b) => groups.indexOf(a.group) - groups.indexOf(b.group));
+}
+// A number field's text as sent (empty: the initial value), or null when it's out of o's range.
+export function numberValue(o, text) {
+  const t = text.trim();
+  if (!t) return o.initial;
+  const n = Number(t);
+  return Number.isFinite(n) && (o.type !== 'int' || Number.isInteger(n)) && n >= o.min && n <= o.max ? String(n) : null;
+}
