@@ -38,7 +38,7 @@ jobs:
             echo "::notice::VPS_HOST, VPS_USER, VPS_SSH_KEY and VPS_KNOWN_HOSTS aren't all set: skipping"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.secrets.outputs.ready == 'true'
         with:
           persist-credentials: false
