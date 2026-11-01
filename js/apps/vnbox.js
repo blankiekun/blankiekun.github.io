@@ -1404,8 +1404,17 @@ function open() {
       changed(title);
     }
   }
+  // Games take a few GB each, so 6 or more in Drive likely fill a free account's 15 GB.
+  const FULL_DRIVE = 6;
+  const driveCount = titles => new Set([...lib.map(e => e.title), ...titles]).size;
+  const fullNote = n => `\n\nThat makes ${n} games in your Google Drive: ${FULL_DRIVE} or more will likely fill a free account's 15 GB (it's shared with Gmail and Photos). Remove games you've finished from Drive to make room.`;
   // A game just added to this device.
-  const added = title => { if (upOn) uploadGame(title); };
+  const added = title => {
+    if (!upOn) return;
+    uploadGame(title);
+    const n = driveCount([title]);
+    if (n >= FULL_DRIVE) msgbox({ title: 'Upload Games', icon: 'warn', parent: win, text: `${title} is uploading to Google Drive.` + fullNote(n) });
+  };
 
   // The upload switch, for this device only (a phone on mobile data shouldn't send GBs).
   async function setUpload(on) {
@@ -1423,10 +1432,12 @@ function open() {
     if (todo.length) {
       const free = await vnlib.driveFree(true).catch(() => null);
       const size = todo.reduce((n, r) => n + (r.size || 0), 0);
+      const count = driveCount(todo.map(r => r.title));
       const b = await msgbox({ title: 'Upload Games', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
         text: `Upload the ${todo.length === 1 ? 'game' : todo.length + ' games'} on this device (${bytes(size)}) to your Google Drive?` +
           (free == null || free === Infinity ? '' : ` Your Drive has ${bytes(free)} free.`) +
-          `\n\nThey go up in the background while VNBox is open, and can then be played on any device signed in to the same Google account. Games you add from now on go up too.` });
+          `\n\nThey go up in the background while VNBox is open, and can then be played on any device signed in to the same Google account. Games you add from now on go up too.` +
+          (count >= FULL_DRIVE ? fullNote(count) : '') });
       if (b !== 'Yes') return paintGrid();
     }
     upOn = true;
