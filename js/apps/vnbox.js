@@ -23,7 +23,6 @@ import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesTe
 import { VERSIONS, OVERRIDES, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText } from './vntuning.js';
 
 const RECENT = 'w95.vnbox.recent';
-const MAX_RECENT = 6;
 const SHOW_LOG = 'w95.vnbox.log';
 const CLIP = 'w95.vnbox.clip';
 const FOLD = 'w95.vnbox.fold';  // touch screens: Menu / Skip buttons folded away
@@ -36,8 +35,12 @@ const SIZES = ['640x480', '800x600', '1024x768', '1280x720'];
 // The screen a game too big for the 800x600 start runs on once, to learn its size (see fitted).
 const LEARN = '1920x1200';
 const MAX_LINES = 1000;
+// Files copied into this browser at once.
+const COPIES = 8;
 // Anki mining keeps this many hooked lines, the newest KEPT_PICTURES with their screenshot (about 200 KB each).
 const KEPT_LINES = 500, KEPT_PICTURES = 30;
+// New lines hooked closer together than this came from one click, and share its screenshot.
+const LINE_GAP = 500;
 // and the newest KEPT_SOUNDS with the game's sound from the click that brought them (cons/soundtap.js
 // cuts a line's at 20 s, up to about 4 MB).
 const KEPT_SOUNDS = 10;
@@ -74,8 +77,8 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 
 // ---------- games in this browser ----------
 
-// [{ title, at, size, exe, hook, res, discs, drive }], newest first. Each one has a copy of its files in the
-// site's private storage (the origin private file system), in vn/<title>, where the engine reads them;
+// [{ title, at, size, exe, hook, res, discs, drive }], newest first: every game here until it's removed.
+// Each one has a copy of its files in the site's private storage (the origin private file system), in vn/<title>, where the engine reads them;
 // a game installed from discs keeps their images in vn-discs/ (vninstall.js), for games that check for them.
 const recentGames = () => store.get(RECENT, []);
 const vnRoot = () => navigator.storage.getDirectory().then(d => d.getDirectoryHandle('vn', { create: true }));
@@ -96,8 +99,7 @@ function remember(g) {
   const old = recentGames().find(r => r.title === g.title) || {};
   const list = [{ ...old, title: g.title, at: Date.now(), size: g.size, exe: g.exe, hook: g.hook || '', res: g.res, ...(g.discs && { discs: g.discs }), ...(g.drive && { drive: g.drive }) },
     ...recentGames().filter(r => r.title !== g.title)];
-  store.set(RECENT, list.slice(0, MAX_RECENT));
-  for (const r of list.slice(MAX_RECENT)) dropCopy(r);
+  store.set(RECENT, list);
 }
 const setGame = (title, patch) => store.set(RECENT, recentGames().map(r => r.title === title ? { ...r, ...patch } : r));
 function forget(title) {
@@ -125,18 +127,31 @@ async function copyGame(g, progress) {
   const root = await vnRoot();
   await root.removeEntry(g.title, { recursive: true }).catch(() => {});
   const top = await root.getDirectoryHandle(g.title, { create: true });
-  let done = 0;
-  try {
-    for (const f of g.files) {
-      const parts = f.path.split('/');
-      let d = top;
-      for (const p of parts.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
-      await f.file.stream().pipeTo(await (await d.getFileHandle(parts.at(-1), { create: true })).createWritable());
-      progress(done += f.file.size);
+  // Each folder looked up once, and COPIES files written at once: a game with thousands of loose
+  // files otherwise waits on every single write in turn.
+  const dirs = new Map([['', Promise.resolve(top)]]);
+  const dirOf = path => {
+    if (!dirs.has(path)) {
+      const cut = path.lastIndexOf('/');
+      dirs.set(path, dirOf(cut < 0 ? '' : path.slice(0, cut)).then(d => d.getDirectoryHandle(path.slice(cut + 1), { create: true })));
     }
-  } catch (e) {
+    return dirs.get(path);
+  };
+  let done = 0, next = 0, failed = null;
+  async function copier() {
+    while (!failed && next < g.files.length) {
+      const f = g.files[next++], cut = f.path.lastIndexOf('/');
+      try {
+        const d = await dirOf(cut < 0 ? '' : f.path.slice(0, cut));
+        await f.file.stream().pipeTo(await (await d.getFileHandle(f.path.slice(cut + 1), { create: true })).createWritable());
+        progress(done += f.file.size);
+      } catch (e) { failed ||= e; }
+    }
+  }
+  await Promise.all(Array.from({ length: COPIES }, copier));
+  if (failed) {
     await root.removeEntry(g.title, { recursive: true }).catch(() => {});
-    throw e;
+    throw failed;
   }
 }
 
@@ -207,11 +222,22 @@ async function gameFileNames(title) {
 let hookList = null;
 const hooks = () => hookList ||= fetch('vnbox/hooks/index.json').then(r => r.ok ? r.json() : []).catch(() => { hookList = null; return []; });
 
+// A dialog's promise plumbing: finish(v) resolves it and closes the window, once; Escape and closing
+// the window resolve null. show(form, { title, parent }) opens it and returns the window.
+function dialogOf(resolve) {
+  let done = false, d;
+  const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+  const show = (form, opts) => {
+    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
+    return d = createWindow({ ...opts, body: form, dialog: true, resizable: false, width: 'auto', taskbar: false, onClosed: () => finish(null) });
+  };
+  return { finish, show };
+}
+
 // A list to pick one from, with a box to narrow it down when filter is set. Resolves to the value, or null.
 function listDialog({ title, text, items, value, filter, parent, extra }) {
   return new Promise(resolve => {
-    let done = false;
-    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const { finish, show } = dialogOf(resolve);
     const sel = h('select', { class: 'field vnb-list', size: 12, 'aria-label': title, ondblclick: () => sel.value && finish(sel.value) });
     const fill = q => sel.replaceChildren(...items.filter(([, l]) => !q || l.toLowerCase().includes(q))
       .map(([v, l]) => h('option', { value: v, selected: v === value }, l)));
@@ -223,8 +249,7 @@ function listDialog({ title, text, items, value, filter, parent, extra }) {
         h('button', { class: 'btn default', type: 'submit' }, 'OK'),
         h('button', { class: 'btn', type: 'button', onclick: () => finish(null) }, 'Cancel')));
     form.addEventListener('submit', e => { e.preventDefault(); finish(sel.value || null); });
-    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
-    const d = createWindow({ title, body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    show(form, { title, parent });
     (find || sel).focus();
   });
 }
@@ -347,7 +372,6 @@ const KNOBS = [
   ['disableWasmJitForWrittenCode', '&No JIT for code the game rewrites (can help games that patch themselves)', '', null, ['true', '']],
 ];
 
-// Game > Tuning: a game's VNBox settings and Wine fixes (vntuning.js). Resolves to its new tuning, or null.
 // The install's settings: the game's name, the installer and whether it asks its questions.
 // kindOf(path) reads which installer a program is. Resolves to { title, installer, kind, silent }, or null.
 function installDialog({ title, programs, kindOf, protection, from }, parent) {
@@ -370,8 +394,7 @@ function installDialog({ title, programs, kindOf, protection, from }, parent) {
     }
     sel.addEventListener('change', pick);
     pick();
-    let done = false;
-    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const { finish, show } = dialogOf(resolve);
     const form = h('form', { class: 'dlg vnb-dlg' },
       h('p', null, `Installs the game from ${from} into this browser, then plays it like a game folder you opened.`),
       protection.length ? h('div', { class: 'cons-warn-row' }, icon('i-warn'), h('p', null, h('b', null, protection.join(' and ') + ' copy protection: '),
@@ -386,12 +409,12 @@ function installDialog({ title, programs, kindOf, protection, from }, parent) {
       const t = name.value.trim().replace(/[\\/:*?"<>|]/g, '_');
       if (t && sel.value) finish({ title: t, installer: sel.value, kind, silent: !!kind && silent.checked });
     });
-    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
-    const d = createWindow({ title: 'Install', body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    show(form, { title: 'Install', parent });
     sel.focus();
   });
 }
 
+// Game > Tuning: a game's VNBox settings and Wine fixes (vntuning.js). Resolves to its new tuning, or null.
 function tuningDialog(g, parent) {
   return new Promise(resolve => {
     const pairs = tuningPairs(g.tuning), c = compatFromTuning(pairs);
@@ -430,8 +453,7 @@ function tuningDialog(g, parent) {
       h('div', { class: 'dp-panel' }, h('p', { class: 'dp-note' }, 'Wine fixes for a game that won\'t start, shows nothing or stops at a movie. The renderer, Windows version and registry values stay in this game\'s Wine setup after you set them back: pick the other value to undo them.'),
         row('Re&nderer:', renderer), row('&Windows version:', version), moviesEl, row('&Virtual desktop:', desktop), dllsEl, regEl, envEl),
     ];
-    let done = false;
-    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const { finish, show } = dialogOf(resolve);
     const form = h('form', { class: 'dlg vnb-dlg vnb-tune' }, tabbed(['Settings', 'Compatibility'], panels),
       h('div', { class: 'btns right' },
         h('button', { class: 'btn', type: 'button', onclick: () => { extra.value = ''; finish(''); } }, h('span', { html: 'Reset <u>A</u>ll' })),
@@ -447,8 +469,7 @@ function tuningDialog(g, parent) {
       finish([...knobs.filter(x => x.get() !== x.k[2]).map(x => `${x.k[0]}=${x.get()}`), ...compatParams(compat),
         extra.value.trim().replace(/^[?&]+|&+$/g, '')].filter(Boolean).join('&'));
     });
-    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
-    const d = createWindow({ title: 'Tuning - ' + g.title, body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    const d = show(form, { title: 'Tuning - ' + g.title, parent });
     form.querySelector('select').focus();
   });
 }
@@ -472,8 +493,7 @@ function cleanupDialog(g, recent, parent) {
         text: recent.length < 3 ? 'Click through a few lines in the game first, then try again.' : 'The recent lines look clean: nothing to suggest.' });
       set(s);
     }
-    let done = false;
-    const finish = v => { if (done) return; done = true; resolve(v); d.close(true); };
+    const { finish, show } = dialogOf(resolve);
     const form = h('form', { class: 'dlg vnb-dlg vnb-tune' },
       h('p', null, 'Filters for what a hook gets wrong, run in this order on each line before the text log shows it. OK also cleans the lines already in the log.'),
       h('div', { class: 'vnb-clean-list' }, ...boxes.map(b => b[2])),
@@ -497,8 +517,7 @@ function cleanupDialog(g, recent, parent) {
       if (r.rules.length) out.rules = r.rules;
       finish(out);
     });
-    form.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } });
-    const d = createWindow({ title: 'Text Cleanup - ' + g.title, body: form, dialog: true, resizable: false, width: 'auto', parent, taskbar: false, onClosed: () => finish(null) });
+    const d = show(form, { title: 'Text Cleanup - ' + g.title, parent });
     form.querySelector('input').focus();
   });
 }
@@ -815,21 +834,11 @@ function open() {
     boot(game);
   }
   // shortcut: a script from the visitor's computer lasts this visit and can't require() other files; keep its text if people use it
-  function pickHookFile() {
-    return new Promise(resolve => {
-      const input = h('input', { type: 'file', accept: '.js,text/javascript', hidden: true });
-      input.addEventListener('change', () => {
-        const f = input.files[0];
-        input.remove();
-        if (!f) return resolve(null);
-        if (ownHook) URL.revokeObjectURL(ownHook.url);
-        ownHook = { name: f.name, url: URL.createObjectURL(new Blob([f], { type: 'text/javascript' })) };
-        resolve(ownHook);
-      });
-      input.addEventListener('cancel', () => { input.remove(); resolve(null); });
-      document.body.append(input);
-      input.click();
-    });
+  async function pickHookFile() {
+    const [f] = await pickFiles('.js,text/javascript', false);
+    if (!f) return null;
+    if (ownHook) URL.revokeObjectURL(ownHook.url);
+    return ownHook = { name: f.name, url: URL.createObjectURL(new Blob([f], { type: 'text/javascript' })) };
   }
   function hookUrl(g) {
     if (g.hook === 'file') return ownHook && ownHook.url;
@@ -842,7 +851,8 @@ function open() {
   // line their sentence came from, through consanki.js (CONscripter's settings, so on there is on
   // here). Ported from chimimouryou's overlay.js. shots: mining was on, with a text hook, when the
   // game started, so the engine's WebGL keeps its last frame readable (a buffer copy per frame).
-  let kept = [], retake = null, shots = false, ankiStop = null, ankiError = '';
+  // waiting: the newest lines whose screen is still to be taken; lastLine: when the last new one came.
+  let kept = [], waiting = [], lastLine = 0, shots = false, ankiStop = null, ankiError = '';
 
   function screenshot() {
     const w = frame && frame.contentWindow;
@@ -850,12 +860,23 @@ function open() {
     return new Promise(resolve => screenCanvas(w).toBlob(resolve, 'image/webp', 0.9));
   }
 
+  // One screenshot for the lines waiting for theirs (the ones still among the newest KEPT_PICTURES).
+  function shoot() {
+    if (!waiting.length) return;
+    const shot = screenshot(), recent = kept.slice(-KEPT_PICTURES);
+    for (const l of waiting) if (recent.includes(l)) l.picture = shot;
+    waiting = [];
+  }
+
   function keep(text) {
     // A line hooked again (the game's own backlog screen) keeps the screen it had the first time.
-    const earlier = kept.findLast(k => k.text === text && k.picture);
-    const line = earlier ? { text, picture: earlier.picture, audio: earlier.audio } : { text, picture: screenshot() };
-    // The hook fires before the text is drawn: the screen at the next click or key is the line's.
-    retake = earlier ? null : line;
+    const earlier = kept.findLast(k => k.text === text && (k.picture || waiting.includes(k)));
+    // The hook fires before the text is drawn, so a line's screen is taken at the next click or key,
+    // or when the next line comes a moment later (auto mode): one screenshot a line, or a burst.
+    if (!earlier && Date.now() - lastLine > LINE_GAP) shoot();
+    const line = earlier ? { text, picture: earlier.picture, audio: earlier.audio } : { text, picture: null };
+    if (!earlier || waiting.includes(earlier)) waiting.push(line);
+    if (!earlier) lastLine = Date.now();
     // and the sound from the click that brought it to the next.
     const w = frame && frame.contentWindow;
     if (!earlier && w && w.recordLine) w.recordLine(line);
@@ -868,9 +889,8 @@ function open() {
   }
   function retakeShot(e) {
     // Modifier keys are Yomitan's scan keys, not the game's; held keys repeat.
-    if (!retake || e.repeat || /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
-    if (retake.picture) retake.picture = screenshot();
-    retake = null;
+    if (e.repeat || /^(Shift|Control|Alt|Meta)$/.test(e.key)) return;
+    shoot();
   }
 
   function ankiWatch() {
@@ -929,6 +949,7 @@ function open() {
   function stop(msg) {
     if (frame) frame.remove();
     frame = null;
+    freeUploads();
     unskip();
     ankiWatch();
     view.classList.remove('playing');
@@ -944,9 +965,11 @@ function open() {
   function boot(g) {
     if (frame) frame.remove();
     game = g;
+    // An upload under way stops for the game, and goes on from where it was once the game is closed.
+    for (const [t, j] of jobs) if (j.kind === 'up' && j.started) { j.ctl.abort(); j.ended.then(() => uploadGame(t)); }
     unskip();
     errors = [];
-    kept = []; retake = null;
+    kept = []; waiting = [];
     // g.install: an installer running ({ p, w, args, quiet }, see install), with no hook, tuning or sync.
     const inst = g.install;
     const hook = inst ? null : hookUrl(g);
@@ -1221,7 +1244,7 @@ function open() {
 
   function badge(title) {
     const j = jobs.get(title), e = inLib(title), local = !!localGame(title), f = failed.get(title);
-    if (j) return !j.started ? 'Waiting to upload' : `${j.kind === 'up' ? 'Uploading' : 'Downloading'} ${pct(j)}%`;
+    if (j) return !j.started ? (frame ? 'Uploads after the game' : 'Waiting to upload') : `${j.kind === 'up' ? 'Uploading' : 'Downloading'} ${pct(j)}%`;
     if (f) return f.kind === 'up' ? 'Not uploaded' : 'Download stopped';
     if (local) return e ? (e.done ? 'Here and in Drive' : 'Upload unfinished') : 'On this device';
     return e.done ? 'In Google Drive' : 'Upload unfinished';
@@ -1300,7 +1323,7 @@ function open() {
     if (b) b.textContent = badge(title);
     if (!j || !live || live.title !== title) return;
     live.bar.style.width = pct(j) + '%';
-    live.count.textContent = j.started ? `${bytes(j.done)} of ${bytes(j.total)} (${pct(j)}%)` : 'Waiting for the uploads before it';
+    live.count.textContent = j.started ? `${bytes(j.done)} of ${bytes(j.total)} (${pct(j)}%)` : frame ? 'Starts when the game is closed' : 'Waiting for the uploads before it';
   }
   function changed(title) {
     paintGrid();
@@ -1322,15 +1345,23 @@ function open() {
     if (upOn) for (const r of recentGames()) if (!r.noUpload && !(inLib(r.title) || {}).done) uploadGame(r.title);
   }
 
-  // One upload at a time, in the background. interactive: from a click, so it may sign in.
-  let upChain = Promise.resolve();
+  // One upload at a time, in the background, and none while a game plays: it would share the
+  // game's thread and hold about 150 MB beside it. interactive: from a click, so it may sign in.
+  let upChain = Promise.resolve(), gameClosed = [];
+  const noGame = signal => frame && !signal.aborted && new Promise(r => { gameClosed.push(r); signal.addEventListener('abort', r, { once: true }); });
+  const freeUploads = () => { for (const r of gameClosed.splice(0)) r(); };
   function uploadGame(title, interactive) {
     if (jobs.has(title) || !localGame(title) || !drive.enabled() && !interactive) return;
     failed.delete(title);
     const j = { kind: 'up', done: 0, total: localGame(title).size || 0, ctl: new AbortController(), started: false };
     jobs.set(title, j);
     changed(title);
-    j.ended = upChain = upChain.then(() => runUpload(title, j, interactive));
+    const run = upChain = upChain.then(() => noGame(j.ctl.signal)).then(() => runUpload(title, j, interactive));
+    // Stopped before its turn: gone at once, not when the uploads before it (or the game) are done.
+    j.ended = new Promise(r => {
+      run.then(r);
+      j.ctl.signal.addEventListener('abort', () => { if (!j.started) { jobs.delete(title); changed(title); r(); } }, { once: true });
+    });
   }
   async function runUpload(title, j, interactive) {
     const r = localGame(title);
@@ -1349,7 +1380,7 @@ function open() {
         say(`${title} wasn't uploaded: ${e.message}`);
       }
     } finally {
-      jobs.delete(title);
+      if (jobs.get(title) === j) jobs.delete(title);
       changed(title);
     }
   }
@@ -1391,9 +1422,7 @@ function open() {
     const c = navigator.connection;
     if (c && (c.saveData || c.type === 'cellular') && await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
       text: `This device seems to be on mobile data. Download ${e.title} (${bytes(e.size)}) anyway?` }) !== 'Yes') return;
-    await keepStorage();
-    const s = navigator.storage, { usage = 0, quota = 0 } = s.estimate ? await s.estimate().catch(() => ({})) : {};
-    if (quota && e.size > (quota - usage) * 0.9) return error(`There's no room in this browser for ${e.title} (${bytes(e.size)}). Remove a game you've finished from this device, or free some disk space.`);
+    if (e.size > await freeSpace() * 0.9) return error(`There's no room in this browser for ${e.title} (${bytes(e.size)}). Remove a game you've finished from this device, or free some disk space.`);
     failed.delete(e.title);
     const j = { kind: 'down', done: 0, total: e.size, ctl: new AbortController(), started: true };
     jobs.set(e.title, j);
@@ -1450,6 +1479,13 @@ function open() {
   // Asks the browser to keep this site's storage before a big copy: Firefox asks the visitor, and lifts
   // its 10 GB cap when they agree; Chrome and Edge decide alone, and never clear it on their own after.
   const keepStorage = () => navigator.storage && navigator.storage.persist ? navigator.storage.persist().catch(() => false) : Promise.resolve(false);
+  // The room left in this browser's storage (Infinity when it can't tell), asked after keepStorage,
+  // whose answer can change it.
+  async function freeSpace() {
+    await keepStorage();
+    const s = navigator.storage, { usage = 0, quota = 0 } = s.estimate ? await s.estimate().catch(() => ({})) : {};
+    return quota ? quota - usage : Infinity;
+  }
 
   // A copy into this browser, shown in the window: its text, a bar, and how much of how much.
   // Returns progress(done, total?); the caller puts the window back (boot, or welcome on a failure).
@@ -1498,9 +1534,7 @@ function open() {
         text: `${g.title} has more than one program. Which one starts the game?` });
     if (!g.exe) return idle();
     if (!(await confirmQuit())) return idle();
-    await keepStorage(); // answered (or not asked again) before the room is measured
-    const s = navigator.storage, { usage = 0, quota = 0 } = s.estimate ? await s.estimate().catch(() => ({})) : {};
-    if (quota && g.size > (quota - usage) * 0.9) { idle(); return error(`There's no room in this browser for ${g.title} (${bytes(g.size)}). Remove a game you've finished from File > Games in This Browser, or free some disk space.`); }
+    if (g.size > await freeSpace() * 0.9) { idle(); return error(`There's no room in this browser for ${g.title} (${bytes(g.size)}). Remove a game you've finished from File > Games in This Browser, or free some disk space.`); }
     if (frame) stop('Ready');
     try {
       await copyGame(g, showProgress(`Copying ${g.title} into this browser...`, g.size));
@@ -1545,10 +1579,9 @@ function open() {
     if (recentGames().some(r => r.title === opts.title)) return error(`${opts.title} is already in this browser. Give this one another name, or remove it in File > Games in This Browser first.`);
     if (!(await confirmQuit())) return;
     const size = discs ? discSize(discs) : folder.size;
-    await keepStorage();
-    const st = navigator.storage, { usage = 0, quota = 0 } = st.estimate ? await st.estimate().catch(() => ({})) : {};
     // Room for the copy and about as much again for what the installer writes.
-    if (quota && size * 2 > quota - usage) return error(`There's no room in this browser to install ${opts.title}: it needs about ${bytes(size * 2)}, and ${bytes(Math.max(0, quota - usage))} is free.`);
+    const free = await freeSpace();
+    if (size * 2 > free) return error(`There's no room in this browser to install ${opts.title}: it needs about ${bytes(size * 2)}, and ${bytes(Math.max(0, free))} is free.`);
     if (frame) stop('Ready');
     const progress = showProgress(`Copying the ${discs ? 'disc' : 'installer'} into this browser...`, size);
     const discList = discs ? discs.map(discPath) : undefined;
@@ -1634,12 +1667,8 @@ function open() {
   }
 
   async function openPicked() { load(await pickFolder()); }
-  function openZip() {
-    const input = h('input', { type: 'file', accept: '.zip,application/zip', hidden: true });
-    input.addEventListener('change', () => { load({ list: [...input.files].map(file => ({ path: file.name, file })) }); input.remove(); });
-    input.addEventListener('cancel', () => input.remove());
-    document.body.append(input);
-    input.click();
+  async function openZip() {
+    load({ list: (await pickFiles('.zip,application/zip', false)).map(file => ({ path: file.name, file })) });
   }
   async function openRecent(r) {
     if (!(await confirmQuit())) return;
@@ -1684,7 +1713,7 @@ function open() {
       }
     }
     stop('Deleting the saves...');
-    await new Promise(r => setTimeout(r, 100)); // the closed frame lets go of its databases
+    await wait(100); // the closed frame lets go of its databases
     await deleteSaveDbs(g.title);
     boot(g);
     say('Deleted the saves');
@@ -1769,7 +1798,7 @@ function open() {
         { label: 'S&ync Now', disabled: !frame || !drive.enabled(), action: () => syncSaves(game.title, { w: frame, interactive: true, report: true }) },
         { label: '&Upload Games to Google Drive', checked: upOn, action: () => setUpload(!upOn) }] : []),
       '-',
-      ...recentGames().map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
+      ...recentGames().slice(0, 6).map((r, i) => ({ label: `&${i + 1} ${r.title.length > 40 ? r.title.slice(0, 38) + '...' : r.title}`, action: () => openRecent(r) })),
       ...(recentGames().length ? ['-'] : []),
       { label: 'E&xit', action: () => win.close() },
     ] },
@@ -1874,6 +1903,7 @@ function open() {
       text: 'Stop the uploads and downloads under way?\n\nThey go on from where they were the next time.' }) === 'Yes'),
     onClosed: () => {
       for (const j of jobs.values()) j.ctl.abort();
+      freeUploads();
       clearInterval(poll);
       padStop();
       if (ankiStop) ankiStop();

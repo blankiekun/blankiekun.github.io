@@ -189,21 +189,28 @@ export function isSyncedSave(name) {
 }
 
 // The game's saves to sync, [{ path (sync name), data, mtime (ms) }], or only their size when
-// over SYNC_CAP: { size, files? }.
+// over SYNC_CAP: { size, files? }. Picked by key, so only the saves are read, never the registry or
+// Wine's other files (this runs after each save, on the game's thread).
 export async function syncedSaves(title) {
-  const areas = saveAreas(title), picked = [];
+  const areas = saveAreas(title), files = [];
   for (const area of areas) {
-    const p = syncPrefix(areas, area);
-    picked.push(...(await listSaves(area)).filter(e => !e.dir && !e.link && isSyncedSave(p + e.path)).map(e => ({ area, e })));
+    const p = syncPrefix(areas, area), reqs = [];
+    await withStore(area, 'readonly', store => {
+      const r = store.openKeyCursor(IDBKeyRange.bound(area.root + '/', area.root + '0', false, true));
+      r.onsuccess = () => {
+        const c = r.result;
+        if (!c) return;
+        const path = p + String(c.key).slice(area.root.length + 1).split('/').map(unescapeName).join('/');
+        if (isSyncedSave(path)) reqs.push([path, store.get(c.key)]);
+        c.continue();
+      };
+    });
+    for (const [path, { result: v }] of reqs) {
+      if (v && v.contents && !isDir(v.mode) && !isLink(v.mode)) files.push({ path, data: new Uint8Array(v.contents), mtime: new Date(v.timestamp).getTime() });
+    }
   }
-  const size = picked.reduce((n, { e }) => n + e.size, 0);
-  if (size > SYNC_CAP) return { size };
-  const files = [];
-  for (const area of areas) {
-    const p = syncPrefix(areas, area);
-    files.push(...(await readSaves(area, picked.filter(x => x.area === area).map(x => x.e))).map(f => ({ path: p + f.path, data: f.data, mtime: +f.mtime })));
-  }
-  return { size, files };
+  const size = files.reduce((n, f) => n + f.data.byteLength, 0);
+  return size > SYNC_CAP ? { size } : { size, files };
 }
 
 // Writes synced files [{ path (sync name), data, mtime }] in, the game stopped, where they're
