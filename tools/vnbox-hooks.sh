@@ -2,8 +2,9 @@
 # Copies 0xDC00's text hook scripts for PC games (github.com/0xDC00/scripts, MIT) into vnbox/hooks/,
 # with the libraries they require, and chimimouryou's LunaHook engine ports (GPL-3.0-or-later,
 # github.com/blankiekun/chimimouryou scripts/vnbox/engines/) into vnbox/hooks/engines/, and lists them
-# in vnbox/hooks/index.json for VNBox's Text Hook dialog: [file, name, luna?], luna being the engines'
-# file checks ([{ order, all?, any? }], LunaHook's order and CheckFile names) VNBox suggests a port from.
+# in vnbox/hooks/index.json for VNBox's Text Hook dialog: [file, name, luna?, exes?], luna being the engines'
+# file checks ([{ order, all?, any? }], LunaHook's order and CheckFile names) VNBox suggests a port from,
+# exes the programs a 0xDC00 script names (luna null then).
 # usage: tools/vnbox-hooks.sh [clone of 0xDC00/scripts] [clone of chimimouryou]   (default: fresh clones)
 set -eu
 cd "$(dirname "$0")/.."
@@ -37,8 +38,10 @@ const add = f => {
 };
 for (const f of fs.readdirSync(src).filter(f => /^PC_.*\.js$/.test(f)).sort()) {
   add(f);
-  const name = (fs.readFileSync(path.join(src, f), 'utf8').match(/@name\s+(.+)/) || [])[1];
-  list.push([f, (name || f.replace(/^PC_|\.js$/g, '').replace(/_/g, ' ')).trim()]);
+  const text = fs.readFileSync(path.join(src, f), 'utf8'), name = (text.match(/@name\s+(.+)/) || [])[1];
+  // The programs the script names (as chimimouryou's hook-index.mjs finds them), for VNBox's hookSuggestion.
+  const exes = [...new Set(text.match(/[\w.\-\u3040-\u30ff\u4e00-\u9fff]+\.exe\b/gi) || [])];
+  list.push([f, (name || f.replace(/^PC_|\.js$/g, '').replace(/_/g, ' ')).trim(), ...(exes.length ? [null, exes] : [])]);
 }
 for (const f of copy) fs.copyFileSync(path.join(src, f), path.join(out, f));
 
