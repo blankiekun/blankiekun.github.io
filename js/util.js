@@ -66,6 +66,7 @@ export const wait = ms => new Promise(r => setTimeout(r, ms));
 
 // Sounds come from the Sounds applet; nothing plays if it didn't load.
 export function sound(event) {
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;  // browsers wouldn't play it
   import('./apps/control.js').then(m => m.playSound && m.playSound(event)).catch(() => {});
 }
 

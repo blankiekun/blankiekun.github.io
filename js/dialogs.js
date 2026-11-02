@@ -149,3 +149,16 @@ export function about(appName, appIcon, parent, extra) {
   body.querySelector('.btn').focus();
   return win;
 }
+
+export function tabbed(names, panels) {
+  const tabs = h('div', { class: 'tabs', role: 'tablist' }, ...names.map((t, i) => {
+    const b = h('button', { type: 'button', role: 'tab', 'aria-selected': String(i === 0) }, t);
+    b.addEventListener('click', () => {
+      tabs.querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+      panels.forEach((p, j) => { p.hidden = j !== i; });
+    });
+    return b;
+  }));
+  panels.forEach((p, i) => { p.hidden = i !== 0; });
+  return h('div', { class: 'dp-tabs' }, tabs, h('div', { class: 'tabpanel' }, ...panels));
+}

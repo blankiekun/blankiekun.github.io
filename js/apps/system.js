@@ -2,7 +2,7 @@
 
 import { h, icon } from '../util.js';
 import { createWindow, launch } from '../wm.js';
-import { about } from '../dialogs.js';
+import { about, tabbed } from '../dialogs.js';
 import { walk, kindLabel, sizeLabel } from '../fs.js';
 import { open as shellOpen } from '../shell.js';
 import { TOPICS } from '../helptopics.js';
@@ -10,19 +10,6 @@ import { OS, V, ram } from '../version.js';
 import { summon, tip } from '../assistant.js';
 
 const GITHUB = 'https://github.com/blankiekun';
-
-export function tabbed(names, panels) {
-  const tabs = h('div', { class: 'tabs', role: 'tablist' }, ...names.map((t, i) => {
-    const b = h('button', { type: 'button', role: 'tab', 'aria-selected': String(i === 0) }, t);
-    b.addEventListener('click', () => {
-      tabs.querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
-      panels.forEach((p, j) => { p.hidden = j !== i; });
-    });
-    return b;
-  }));
-  panels.forEach((p, i) => { p.hidden = i !== 0; });
-  return h('div', { class: 'dp-tabs' }, tabs, h('div', { class: 'tabpanel' }, ...panels));
-}
 
 // ---------- System Properties ----------
 

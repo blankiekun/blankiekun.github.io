@@ -8,7 +8,7 @@ import { createWindow, all, close, find, focus } from '../wm.js';
 import { V } from '../version.js';
 import { menubar } from '../menu.js';
 import { about, msgbox } from '../dialogs.js';
-import { tabbed } from './system.js';
+import { tabbed } from '../dialogs.js';
 import { sample } from './sysmon.js';
 
 const NT = ['2000', 'xp', 'vista', '7'].includes(V.id), MODERN = ['8', '10', '11'].includes(V.id);

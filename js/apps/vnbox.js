@@ -8,8 +8,8 @@
 import { h, icon, download, store, wait } from '../util.js';
 import { createWindow, launch } from '../wm.js';
 import { menubar, openMenu } from '../menu.js';
-import { msgbox, about, inputbox } from '../dialogs.js';
-import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './conscripter.js';
+import { msgbox, about, inputbox, tabbed } from '../dialogs.js';
+import { fromDrop, pickFolder, walkHandle, unzipAll, bytes, when, makeZip, readZip } from './consfiles.js';
 import { saveAreas, listSaves, savesUnder, readSaves, savePathParts, writeSaves, deleteSaves, SYNC_CAP, syncedSaves, writeSynced, savedSince } from './vnsaves.js';
 import * as drive from './consdrive.js';
 import * as vnlib from './vnlib.js';
@@ -18,7 +18,6 @@ import { watchGamepads } from './vnpad.js';
 import { hookSuggestion } from './vnhooks.js';
 import { DISC_DRIVE, SETUP_FOLDER, DISC_FILE, INSTALLER_NAMES, discsOf, discFolder, discPath, discSize, listDisc, autorunProgram, copyProtection,
   installerKind, silentArgs, installDir, discPrograms, installedPrograms, moveInstalled } from './vninstall.js';
-import { tabbed } from './system.js';
 import { FILTERS, DEFAULT_RECENT, filterOn, hookCleaner, suggestCleanup, rulesText, rulesFromText } from './vnclean.js';
 import { VERSIONS, OVERRIDES, COMPAT_KEYS, keyOf, tuningPairs, tuned, compatFromTuning, compatParams, validDesktop, rowsFromText, rowsText, engineOptions, numberValue } from './vntuning.js';
 
@@ -72,7 +71,7 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 <path fill="#000" d="M2 6h60v9H2z"/><path fill="#e0a060" d="M3 7h58v7H3z"/><path fill="#c08040" d="M3 12h58v2H3z"/>
 <path fill="#000" d="M12 20h40v26H12z"/><path fill="#202060" d="M13 21h38v14H13z"/><path fill="#a04878" d="M13 30h38v5H13z"/><path fill="#fff0c0" d="M40 23h4v4h-4z"/>
 <path fill="#f8b0c8" d="M18 25h6v2h1v4h-1v4h-6v-4h-1v-4h1z"/><path fill="#000040" d="M13 36h38v10H13z"/><path fill="#8080ff" d="M13 36h38v1H13z"/>
-<path fill="#fff" d="M15 39h26v1H15zM15 42h18v1H15z"/><path class="cons-blink" fill="#ff0" d="M46 42h3v1h-1v1h-1v-1h-1z"/>
+<path fill="#fff" d="M15 39h26v1H15zM15 42h18v1H15z"/><path fill="#ff0" d="M46 42h3v1h-1v1h-1v-1h-1z"/>
 <path fill="#800000" d="M28 8h8v5h-8z"/><path fill="#fff" d="M30 9h4v1h-4z"/></svg>`;
 
 // ---------- games in this browser ----------
