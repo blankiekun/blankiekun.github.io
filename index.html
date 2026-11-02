@@ -43,6 +43,9 @@
     const t = JSON.parse(localStorage.getItem('w95.theme') || '{}');
     document.documentElement.dataset.theme = t.dark ? 'dark' : 'light';
     if (t.accent) document.documentElement.style.setProperty('--accent', t.accent);
+    // Pointer scheme from Control Panel > Mouse (js/apps/control.js setCursors and MDEF), which the VNBox player may never load.
+    const m = JSON.parse(localStorage.getItem('w95.mouse') || '{}');
+    if ((m.scheme || (['1.0', '2.0', '3.1'].includes(document.documentElement.dataset.win) ? '' : 'Sakura')) === 'Sakura') document.documentElement.dataset.cursors = 'sakura';
   } catch {}
 </script>
 </head>

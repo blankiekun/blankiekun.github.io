@@ -1,8 +1,9 @@
 // Boots the desktop, registers the programs, and maps the URL hash to windows.
 
 import { register, launch, appInfo, activeWindow, maximize } from './wm.js';
-import { initDesktop, boot } from './desktop.js';
-import { OS } from './version.js';
+import { OS, V } from './version.js';
+import { store } from './util.js';
+import { schemeVars } from './schemes.js';
 import { msgbox } from './dialogs.js';
 import { initScrollbars } from './fxscroll.js';
 
@@ -33,7 +34,9 @@ const LAZY = {
   tour: [['tour', 'blankiekun Tour', 'i-flag', 1]],
 };
 // Modules only the lazy programs import, so the service worker can keep them for offline too.
-const HELPERS = ['filedlg', 'send', 'config', 'helptopics', 'charms', 'apps/cards', 'apps/consfmt', 'apps/conssave', 'apps/consdrive', 'apps/consanki', 'apps/filemgr', 'apps/dosedit', 'assistant'];
+const HELPERS = ['filedlg', 'send', 'config', 'helptopics', 'charms', 'apps/cards', 'apps/consfmt', 'apps/consfiles', 'apps/conssave', 'apps/consdrive', 'apps/consanki', 'apps/filemgr', 'apps/dosedit', 'assistant'];
+// And the desktop, for a first visit to the player alone, which exits to it.
+const DESKTOP = ['desktop', 'taskview', 'shell', 'fs', 'props', 'fileops', 'whatsnew'];
 
 const registerAll = mod => { for (const v of Object.values(mod)) if (v && v.id && v.open) register(v); };
 const loading = {};
@@ -69,15 +72,25 @@ function route(hash) {
 
 // ?app=cons opens just that program, filling the page, with no desktop or taskbar around it.
 const solo = new URLSearchParams(location.search).get('app');
+// VNBox's game shares this page's one thread, so alone it runs with no hidden desktop, idle timers or
+// settings programs behind it. index.html's head script has applied the saved look.
+const lean = solo === 'vnbox';
 
 async function start() {
-  const loaded = await Promise.allSettled(EAGER.map(m => import(`./apps/${m}.js`)));
-  for (const r of loaded) {
-    if (r.status !== 'fulfilled') { console.error(r.reason); continue; }
-    registerAll(r.value);
-    if (r.value.applyDisplay) r.value.applyDisplay();
+  if (lean) {
+    const vars = schemeVars(store.get('w95.display', {})?.scheme || V.scheme);
+    for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty(k, v);
+  } else {
+    const { initDesktop, boot } = await import('./desktop.js');
+    if (!solo) boot();
+    const loaded = await Promise.allSettled(EAGER.map(m => import(`./apps/${m}.js`)));
+    for (const r of loaded) {
+      if (r.status !== 'fulfilled') { console.error(r.reason); continue; }
+      registerAll(r.value);
+      if (r.value.applyDisplay) r.value.applyDisplay();
+    }
+    initDesktop();
   }
-  initDesktop();
   if (solo && appInfo(solo)) {
     const w = await launch(solo);
     if (w) {
@@ -88,6 +101,7 @@ async function start() {
       return;
     }
   }
+  if (lean) return;  // load() has said why it couldn't open
   // Put back the gadgets that were open last visit.
   import('./apps/gadgets.js').then(m => m.reopen());
   window.addEventListener('hashchange', () => {
@@ -98,9 +112,10 @@ async function start() {
   if (!route(location.hash)) launch('ie', 'home');
 }
 
-if (solo) document.body.classList.add('solo'); else boot();
+if (solo) document.body.classList.add('solo');
 start();
-initScrollbars();
+// Where the browser draws the bars itself, only Internet Explorer windows need these, and VNBox has none.
+if (!lean || !CSS.supports('selector(::-webkit-scrollbar)')) initScrollbars();
 
 // Offline: sw.js keeps the site's files as they load. The ones loaded before it ran are handed
 // to it the first time, with the programs not opened yet. CONscripter's engine (5MB, only fetched once a game starts) is not:
@@ -112,6 +127,6 @@ if ('serviceWorker' in navigator) {
     const own = u => new URL(u, location.href).origin === location.origin;
     reg.active.postMessage({ cache: [location.pathname,
       ...performance.getEntriesByType('resource').map(e => e.name).filter(own),
-      ...Object.keys(LAZY).map(m => `js/apps/${m}.js`), ...HELPERS.map(m => `js/${m}.js`)] });
+      ...[...EAGER, ...Object.keys(LAZY)].map(m => `js/apps/${m}.js`), ...[...HELPERS, ...DESKTOP].map(m => `js/${m}.js`)] });
   }).catch(() => {}));
 }

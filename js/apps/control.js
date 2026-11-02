@@ -1016,7 +1016,8 @@ function playName(name) {
         out.connect(actx.destination);
         playing = out;
         const len = fn(actx, out, actx.currentTime + 0.02);
-        setTimeout(() => { if (playing === out) playing = null; try { out.disconnect(); } catch {} }, (len + 0.3) * 1000);
+        // An idle running context keeps an audio thread awake; playName resumes it.
+        setTimeout(() => { if (playing === out) { playing = null; actx.suspend().catch(() => {}); } try { out.disconnect(); } catch {} }, (len + 0.3) * 1000);
       } catch {}
     };
     if (actx.state === 'running') go();
