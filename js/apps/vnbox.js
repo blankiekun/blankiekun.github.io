@@ -735,7 +735,8 @@ function open() {
   const statusText = h('span', null, 'Ready');
   const statusGame = h('span', { class: 'cons-size' }, '');
   const statusSync = h('span', { class: 'cons-saves link', hidden: true, onclick: () => game && syncSaves(game.title, { w: frame, interactive: true, report: true }) });
-  const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSync);
+  const statusSaves = h('span', { class: 'cons-size', hidden: true }, icon('i-warn'), 'Saves not stored');
+  const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSaves, statusSync);
   const say = t => { statusText.textContent = t; };
   const idle = () => say(frame ? 'Playing ' + game.title : 'Ready');
   const error = text => msgbox({ title: 'VNBox', icon: 'error', parent: win, text });
@@ -1002,6 +1003,7 @@ function open() {
     view.replaceChildren(welcome);
     win.setTitle('VNBox');
     statusGame.textContent = '';
+    statusSaves.hidden = true;
     say(msg);
   }
 
@@ -1018,6 +1020,7 @@ function open() {
     for (const [t, j] of jobs) if (j.kind === 'up' && j.started) { j.ctl.abort(); j.ended.then(() => uploadGame(t)); }
     unskip();
     errors = [];
+    statusSaves.hidden = true;
     kept = []; waiting = [];
     win.opts.noScreenSaver = true;
     // g.install: an installer running ({ p, w, args, quiet }, see install), with no hook, tuning or sync.
@@ -1113,11 +1116,19 @@ function open() {
     if (!frame || e.source !== frame.contentWindow || !e.data) return;
     // No Windows program left running: the installer is done.
     if (e.data.type === 'vnbox-exit' && game.install) return finishInstall(true);
+    // The engine's retry worked: nothing is left only in memory.
+    if (e.data.type === 'vnbox-saves-ok') { statusSaves.hidden = true; return; }
     if (e.data.type !== 'vnbox-error') return;
     errors.push(`[${e.data.source}] ${e.data.message}`);
     if (e.data.source === 'lazyfs') {
       stop('The game stopped');
-      error('The game could not be started.\n\n' + e.data.message + '\n\nIf this browser cleared its storage, open the game\'s folder again.');
+      if (/another tab/i.test(e.data.message)) error('This game is already open in another tab.\n\nClose it there, then start it here again.');
+      else error('The game could not be started.\n\n' + e.data.message + '\n\nIf this browser cleared its storage, open the game\'s folder again.');
+    } else if (e.data.source === 'saves') {
+      // The game keeps running and the engine keeps retrying, so this doesn't interrupt it.
+      statusSaves.title = 'Closing the game now loses what you saved since this appeared. If storage is full, allow the site to store data persistently or remove games you don\'t play. ' + e.data.message;
+      statusSaves.hidden = false;
+      say('Your saves aren\'t being stored in this browser (hover the warning for why)');
     } else say('The engine reported an error (Debug > Engine Log)');
   }
   window.addEventListener('message', onMessage);
