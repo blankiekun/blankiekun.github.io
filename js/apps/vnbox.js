@@ -735,7 +735,7 @@ function open() {
   const statusText = h('span', null, 'Ready');
   const statusGame = h('span', { class: 'cons-size' }, '');
   const statusSync = h('span', { class: 'cons-saves link', hidden: true, onclick: () => game && syncSaves(game.title, { w: frame, interactive: true, report: true }) });
-  const statusSaves = h('span', { class: 'cons-size', hidden: true }, icon('i-warn'), 'Saves not stored');
+  const statusSaves = h('span', { class: 'cons-size cons-saves-warn', hidden: true }, icon('i-warn'), 'Saves not stored');
   const status = h('div', { class: 'statusbar' }, statusText, statusGame, statusSaves, statusSync);
   const say = t => { statusText.textContent = t; };
   const idle = () => say(frame ? 'Playing ' + game.title : 'Ready');

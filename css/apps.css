@@ -605,6 +605,8 @@
 .win.cons-full > .titlebar, .win.cons-full > .resize, .cons-full .cons > .statusbar { display: none; }
 body:has(.win.cons-full) .taskbar { display: none; }
 .cons-full .cons { position: relative; }
+/* Unsaved progress is at stake, so this one shows in full screen too. Clicks pass through to the game under it. */
+.cons-full .cons > .statusbar:has(.cons-saves-warn:not([hidden])) { display: flex; position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; background: var(--face); pointer-events: none; }
 .cons-full .cons-view, .cons-full .cons-view.playing { margin: 0; padding: 0; box-shadow: none; }
 .cons-hot { display: none; }
 .cons-full .cons-hot { display: block; position: absolute; top: 0; left: 0; right: 0; height: 8px; z-index: 3; }
