@@ -73,6 +73,10 @@ eq(recent('二行目', 'a'), '二行目');
 eq(recent('三行目', 'a'), '三行目');
 eq(recent('一行目', 'a'), '一行目');
 eq(recent('<br>', 'a'), '');
+// A line sent again without its full-width spaces (信天翁航海録) is not new.
+const spaced = hookCleaner({ recentLines: true });
+eq(spaced('船乗りが　住んでいて'), '船乗りが　住んでいて');
+eq(spaced('船乗りが住んでいて'), '');
 
 eq(suggestCleanup(['少しばかり。', '少しばかり。忍「ところで」', '少しばかり。忍「ところで」行こうか。']), undefined);
 assert.deepEqual(suggestCleanup(['今今日日はは晴晴れれ', '「「おおははよようう」」', 'ままたた明明日日', '行行くくよよ。。']), { repeatedChars: true });

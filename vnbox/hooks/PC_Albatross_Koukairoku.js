@@ -85,11 +85,6 @@ function attach(name, pattern, register) {
 }
 
 trans.replace((/**@type {string}*/ s) => {
-  if (s === previous) {
-    return null;
-  }
-  previous = s;
-
   DEBUG_LOGS && console.warn(JSON.stringify(s));
 
   const cleanedText = new Identity(s)
@@ -99,6 +94,14 @@ trans.replace((/**@type {string}*/ s) => {
     .map((text) => text.replace(/\||\[.+?\]/g, ""))
     .map((text) => text.trim())
     .value();
+
+  // VNBox: the game sends a line up to three times, and the copies can differ in their raw codes or
+  // lose their full-width spaces, so compare the cleaned text with all spaces removed.
+  const key = cleanedText.replace(/\s/g, "");
+  if (key === previous) {
+    return null;
+  }
+  previous = key;
 
   return cleanedText;
 });
