@@ -1120,7 +1120,8 @@ function open() {
     if (e.data.type === 'vnbox-saves-ok') { statusSaves.hidden = true; return; }
     if (e.data.type !== 'vnbox-error') return;
     errors.push(`[${e.data.source}] ${e.data.message}`);
-    if (e.data.source === 'lazyfs') {
+    // Once the game runs it gets a failed read as a file error and may well go on: stopping it here would end it, saves not yet stored included.
+    if (e.data.source === 'lazyfs' && !frame.contentWindow.isRunning) {
       stop('The game stopped');
       if (/another tab/i.test(e.data.message)) error('This game is already open in another tab.\n\nClose it there, then start it here again.');
       else error('The game could not be started.\n\n' + e.data.message + '\n\nIf this browser cleared its storage, open the game\'s folder again.');
@@ -1133,12 +1134,26 @@ function open() {
   }
   window.addEventListener('message', onMessage);
 
+  // A save the engine hasn't written to its database yet goes with the frame, so before removing one wait for it.
+  // After 2 s the visitor decides. False: keep playing. Engines without vnboxStoreSaves don't wait.
+  async function savesStored() {
+    const me = frame, w = me && me.contentWindow;
+    if (!w || !w.vnboxStoreSaves) return true;
+    say('Storing saves...');
+    // The site's own timer too: a frame removed meanwhile (a failed boot) never answers.
+    const stored = await Promise.race([w.vnboxStoreSaves(2000), wait(2500).then(() => false)]);
+    if (stored || frame !== me) return true;
+    return await msgbox({ title: 'VNBox', icon: 'warn', parent: win, buttons: ['&Keep Playing', '&Close Anyway'],
+      text: `${game.title}'s last save isn't stored in this browser yet.\n\nClosing the game now loses it.` }) === 'Close Anyway';
+  }
+
   async function confirmQuit() {
     if (!frame) return true;
     const b = await msgbox({ title: 'VNBox', icon: 'question', parent: win, buttons: ['&Yes', '&No'],
       text: game.install ? `Stop installing ${game.title}?\n\nWhat it has installed so far is removed.` : `Quit ${game.title}?\n\nAnything you haven't saved in the game will be lost.` });
     if (b !== 'Yes') return false;
     if (game.install) { const g = game; stop('Ready'); await dropInstall(g); return true; }
+    if (!(await savesStored())) return false;
     if (drive.enabled()) {
       say('Copying saves to Google Drive...');
       await watchSaves({ leaving: true });
@@ -1804,7 +1819,7 @@ function open() {
     if (running) {
       const b = await msgbox({ title: 'Save Files', icon: 'question', parent: win, buttons: ['OK', 'Cancel'],
         text: `${r.title} stops while its save files are open, and starts again when you close them.\n\nAnything you haven't saved in the game will be lost.` });
-      if (b !== 'OK') return;
+      if (b !== 'OK' || !(await savesStored())) return;
       const g = game;
       stop('The game is stopped while its save files are open');
       await wait(100); // the closed frame lets go of its databases
