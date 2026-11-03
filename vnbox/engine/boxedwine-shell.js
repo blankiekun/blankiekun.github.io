@@ -528,7 +528,7 @@
         }
 
         function getDisableHideCursor() {
-            var disableHideCursor = getParameter("disableHideCursor");
+            var disableHideCursor = vnboxParam("disableHideCursor");
             if (!allowParameterOverride()) {
                 disableHideCursor = DEFAULT_DISABLE_HIDE_CURSOR;
             } else if (disableHideCursor == "true") {
@@ -1238,9 +1238,8 @@
             isRunning = true;
 
             document.getElementById('startbtn').style.display = 'none';
-            if (!isPointerLockEnabled()) {
-                Config.disableHideCursor = true;
-            }
+            // A cursor the game hides (ShowCursor FALSE) stays hidden without pointer lock too, as on Windows;
+            // disableHideCursor=true shows the arrow instead (upstream forced that whenever pointer lock was off).
 
             var params = getEmulatorParams();
             if (!Module['arguments']) {
@@ -2057,7 +2056,7 @@
                 params.push("" + Config.audioFreq);
             }
             // the game fills the screen without a title bar (XWindow::fitToScreen)
-            if (getParameter("fitWindow") == "true") {
+            if (vnboxParam("fitWindow") === "true") {
                 params.push("-fitWindow");
             }
             if (Config.disableHideCursor) {
@@ -2090,6 +2089,16 @@
             if (dllOverrides.length > 0) {
                 params.push("-env");
                 params.push("WINEDLLOVERRIDES=" + dllOverrides);
+            }
+            // cheapGetMessage=0: win32u resets the queue masks on every driver event check again (vn/wine/win32u-getmessage-masks.patch)
+            if (vnboxParam("cheapGetMessage") === "0") {
+                params.push("-env");
+                params.push("WINE_VNBOX_GETMSG_MASKS=0");
+            }
+            // cheapSpi=0: win32u builds SystemParametersInfo(SPI_GETNONCLIENTMETRICS) again on every call (vn/wine/win32u-spi-cache.patch)
+            if (vnboxParam("cheapSpi") === "0") {
+                params.push("-env");
+                params.push("WINE_VNBOX_SPI_CACHE=0");
             }
             Config.wineEnv.forEach(function(value) {
                 params.push("-env");
