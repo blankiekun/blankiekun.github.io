@@ -1143,8 +1143,10 @@ function open() {
     // The site's own timer too: a frame removed meanwhile (a failed boot) never answers.
     const stored = await Promise.race([w.vnboxStoreSaves(2000), wait(2500).then(() => false)]);
     if (stored || frame !== me) return true;
-    return await msgbox({ title: 'VNBox', icon: 'warn', parent: win, buttons: ['&Keep Playing', '&Close Anyway'],
-      text: `${game.title}'s last save isn't stored in this browser yet.\n\nClosing the game now loses it.` }) === 'Close Anyway';
+    if (await msgbox({ title: 'VNBox', icon: 'warn', parent: win, buttons: ['&Keep Playing', '&Close Anyway'],
+      text: `${game.title}'s last save isn't stored in this browser yet.\n\nClosing the game now loses it.` }) === 'Close Anyway') return true;
+    say('The last save isn\'t stored in this browser yet');
+    return false;
   }
 
   async function confirmQuit() {
