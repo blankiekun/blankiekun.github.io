@@ -76,7 +76,7 @@ const ART = `<svg viewBox="0 0 64 56" width="96" height="84" shape-rendering="cr
 
 // ---------- games in this browser ----------
 
-// [{ title, at, size, exe, hook, hooked, res, discs, drive }], newest first (hooked: the hook was picked, by hand or by autoHook): every game here until it's removed.
+// [{ title, at, size, exe, hook, hooked, res, discs, drive }], newest first (hooked: the hook was picked, by hand or by autoHook; hookChecked: picked since a game's own script beats a saved engine hook): every game here until it's removed.
 // Each one has a copy of its files in the site's private storage (the origin private file system), in vn/<title>, where the engine reads them;
 // a game installed from discs keeps their images in vn-discs/ (vninstall.js), for games that check for them.
 const recentGames = () => store.get(RECENT, []);
@@ -860,7 +860,8 @@ function open() {
     game.hook = pick;
     // Off at first: a hook is what fills it.
     if (pick && !showLog) toggleLog();
-    setGame(game.title, { hook: pick === 'file' ? '' : pick, hooked: true });
+    game.hookChecked = true;
+    setGame(game.title, { hook: pick === 'file' ? '' : pick, hooked: true, hookChecked: true });
     boot(game);
   }
   // shortcut: a script from the visitor's computer lasts this visit and can't require() other files; keep its text if people use it
@@ -875,8 +876,8 @@ function open() {
     const list = await hooks();
     if (!list.length) return; // index.json didn't load: try again next start
     g.hook = hookSuggestion(list, { exe: g.exe, names: [g.title], files: await gameFileNames(g.title) }) || '';
-    g.hooked = true;
-    setGame(g.title, { hook: g.hook, hooked: true });
+    g.hooked = g.hookChecked = true;
+    setGame(g.title, { hook: g.hook, hooked: true, hookChecked: true });
     if (g.hook && !showLog) toggleLog();
   }
   function hookUrl(g) {
@@ -1009,9 +1010,10 @@ function open() {
 
   function boot(g) {
     // booting: a game waiting on autoHook, dropped if another starts meanwhile.
-    if (!g.install && !g.hook && !g.hooked) {
+    // A saved engine hook not picked by hand since hookChecked came in gets a new pick: the game's own script wins.
+    if (!g.install && ((!g.hook && !g.hooked) || (g.hook && g.hook.startsWith('engines/') && !g.hookChecked))) {
       booting = g;
-      return autoHook(g).finally(() => { g.hooked = true; if (booting === g && win.el.isConnected) boot(g); });
+      return autoHook(g).finally(() => { g.hooked = g.hookChecked = true; if (booting === g && win.el.isConnected) boot(g); });
     }
     booting = null;
     if (frame) frame.remove();
@@ -1616,7 +1618,7 @@ function open() {
     } catch (e) {
       return copyFailed(`${g.title} could not be copied into this browser.`, e);
     }
-    Object.assign(g, { hook: old ? old.hook : '', hooked: old && old.hooked, res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
+    Object.assign(g, { hook: old ? old.hook : '', hooked: old && old.hooked, hookChecked: old && old.hookChecked, res: old ? old.res : undefined, tuning: old ? old.tuning : '' });
     // Linked from a game's saves in Drive (linkDrive).
     if (link && link !== g.title) g.drive = link;
     delete g.files;

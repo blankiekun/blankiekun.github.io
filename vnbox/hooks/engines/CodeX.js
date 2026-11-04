@@ -173,10 +173,13 @@ const E = L.engine({
     check: { FILE: '*.xfl' },
     certain: false,
     attach() {
-        L.hookGDIFunctions(L.FindFunction('GetGlyphOutlineA')); // 对于部分游戏，文本分两段显示，会吞掉后半段。故此用这个兜底
         const h3 = hook3();
         const x = InsertCodeXHook();
-        return (h3 || x) || h4() || hook() || hook2();
+        if ((h3 || x) || h4() || hook() || hook2()) return true;
+        // VNBox's log takes every hook, so only when no CodeX hook took: both would double each line.
+        // shortcut: a game that shows text in two parts can lose the second (upstream's reason for this hook), restore it if one does.
+        L.hookGDIFunctions(L.FindFunction('GetGlyphOutlineA'));
+        return L.anyHook;
     },
 });
 
